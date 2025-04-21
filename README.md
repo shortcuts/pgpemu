@@ -350,6 +350,7 @@ OK!
 ## Credits
 
 - <https://github.com/yohanes/pgpemu> - Original PGPEMU implementation
+- <https://github.com/spezifisch/pgpemu> - Spezifisch's fork, on which I added webpage configuration
 
 ## References
 
