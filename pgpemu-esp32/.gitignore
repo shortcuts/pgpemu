@@ -3,3 +3,4 @@
 sdkconfig.old
 build
 cert-test
+build.log
