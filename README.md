@@ -10,6 +10,7 @@ You need to dump these secrets yourself from your own original device (see [Refe
 This fork :
 - Updated to ESP-IDF 5.4.1 which added bluedroid support to c3 (BLE mode only)
 - ESP32-C3 Support
+
 Upcoming:
 - Wifi AP and Webpage when booting with button pressed to configure on the go without serial usb.
 
