@@ -2,7 +2,7 @@
 
 #include "esp_log.h"
 #include "esp_system.h"
-#include "esp32/rom/crc.h"
+#include "esp_rom_crc.h"
 #include "nvs_flash.h"
 #include "nvs.h"
 
@@ -190,8 +190,8 @@ uint32_t get_secrets_crc32(uint8_t *mac, uint8_t *key, uint8_t *blob)
     // get CRC checksum for data in given slot
     // same settings as https://docs.python.org/3/library/binascii.html#binascii.crc32
     uint32_t crc = 0;
-    crc = crc32_le(crc, mac, sizeof(PGP_MAC));
-    crc = crc32_le(crc, key, sizeof(PGP_DEVICE_KEY));
-    crc = crc32_le(crc, blob, sizeof(PGP_BLOB));
+    crc = esp_rom_crc32_le(crc, mac, sizeof(PGP_MAC));
+    crc = esp_rom_crc32_le(crc, key, sizeof(PGP_DEVICE_KEY));
+    crc = esp_rom_crc32_le(crc, blob, sizeof(PGP_BLOB));
     return crc;
 }

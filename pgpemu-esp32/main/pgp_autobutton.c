@@ -3,6 +3,7 @@
 #include "freertos/task.h"
 
 #include "esp_system.h"
+#include "esp_random.h"
 #include "esp_log.h"
 #include "esp_bt.h"
 #include "esp_gatts_api.h"

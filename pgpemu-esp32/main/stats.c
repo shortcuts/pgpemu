@@ -92,7 +92,7 @@ static void stats_task(void *pvParameters)
     while (true)
     {
         if (runtime > runtime_max) {
-            ESP_LOGI(STATS_TAG, "stopping runtime counting to avoid flash wear at count %d", runtime);
+            ESP_LOGI(STATS_TAG, "stopping runtime counting to avoid flash wear at count %lu", runtime);
             break;
         }
 
@@ -101,7 +101,7 @@ static void stats_task(void *pvParameters)
 
         runtime++;
         write_runtime(runtime);
-        ESP_LOGD(STATS_TAG, "runtime counter now: %d min", 10 * runtime);
+        ESP_LOGD(STATS_TAG, "runtime counter now: %lu min", 10 * runtime);
     }
 
     vTaskDelete(NULL);

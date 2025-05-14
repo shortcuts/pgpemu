@@ -5,6 +5,7 @@
 #include "esp_gatt_defs.h"
 #include "esp_log.h"
 #include "esp_system.h"
+#include "esp_random.h"
 
 #include "led_output.h"
 #include "log_tags.h"

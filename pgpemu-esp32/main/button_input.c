@@ -2,7 +2,9 @@
 #include "esp_err.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
+#include "freertos/FreeRTOSConfig.h"
 #include "freertos/queue.h"
+#include "freertos/task.h"
 
 #include "button_input.h"
 

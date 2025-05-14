@@ -5,6 +5,7 @@
 #include "mbedtls/base64.h"
 
 #include "uart.h"
+#include "esp_vfs_dev.h" 
 
 #include "config_secrets.h"
 #include "config_storage.h"
@@ -15,6 +16,8 @@
 #include "secrets.h"
 #include "settings.h"
 #include "stats.h"
+#include "freertos/task.h"
+#include <driver/usb_serial_jtag.h>
 
 static const uart_port_t EX_UART_NUM = UART_NUM_0;
 static const int BUF_SIZE = 1024;
@@ -33,25 +36,72 @@ static void uart_target_connections_handler();
 static bool decode_to_buf(char targetType, uint8_t *inBuf, int inBytes);
 static void uart_restart_command();
 
+#if CONFIG_IDF_TARGET_ESP32C3   /* on-chip USB-Serial/JTAG */
+    #define USE_USB_JTAG  1
+#else                           /* ESP32 / S3 -> classic UART0 */
+    #define USE_USB_JTAG  0
+#endif
+
+/*static int silent_vprintf(const char *fmt, va_list ap)
+{
+    return 0;
+}
+
+static vprintf_like_t s_prev_vprintf;
+
+static void switch_to_early_no_timestamp(void)
+{
+    s_prev_vprintf = esp_log_set_vprintf(silent_vprintf); // tiny
+    esp_log_level_set("*", ESP_LOG_NONE);   // stop higher-level logs
+}
+
+static void restore_logging(void)
+{
+    esp_log_set_vprintf(s_prev_vprintf ? s_prev_vprintf : NULL); // default
+    log_levels_init();    
+}*/
+
 void init_uart()
 {
-    /* Configure parameters of an UART driver,
-     * communication pins and install the driver */
-    uart_config_t uart_config = {
-        .baud_rate = 115200,
-        .data_bits = UART_DATA_8_BITS,
-        .parity = UART_PARITY_DISABLE,
-        .stop_bits = UART_STOP_BITS_1,
-        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
-        .rx_flow_ctrl_thresh = 0,
-        .use_ref_tick = 0};
+    #if USE_USB_JTAG
+        //switch_to_early_no_timestamp(); 
+        usb_serial_jtag_driver_config_t cfg = USB_SERIAL_JTAG_DRIVER_CONFIG_DEFAULT();
+        cfg.tx_buffer_size = 256;
+        cfg.rx_buffer_size = 256;
+        ESP_ERROR_CHECK( usb_serial_jtag_driver_install(&cfg) );
+        #pragma GCC diagnostic push
+        #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+            esp_vfs_usb_serial_jtag_use_driver();
+            
+        #pragma GCC diagnostic pop
+        //restore_logging();
 
-    uart_param_config(EX_UART_NUM, &uart_config);
+    #else
+        /* Configure parameters of an UART driver,
+        * communication pins and install the driver */
+        uart_config_t uart_config = {
+            .baud_rate = 115200,
+            .data_bits = UART_DATA_8_BITS,
+            .parity = UART_PARITY_DISABLE,
+            .stop_bits = UART_STOP_BITS_1,
+            .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+            .rx_flow_ctrl_thresh = 0,
+            #if CONFIG_IDF_TARGET_ESP32S3
+            .tx_fifo_watermark   = 0,              
+            #endif
+            .source_clk = UART_SCLK_DEFAULT, 
+        };
 
-    // Set UART pins (using UART0 default pins ie no changes.)
-    uart_set_pin(EX_UART_NUM, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
-    // Install UART driver, and get the queue.
-    uart_driver_install(EX_UART_NUM, BUF_SIZE * 2, BUF_SIZE * 2, 20, &uart0_queue, 0);
+        uart_param_config(EX_UART_NUM, &uart_config);
+
+        // Set UART pins (using UART0 default pins ie no changes.)
+        uart_set_pin(EX_UART_NUM, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
+
+        // Install UART driver, and get the queue.
+        uart_driver_install(UART_NUM_0,
+                                BUF_SIZE * 2, BUF_SIZE * 2,
+                                20, &uart0_queue, 0);
+    #endif
 
     // Create a task to handler UART event from ISR
     xTaskCreate(uart_event_task, "uart_event_task", 4096, NULL, 12, NULL);
@@ -183,7 +233,7 @@ static void uart_event_task(void *pvParameters)
                 }
                 else if (dtmp[0] == 'r')
                 {
-                    ESP_LOGI(UART_TAG, "runtime: %d min", stats_get_runtime());
+                    ESP_LOGI(UART_TAG, "runtime: %lu min", stats_get_runtime());
                 }
                 else if (dtmp[0] == 'R')
                 {
@@ -197,7 +247,7 @@ static void uart_event_task(void *pvParameters)
                     vTaskList(buf);
 
                     ESP_LOGI(UART_TAG, "Task List:\nTask Name\tStatus\tPrio\tHWM\tTask\tAffinity\n%s", buf);
-                    ESP_LOGI(UART_TAG, "Heap free: %d bytes", esp_get_free_heap_size());
+                    ESP_LOGI(UART_TAG, "Heap free: %lu bytes", esp_get_free_heap_size());
                 }
                 else if (dtmp[0] == 'X')
                 {
@@ -371,7 +421,7 @@ static void uart_secrets_handler()
             {
                 // get CRC of scratch buffer
                 uint32_t crc = get_secrets_crc32(tmp_mac, tmp_device_key, tmp_blob);
-                ESP_LOGI(UART_TAG, "slot=tmp crc=%08x", crc);
+                ESP_LOGI(UART_TAG, "slot=tmp crc=%08lx", crc);
                 break;
             }
 
@@ -382,7 +432,7 @@ static void uart_secrets_handler()
                     if (read_secrets_id(chosen_slot, tmp_clone_name, tmp_mac, tmp_device_key, tmp_blob))
                     {
                         uint32_t crc = get_secrets_crc32(tmp_mac, tmp_device_key, tmp_blob);
-                        ESP_LOGI(UART_TAG, "slot=%d crc=%08x", chosen_slot, crc);
+                        ESP_LOGI(UART_TAG, "slot=%d crc=%08lx", chosen_slot, crc);
                     }
                     else
                     {

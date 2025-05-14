@@ -1,10 +1,12 @@
 #ifndef PGP_CERT_H
 #define PGP_CERT_H
 
+#include <stddef.h>
 #include <stdint.h>
 
 #ifdef ESP_PLATFORM
 #include "esp_system.h"
+#include "esp_random.h"
 #include "aes/esp_aes.h"
 
 #define AES_Context esp_aes_context

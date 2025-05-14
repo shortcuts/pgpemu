@@ -15,9 +15,20 @@ typedef struct
     int duration_ms;
 } LedEvent;
 
-static const int CONFIG_GPIO_OUTPUT_RED = GPIO_NUM_27;
-static const int CONFIG_GPIO_OUTPUT_GREEN = GPIO_NUM_26;
-static const int CONFIG_GPIO_OUTPUT_BLUE = GPIO_NUM_25;
+#if   CONFIG_IDF_TARGET_ESP32 || CONFIG_IDF_TARGET_ESP32S3
+    static const int CONFIG_GPIO_OUTPUT_RED   = GPIO_NUM_27;
+    static const int CONFIG_GPIO_OUTPUT_GREEN = GPIO_NUM_26;
+    static const int CONFIG_GPIO_OUTPUT_BLUE  = GPIO_NUM_25;
+
+#elif CONFIG_IDF_TARGET_ESP32C3
+    /* Pick any three free C3 pins; these are just an example. */
+    static const int CONFIG_GPIO_OUTPUT_RED   = GPIO_NUM_21;
+    static const int CONFIG_GPIO_OUTPUT_GREEN = GPIO_NUM_20;
+    static const int CONFIG_GPIO_OUTPUT_BLUE  = GPIO_NUM_19;
+
+#else
+    #error "Unsupported target: please define RGB-LED GPIOs for this chip"
+#endif
 
 static void leds_off();
 static void led_output_task(void *pvParameters);

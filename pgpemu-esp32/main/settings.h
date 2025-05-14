@@ -1,7 +1,10 @@
 #ifndef SETTINGS_H
 #define SETTINGS_H
 
+#include <stdbool.h>
+
 #include "freertos/FreeRTOS.h"
+#include "freertos/FreeRTOSConfig.h"
 #include "freertos/semphr.h"
 
 typedef struct
