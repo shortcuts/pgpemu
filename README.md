@@ -7,7 +7,14 @@ You need to dump these secrets yourself from your own original device (see [Refe
 
 ## Features
 
-This fork adds some features:
+This fork :
+- Updated to ESP-IDF 5.4.1 which added bluedroid support to c3 (BLE mode only)
+- ESP32-C3 Support
+Upcoming:
+- Wifi AP and Webpage when booting with button pressed to configure on the go without serial usb.
+
+Spezifisch's fork added some features:
+https://github.com/spezifisch/pgpemu
 
 - connect up to 4 different devices simultaneously
 - parse LED patterns to detect Pokemon/Pokestops/bag full/box full/Pokeballs empty/etc. and press button only when needed
@@ -26,13 +33,13 @@ This fork adds some features:
 
 Tested with:
 
-- ESP32-WROOM-32 (AZDelivery)
+- ESP32-C3 Supermini
 
 ## Usage
 
 ### Build Firmware
 
-You need ESP-IDF. I'm using v4.4 (stable) installed using the VSCode extension.
+You need ESP-IDF. I'm using v5.4.1 (stable) installed using the VSCode extension.
 To install it use the [Get Started Guide](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/get-started/index.html).
 
 Open the folder `pgpemu-esp32` in VSCode. Run "ESP-IDF Build, Flash and Monitor".
@@ -350,7 +357,7 @@ OK!
 ## Credits
 
 - <https://github.com/yohanes/pgpemu> - Original PGPEMU implementation
-- <https://github.com/spezifisch/pgpemu> - Spezifisch's fork, on which I added webpage configuration
+- <https://github.com/spezifisch/pgpemu> - Spezifisch's fork, on which I added C3 Support and ESP-IDF 5.4.1
 
 ## References
 
