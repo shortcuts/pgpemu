@@ -29,9 +29,8 @@ void app_main()
     ESP_LOGI(PGPEMU_TAG, "reset reason: %d", reset_reason);
 
     //debug stack exhaustion
-    TaskHandle_t main_t = xTaskGetCurrentTaskHandle();
-    ESP_LOGI("DBG", "main stack high-water-mark: %d bytes",
-         uxTaskGetStackHighWaterMark(main_t) * sizeof(StackType_t));
+    //TaskHandle_t main_t = xTaskGetCurrentTaskHandle();
+    //ESP_LOGI("DBG", "main stack high-water-mark: %d bytes", uxTaskGetStackHighWaterMark(main_t) * sizeof(StackType_t));
 
     if (reset_reason == ESP_RST_BROWNOUT)
     {

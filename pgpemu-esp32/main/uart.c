@@ -21,11 +21,6 @@
 #include "settings.h"
 #include "stats.h"
 
-//static const uart_port_t EX_UART_NUM = UART_NUM_0;
-//static const int BUF_SIZE = 1024;
-//static const int RD_BUF_SIZE = BUF_SIZE;
-//static QueueHandle_t uart0_queue;
-
 // scratchpad for reading/writing to nvs
 static char tmp_clone_name[sizeof(PGP_CLONE_NAME)];
 static uint8_t tmp_mac[sizeof(PGP_MAC)];
@@ -62,10 +57,11 @@ static int  console_write(const void *src, size_t len, TickType_t to)
 #define  CONSOLE_GETCHAR(c)   ( console_read((uint8_t*)&(c),1,pdMS_TO_TICKS(10000)) == 1 )
 #define  CONSOLE_PUTS(str)    console_write(str, strlen(str), portMAX_DELAY)
 
-#ifndef CONFIG_IDF_TARGET_ESP32C3
+#if CONFIG_IDF_TARGET_ESP32C3
+static void usb_console_task(void *);      /* USB task   (c3)               */
+#else
 static void console_task(void *);          /* UART task  (esp32/s3)         */
 #endif
-static void usb_console_task(void *);      /* USB task   (c3)               */
 //static void uart_event_task(void *pvParameters);
 static void uart_secrets_handler();
 static void uart_target_connections_handler();
@@ -115,11 +111,9 @@ void init_uart()
                                 BUF_SIZE * 2, BUF_SIZE * 2,
                                 20, &uart0_queue, 0);
 
-        xTaskCreate(usb_console_task, "usb_console", 4096, NULL, 12, NULL);
+        xTaskCreate(console_task, "uart_console", 4096, NULL, 12, NULL);
     #endif
 
-    // Create a task to handler UART event from ISR
-    //xTaskCreate(uart_event_task, "uart_event_task", 4096, NULL, 12, NULL);
 }
 
 static void process_char(uint8_t c)   
@@ -279,8 +273,19 @@ static void process_char(uint8_t c)
     }
 }
 
+/* polling version (USB-Serial-JTAG, ESP32-C3) */
+#if CONFIG_IDF_TARGET_ESP32C3
+static void usb_console_task(void *pv)
+{
+    uint8_t c;
+    for (;;) {
+        if (console_read(&c, 1, pdMS_TO_TICKS(20)) == 1) {
+            process_char(c);
+        }
+    }
+}
+#else
 /* UART queue version (ESP32 / S3) */
-#ifndef CONFIG_IDF_TARGET_ESP32C3
 static void console_task(void *pv)
 {
     uart_event_t evt;
@@ -295,18 +300,7 @@ static void console_task(void *pv)
 }
 #endif
 
-/* polling version (USB-Serial-JTAG, ESP32-C3) */
-#if CONFIG_IDF_TARGET_ESP32C3
-static void usb_console_task(void *pv)
-{
-    uint8_t c;
-    for (;;) {
-        if (console_read(&c, 1, pdMS_TO_TICKS(20)) == 1) {
-            process_char(c);
-        }
-    }
-}
-#endif
+
 
 static void uart_secrets_handler()
 {
