@@ -13,7 +13,7 @@ This fork :
 Upcoming:
 - Wifi AP and Webpage when booting with button pressed to configure on the go without serial usb.
 
-Spezifisch's fork added some features:
+Built on Spezifisch's fork:
 https://github.com/spezifisch/pgpemu
 
 - connect up to 4 different devices simultaneously
