@@ -12,7 +12,7 @@ This fork :
 - ESP32-C3 Supermini Support, much smaller chip and boards than original ESP32.
 - Wifi AP and Webpage to configure settings on the go without usb serial port.
 Hold button (GPIO3 to Ground) on boot to start Wifi AP instead of bluetooth, connect phone to SSID "PGPemu-Setup" and browse to http://192.168.4.1/
-Uses same button GPIO as the button to start/stop advertising in blkuetooth PGP mode, so only one physical push button is needed.
+Uses same button GPIO as the button to start/stop advertising in bluetooth PGP mode, so only one physical push button is needed.
 
 Built on Spezifisch's fork:
 https://github.com/spezifisch/pgpemu
@@ -364,7 +364,7 @@ OK!
 ## Credits
 
 - <https://github.com/yohanes/pgpemu> - Original PGPEMU implementation
-- <https://github.com/spezifisch/pgpemu> - Spezifisch's fork, on which I added Esp32-c3 Support and ESP-IDF 5.4.1
+- <https://github.com/spezifisch/pgpemu> - Spezifisch's fork
 
 ## References
 
