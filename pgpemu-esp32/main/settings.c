@@ -66,6 +66,19 @@ uint8_t get_setting_uint8(uint8_t *var)
     return result;
 }
 
+bool set_setting_bool(bool *var, bool val)
+{
+    if (!var || !xSemaphoreTake(settings.mutex, 10000 / portTICK_PERIOD_MS))
+    {
+        return false;
+    }
+
+    *var = val;
+
+    xSemaphoreGive(settings.mutex);
+    return true;
+}
+
 bool set_setting_uint8(uint8_t *var, const uint8_t val)
 {
     if (!var || !xSemaphoreTake(settings.mutex, portMAX_DELAY))

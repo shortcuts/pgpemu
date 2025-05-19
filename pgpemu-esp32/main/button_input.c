@@ -7,17 +7,21 @@
 #include "freertos/task.h"
 
 #include "button_input.h"
-
 #include "pgp_handshake_multi.h"
 #include "pgp_gap.h"
 #include "led_output.h"
 #include "log_tags.h"
 #include "settings.h"
 
-static const int CONFIG_GPIO_INPUT_BUTTON0 = GPIO_NUM_14;
+static const int CONFIG_GPIO_INPUT_BUTTON0 = GPIO_NUM_3;
 
 static void button_input_task(void *pvParameters);
 static QueueHandle_t button_input_queue;
+
+int get_button_gpio()
+{
+    return CONFIG_GPIO_INPUT_BUTTON0;
+}
 
 static void IRAM_ATTR gpio_isr_handler(void *arg)
 {

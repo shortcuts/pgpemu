@@ -44,6 +44,7 @@ void settings_ready();
 bool toggle_setting(bool *var);
 bool get_setting(bool *var);
 uint8_t get_setting_uint8(uint8_t *var);
+bool set_setting_bool(bool *var, bool val);
 bool set_setting_uint8(uint8_t *var, const uint8_t val);
 bool set_chosen_device(uint8_t id);
 

@@ -22,9 +22,9 @@ typedef struct
 
 #elif CONFIG_IDF_TARGET_ESP32C3
     /* Pick any three free C3 pins; these are just an example. */
-    static const int CONFIG_GPIO_OUTPUT_RED   = GPIO_NUM_21;
-    static const int CONFIG_GPIO_OUTPUT_GREEN = GPIO_NUM_20;
-    static const int CONFIG_GPIO_OUTPUT_BLUE  = GPIO_NUM_19;
+    static const int CONFIG_GPIO_OUTPUT_RED   = GPIO_NUM_4;
+    static const int CONFIG_GPIO_OUTPUT_GREEN = GPIO_NUM_5;
+    static const int CONFIG_GPIO_OUTPUT_BLUE  = GPIO_NUM_2;
 
 #else
     #error "Unsupported target: please define RGB-LED GPIOs for this chip"

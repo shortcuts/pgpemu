@@ -73,7 +73,6 @@ static void uart_restart_command();
 void init_uart()
 {
     #if CONFIG_IDF_TARGET_ESP32C3
-        //switch_to_early_no_timestamp(); 
         usb_serial_jtag_driver_config_t cfg = USB_SERIAL_JTAG_DRIVER_CONFIG_DEFAULT();
         cfg.tx_buffer_size = 256;
         cfg.rx_buffer_size = 256;
@@ -82,7 +81,6 @@ void init_uart()
         #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
         esp_vfs_usb_serial_jtag_use_driver();
         #pragma GCC diagnostic pop
-        //restore_logging();
 
         xTaskCreate(usb_console_task, "usb_console", 4096, NULL, 12, NULL);
     #else
@@ -269,7 +267,20 @@ static void process_char(uint8_t c)
         ESP_LOGI(UART_TAG, "- C - show BT client states");
         ESP_LOGI(UART_TAG, "- r - show runtime counter");
         ESP_LOGI(UART_TAG, "- T - show FreeRTOS task list");
+        ESP_LOGI(UART_TAG, "- f - show all configuration values");
         ESP_LOGI(UART_TAG, "- R - restart");
+    }
+    else if (c == 'f')
+    {
+        ESP_LOGI(UART_TAG, "Autospin: %s", get_setting(&settings.autospin) ? "on" : "off");
+        ESP_LOGI(UART_TAG, "Autocatch: %s", get_setting(&settings.autocatch) ? "on" : "off");
+        ESP_LOGI(UART_TAG, "Powerbank ping: %s", get_setting(&settings.powerbank_ping) ? "on" : "off");
+        ESP_LOGI(UART_TAG, "Show led interactions: %s", get_setting(&settings.led_interactions) ? "on" : "off");
+        ESP_LOGI(UART_TAG, "Input button: %s", get_setting(&settings.use_button) ? "available" : "not available");
+        ESP_LOGI(UART_TAG, "Output led: %s", get_setting(&settings.use_led) ? "available" : "not available");
+        ESP_LOGI(UART_TAG, "Verbose log: %s", get_setting(&settings.verbose) ? "on" : "off");
+        ESP_LOGI(UART_TAG, "Chosen device #: %d - Name: %s", get_setting_uint8(&settings.chosen_device), PGP_CLONE_NAME);
+        ESP_LOGI(UART_TAG, "Connections: %d / Target: %d", get_active_connections(), get_setting_uint8(&settings.target_active_connections));
     }
 }
 

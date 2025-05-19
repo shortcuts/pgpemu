@@ -15,6 +15,8 @@
 #include "settings.h"
 #include "stats.h"
 #include "uart.h"
+#include "setup_button.h"
+#include "config_portal.h"
 
 void app_main()
 {
@@ -27,10 +29,6 @@ void app_main()
     // check reset reason
     esp_reset_reason_t reset_reason = esp_reset_reason();
     ESP_LOGI(PGPEMU_TAG, "reset reason: %d", reset_reason);
-
-    //debug stack exhaustion
-    //TaskHandle_t main_t = xTaskGetCurrentTaskHandle();
-    //ESP_LOGI("DBG", "main stack high-water-mark: %d bytes", uxTaskGetStackHighWaterMark(main_t) * sizeof(StackType_t));
 
     if (reset_reason == ESP_RST_BROWNOUT)
     {
@@ -70,6 +68,24 @@ void app_main()
         ESP_LOGI(PGPEMU_TAG, "output led disabled");
     }
 
+    // read secrets from nvs (settings are safe to use because mutex is still locked)
+    read_secrets_id(settings.chosen_device, PGP_CLONE_NAME, PGP_MAC, PGP_DEVICE_KEY, PGP_BLOB);
+
+    if (!PGP_VALID())
+    {
+        // release mutex
+        settings_ready();
+        ESP_LOGE(PGPEMU_TAG, "NO PGP SECRETS AVAILABLE IN SLOT %d! Set them using secrets_upload.py or chose another using the 'X' menu!", settings.chosen_device);
+        return;
+    }
+
+    // if button is pressed on boot start wifi ap/configuration portal
+    if (setup_button_pressed_on_boot()) {
+        settings_ready();          // release mutex
+        start_config_portal();     // blocks forever
+        return;
+    }
+
     // push button
     if (settings.use_button)
     {
@@ -82,17 +98,6 @@ void app_main()
 
     // make sure we're not turned off
     init_powerbank();
-
-    // read secrets from nvs (settings are safe to use because mutex is still locked)
-    read_secrets_id(settings.chosen_device, PGP_CLONE_NAME, PGP_MAC, PGP_DEVICE_KEY, PGP_BLOB);
-
-    if (!PGP_VALID())
-    {
-        // release mutex
-        settings_ready();
-        ESP_LOGE(PGPEMU_TAG, "NO PGP SECRETS AVAILABLE IN SLOT %d! Set them using secrets_upload.py or chose another using the 'X' menu!", settings.chosen_device);
-        return;
-    }
 
     // runtime counter
     init_stats();

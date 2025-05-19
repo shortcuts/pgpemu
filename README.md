@@ -9,10 +9,10 @@ You need to dump these secrets yourself from your own original device (see [Refe
 
 This fork :
 - Updated to ESP-IDF 5.4.1 which added bluedroid support to c3 (BLE mode only)
-- ESP32-C3 Support
-
-Upcoming:
-- Wifi AP and Webpage when booting with button pressed to configure on the go without serial usb.
+- ESP32-C3 Supermini Support, much smaller chip and boards than original ESP32.
+- Wifi AP and Webpage to configure settings on the go without usb serial port.
+Hold button (GPIO3 to Ground) on boot to start Wifi AP instead of bluetooth, connect phone to SSID "PGPemu-Setup" and browse to http://192.168.4.1/
+Uses same button GPIO as the button to start/stop advertising in blkuetooth PGP mode, so only one physical push button is needed.
 
 Built on Spezifisch's fork:
 https://github.com/spezifisch/pgpemu
@@ -34,7 +34,8 @@ https://github.com/spezifisch/pgpemu
 
 Tested with:
 
-- ESP32-C3 Supermini
+- ESP32-C3 Supermini, draws around 0.05A on average.
+Needs more testing on Esp32 and S3
 
 ## Usage
 
@@ -70,23 +71,28 @@ make doubly sure that your previously opened serial terminal (e.g. ESP-IDF Monit
 Serial menu:
 
 ```text
-I (208804) uart_events: Device: RedPGP
-I (208814) uart_events: User Settings (lost on restart unless saved):
-I (208814) uart_events: - s - toggle PGP autospin
-I (208814) uart_events: - c - toggle PGP autocatch
-I (208824) uart_events: - p - toggle powerbank ping
-I (208824) uart_events: - l - toggle verbose logging
-I (208834) uart_events: - S - save user settings permanently
-I (208834) uart_events: Edit values:
-I (208844) uart_events: - m... - set maximum client connections (eg. 3 clients max. with 'm3', up to 4)
-I (208854) uart_events: - X... - edit secrets (select eg. slot 2 with 'X2!')
-I (208864) uart_events: Commands:
-I (208864) uart_events: - h,? - help
-I (208864) uart_events: - A - start BT advertising again
-I (208874) uart_events: - t - show BT connection times
-I (208884) uart_events: - C - show BT client states
-I (208884) uart_events: - T - show FreeRTOS task list
-I (208894) uart_events: - R - restart
+I (978711) uart_events: User Settings (lost on restart unless saved):
+I (978711) uart_events: - s - toggle PGP autospin
+I (978711) uart_events: - c - toggle PGP autocatch
+I (978711) uart_events: - p - toggle powerbank ping
+I (978711) uart_events: - i - toggle showing autospin/catch actions on LED
+I (978711) uart_events: - l - toggle verbose logging
+I (978711) uart_events: - m... - set maximum client connections (eg. 3 clients max. with 'm3', up to 4)
+I (978711) uart_events: - S - save user settings permanently
+I (978711) uart_events: Hardware Settings (only read at boot time, use 'S' to save):
+I (978711) uart_events: - B - toggle input button available
+I (978711) uart_events: - O - toggle output RGB LED available
+I (978711) uart_events: Commands:
+I (978721) uart_events: - h,? - help
+I (978721) uart_events: - X... - edit secrets mode (select eg. slot 2 with 'X2!')
+I (978721) uart_events: - A - start BT advertising
+I (978721) uart_events: - a - stop BT advertising
+I (978721) uart_events: - t - show BT connection times
+I (978721) uart_events: - C - show BT client states
+I (978721) uart_events: - r - show runtime counter
+I (978721) uart_events: - T - show FreeRTOS task list
+I (978721) uart_events: - f - show all configuration values
+I (978721) uart_events: - R - restart
 ```
 
 ### Development
@@ -358,7 +364,7 @@ OK!
 ## Credits
 
 - <https://github.com/yohanes/pgpemu> - Original PGPEMU implementation
-- <https://github.com/spezifisch/pgpemu> - Spezifisch's fork, on which I added C3 Support and ESP-IDF 5.4.1
+- <https://github.com/spezifisch/pgpemu> - Spezifisch's fork, on which I added Esp32-c3 Support and ESP-IDF 5.4.1
 
 ## References
 
