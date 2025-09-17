@@ -1,4 +1,4 @@
-# Pokemon Go Plus Emulator for ESP32
+# Pokemon Go Plus Emulator for ESP32C3
 
 Autocatcher for Pokemon Go.
 
@@ -7,15 +7,15 @@ You need to dump these secrets yourself from your own original device (see [Refe
 
 ## Features
 
-This fork :
-- Updated to ESP-IDF 5.4.1 which added bluedroid support to c3 (BLE mode only)
+> Added by this fork
+
+- Updated to ESP-IDF 5.4.2 which added bluedroid support to c3 (BLE mode only)
 - ESP32-C3 Supermini Support, much smaller chip and boards than original ESP32.
 - Wifi AP and Webpage to configure settings on the go without usb serial port.
 Hold button (GPIO3 to Ground) on boot to start Wifi AP instead of bluetooth, connect phone to SSID "PGPemu-Setup" and browse to http://192.168.4.1/
 Uses same button GPIO as the button to start/stop advertising in bluetooth PGP mode, so only one physical push button is needed.
 
-Built on Spezifisch's fork:
-https://github.com/spezifisch/pgpemu
+> Provided by Spezifisch's fork: https://github.com/spezifisch/pgpemu
 
 - connect up to 4 different devices simultaneously
 - parse LED patterns to detect Pokemon/Pokestops/bag full/box full/Pokeballs empty/etc. and press button only when needed
@@ -35,22 +35,29 @@ https://github.com/spezifisch/pgpemu
 Tested with:
 
 - ESP32-C3 Supermini, draws around 0.05A on average.
-Needs more testing on Esp32 and S3
+
+Not guaranteed to work with:
+- ESP32
+- ESP32-S3
 
 ## Usage
 
 ### Build Firmware
 
-You need ESP-IDF. I'm using v5.4.1 (stable) installed using the VSCode extension.
-To install it use the [Get Started Guide](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/get-started/index.html).
+You need ESP-IDF v4.5.2, see the [get started with esp-idf for esp32-c3 guide](https://docs.espressif.com/projects/esp-idf/en/stable/esp32c3/get-started/index.html) 
 
-Open the folder `pgpemu-esp32` in VSCode. Run "ESP-IDF Build, Flash and Monitor".
+I'm using the VSCode extension, see the [tools guide](https://docs.espressif.com/projects/vscode-esp-idf-extension/en/latest/installation.html), which requires you to configure the extension in the following way:
+1. Open the folder `pgpemu-esp32` in VSCode.
+2. Shift+⌘+P > ESP-IDF: Select Port to Use > choose your device (e.g. `/dev/tty.usbmodem101`)
+3. Shift+⌘+P > ESP-IDF: Set Espressif Device Target > esp32c3
+4. Shift+⌘+P > ESP-IDF: Select Flash Method > JTAG
+5. Shift+⌘+P > ESP-IDF: Build, Flash and Monitor
 
 ### Upload Secrets
 
 Go to `./secrets`, rename `secrets.example.yaml` to `secrets.yaml` and edit it with your dumped PGP secrets.
 
-You'll need Python 3.9+ and [Poetry](https://python-poetry.org/). Install dependencies:
+You'll need Python 3.8+ and [Poetry](https://python-poetry.org/). Install dependencies:
 
 ```shell
 poetry install --no-root
@@ -63,7 +70,9 @@ Then upload your secrets to your device using:
 poetry run ./secrets_upload.py secrets.yaml /dev/ttyUSB0
 ```
 
-Troubleshooting: If you get `serial.serialutil.SerialException: device reports readiness to read but returned no data (device disconnected or multiple access on port?)`
+#### Troubleshooting
+
+If you get `busy device` or `serial.serialutil.SerialException: device reports readiness to read but returned no data (device disconnected or multiple access on port?)`
 make doubly sure that your previously opened serial terminal (e.g. ESP-IDF Monitor) is stopped.
 
 ### Configuration
