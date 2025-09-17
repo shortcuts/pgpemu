@@ -1,7 +1,6 @@
-#include "esp_log.h"
-
 #include "pgp_gap.h"
 
+#include "esp_log.h"
 #include "log_tags.h"
 #include "pgp_handshake_multi.h"
 #include "settings.h"
@@ -19,78 +18,59 @@ static esp_ble_adv_params_t adv_params = {
     .adv_filter_policy = ADV_FILTER_ALLOW_SCAN_ANY_CON_ANY,
 };
 
-void advertise_if_needed()
-{
+void advertise_if_needed() {
     int target_active_connections = get_setting_uint8(&settings.target_active_connections);
-    if (get_active_connections() < target_active_connections)
-    {
+    if (get_active_connections() < target_active_connections) {
         pgp_advertise();
+    } else {
+        ESP_LOGI(BT_GAP_TAG, "not advertising again, %d connections reached",
+                 target_active_connections);
     }
-    else
-    {
-        ESP_LOGI(BT_GAP_TAG, "not advertising again, %d connections reached", target_active_connections);
-    }
 }
 
-void pgp_advertise()
-{
-    esp_ble_gap_start_advertising(&adv_params);
-}
+void pgp_advertise() { esp_ble_gap_start_advertising(&adv_params); }
 
-void pgp_advertise_stop()
-{
-    esp_ble_gap_stop_advertising();
-}
+void pgp_advertise_stop() { esp_ble_gap_stop_advertising(); }
 
-void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param)
-{
-    switch (event)
-    {
-    case ESP_GAP_BLE_ADV_DATA_RAW_SET_COMPLETE_EVT:
-        adv_config_done &= (~ADV_CONFIG_FLAG);
-        if (adv_config_done == 0)
-        {
-            pgp_advertise();
-        }
-        break;
-    case ESP_GAP_BLE_SCAN_RSP_DATA_RAW_SET_COMPLETE_EVT:
-        adv_config_done &= (~SCAN_RSP_CONFIG_FLAG);
-        if (adv_config_done == 0)
-        {
-            pgp_advertise();
-        }
-        break;
-    case ESP_GAP_BLE_ADV_START_COMPLETE_EVT:
-        /* advertising start complete event to indicate advertising start successfully or failed */
-        if (param->adv_start_cmpl.status != ESP_BT_STATUS_SUCCESS)
-        {
-            ESP_LOGE(BT_GAP_TAG, "advertising start failed");
-        }
-        else
-        {
-            ESP_LOGI(BT_GAP_TAG, "advertising start successful");
-        }
-        break;
-    case ESP_GAP_BLE_ADV_STOP_COMPLETE_EVT:
-        if (param->adv_stop_cmpl.status != ESP_BT_STATUS_SUCCESS)
-        {
-            ESP_LOGE(BT_GAP_TAG, "advertising stop failed");
-        }
-        else
-        {
-            ESP_LOGI(BT_GAP_TAG, "advertising stop successful");
-        }
-        break;
-    case ESP_GAP_BLE_UPDATE_CONN_PARAMS_EVT:
-        ESP_LOGI(BT_GAP_TAG, "update connection params status=%d, min_int=%d, max_int=%d, conn_int=%d, latency=%d, timeout=%d",
-                 param->update_conn_params.status,
-                 param->update_conn_params.min_int,
-                 param->update_conn_params.max_int,
-                 param->update_conn_params.conn_int,
-                 param->update_conn_params.latency,
-                 param->update_conn_params.timeout);
-        break;
-    default:
-        break;
+void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t* param) {
+    switch (event) {
+        case ESP_GAP_BLE_ADV_DATA_RAW_SET_COMPLETE_EVT:
+            adv_config_done &= (~ADV_CONFIG_FLAG);
+            if (adv_config_done == 0) {
+                pgp_advertise();
+            }
+            break;
+        case ESP_GAP_BLE_SCAN_RSP_DATA_RAW_SET_COMPLETE_EVT:
+            adv_config_done &= (~SCAN_RSP_CONFIG_FLAG);
+            if (adv_config_done == 0) {
+                pgp_advertise();
+            }
+            break;
+        case ESP_GAP_BLE_ADV_START_COMPLETE_EVT:
+            /* advertising start complete event to indicate advertising start successfully or failed
+             */
+            if (param->adv_start_cmpl.status != ESP_BT_STATUS_SUCCESS) {
+                ESP_LOGE(BT_GAP_TAG, "advertising start failed");
+            } else {
+                ESP_LOGI(BT_GAP_TAG, "advertising start successful");
+            }
+            break;
+        case ESP_GAP_BLE_ADV_STOP_COMPLETE_EVT:
+            if (param->adv_stop_cmpl.status != ESP_BT_STATUS_SUCCESS) {
+                ESP_LOGE(BT_GAP_TAG, "advertising stop failed");
+            } else {
+                ESP_LOGI(BT_GAP_TAG, "advertising stop successful");
+            }
+            break;
+        case ESP_GAP_BLE_UPDATE_CONN_PARAMS_EVT:
+            ESP_LOGI(BT_GAP_TAG,
+                     "update connection params status=%d, min_int=%d, max_int=%d, conn_int=%d, "
+                     "latency=%d, timeout=%d",
+                     param->update_conn_params.status, param->update_conn_params.min_int,
+                     param->update_conn_params.max_int, param->update_conn_params.conn_int,
+                     param->update_conn_params.latency, param->update_conn_params.timeout);
+            break;
+        default:
+            break;
     }
 }

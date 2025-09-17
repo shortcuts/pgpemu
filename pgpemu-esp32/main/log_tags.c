@@ -1,9 +1,8 @@
-#include "esp_log.h"
-
 #include "log_tags.h"
 
-void log_levels_init()
-{
+#include "esp_log.h"
+
+void log_levels_init() {
     esp_log_level_set(BT_GAP_TAG, ESP_LOG_DEBUG);
     esp_log_level_set(BT_GATTS_TAG, ESP_LOG_DEBUG);
     esp_log_level_set(BT_TAG, ESP_LOG_DEBUG);
@@ -21,8 +20,7 @@ void log_levels_init()
     esp_log_level_set(UART_TAG, ESP_LOG_INFO);
 }
 
-void log_levels_max()
-{
+void log_levels_max() {
     esp_log_level_set(BT_GAP_TAG, ESP_LOG_VERBOSE);
     esp_log_level_set(BT_GATTS_TAG, ESP_LOG_VERBOSE);
     esp_log_level_set(BT_TAG, ESP_LOG_VERBOSE);
@@ -40,8 +38,7 @@ void log_levels_max()
     esp_log_level_set(UART_TAG, ESP_LOG_VERBOSE);
 }
 
-void log_levels_min()
-{
+void log_levels_min() {
     esp_log_level_set(BT_GAP_TAG, ESP_LOG_INFO);
     esp_log_level_set(BT_GATTS_TAG, ESP_LOG_INFO);
     esp_log_level_set(BT_TAG, ESP_LOG_INFO);

@@ -18,6 +18,6 @@ void pgp_advertise();
 // explicitly stop BT advertising
 void pgp_advertise_stop();
 
-void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param);
+void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t* param);
 
 #endif /* PGP_GAP_H */

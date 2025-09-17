@@ -1,9 +1,9 @@
-#include "esp_system.h"
-#include "esp_log.h"
-
 #include "button_input.h"
+#include "config_portal.h"
 #include "config_secrets.h"
 #include "config_storage.h"
+#include "esp_log.h"
+#include "esp_system.h"
 #include "led_output.h"
 #include "log_tags.h"
 #include "pgp_autobutton.h"
@@ -13,13 +13,11 @@
 #include "powerbank.h"
 #include "secrets.h"
 #include "settings.h"
+#include "setup_button.h"
 #include "stats.h"
 #include "uart.h"
-#include "setup_button.h"
-#include "config_portal.h"
 
-void app_main()
-{
+void app_main() {
     // uart menu. put it first because it purges all logs
     init_uart();
 
@@ -30,8 +28,7 @@ void app_main()
     esp_reset_reason_t reset_reason = esp_reset_reason();
     ESP_LOGI(PGPEMU_TAG, "reset reason: %d", reset_reason);
 
-    if (reset_reason == ESP_RST_BROWNOUT)
-    {
+    if (reset_reason == ESP_RST_BROWNOUT) {
         // keep it from bootlooping too quick when powering from low battery
         vTaskDelay(60000 / portTICK_PERIOD_MS);
     }
@@ -45,54 +42,47 @@ void app_main()
     read_stored_settings(false);
 
     // restore log levels
-    if (settings.verbose)
-    {
+    if (settings.verbose) {
         ESP_LOGI(PGPEMU_TAG, "log levels verbose");
         log_levels_max();
-    }
-    else
-    {
+    } else {
         ESP_LOGI(PGPEMU_TAG, "log levels default");
         log_levels_min();
     }
 
     // rgb led
-    if (settings.use_led)
-    {
+    if (settings.use_led) {
         init_led_output();
         // show red
         show_rgb_event(true, false, false, 0);
-    }
-    else
-    {
+    } else {
         ESP_LOGI(PGPEMU_TAG, "output led disabled");
     }
 
     // read secrets from nvs (settings are safe to use because mutex is still locked)
     read_secrets_id(settings.chosen_device, PGP_CLONE_NAME, PGP_MAC, PGP_DEVICE_KEY, PGP_BLOB);
 
-    if (!PGP_VALID())
-    {
+    if (!PGP_VALID()) {
         // release mutex
         settings_ready();
-        ESP_LOGE(PGPEMU_TAG, "NO PGP SECRETS AVAILABLE IN SLOT %d! Set them using secrets_upload.py or chose another using the 'X' menu!", settings.chosen_device);
+        ESP_LOGE(PGPEMU_TAG,
+                 "NO PGP SECRETS AVAILABLE IN SLOT %d! Set them using secrets_upload.py or chose "
+                 "another using the 'X' menu!",
+                 settings.chosen_device);
         return;
     }
 
     // if button is pressed on boot start wifi ap/configuration portal
     if (setup_button_pressed_on_boot()) {
-        settings_ready();          // release mutex
-        start_config_portal();     // blocks forever
+        settings_ready();       // release mutex
+        start_config_portal();  // blocks forever
         return;
     }
 
     // push button
-    if (settings.use_button)
-    {
+    if (settings.use_button) {
         init_button_input();
-    }
-    else
-    {
+    } else {
         ESP_LOGI(PGPEMU_TAG, "input button disabled");
     }
 
@@ -103,23 +93,20 @@ void app_main()
     init_stats();
 
     // start autobutton task
-    if (!init_autobutton())
-    {
+    if (!init_autobutton()) {
         ESP_LOGI(PGPEMU_TAG, "creating button task failed");
         return;
     }
 
     // set clone mac and start bluetooth
-    if (!init_bluetooth())
-    {
+    if (!init_bluetooth()) {
         ESP_LOGI(PGPEMU_TAG, "bluetooth init failed");
         return;
     }
 
     // done
     ESP_LOGI(PGPEMU_TAG, "Device: %s", PGP_CLONE_NAME);
-    ESP_LOGI(PGPEMU_TAG, "MAC: %02x:%02x:%02x:%02x:%02x:%02x",
-             PGP_MAC[0], PGP_MAC[1], PGP_MAC[2],
+    ESP_LOGI(PGPEMU_TAG, "MAC: %02x:%02x:%02x:%02x:%02x:%02x", PGP_MAC[0], PGP_MAC[1], PGP_MAC[2],
              PGP_MAC[3], PGP_MAC[4], PGP_MAC[5]);
     ESP_LOGI(PGPEMU_TAG, "Ready.");
 

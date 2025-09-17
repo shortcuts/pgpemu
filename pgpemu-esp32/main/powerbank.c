@@ -1,22 +1,17 @@
 #include "powerbank.h"
+
+#include "esp_log.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include "log_tags.h"
 #include "settings.h"
 #include "wifi.h"
 
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
+static void powerbank_task(void* pvParameters);
 
-#include "esp_log.h"
+void init_powerbank() { xTaskCreate(powerbank_task, "powerbank_task", 4096, NULL, 10, NULL); }
 
-static void powerbank_task(void *pvParameters);
-
-void init_powerbank()
-{
-    xTaskCreate(powerbank_task, "powerbank_task", 4096, NULL, 10, NULL);
-}
-
-static void powerbank_task(void *pvParameters)
-{
+static void powerbank_task(void* pvParameters) {
     TickType_t previousWakeTime = xTaskGetTickCount();
 
     ESP_LOGI(POWERBANK_TASK_TAG, "task start");
@@ -26,12 +21,9 @@ static void powerbank_task(void *pvParameters)
 
     bool wifi_inited = false;
     bool ok;
-    while (1)
-    {
-        if (get_setting(&settings.powerbank_ping))
-        {
-            if (!wifi_inited)
-            {
+    while (1) {
+        if (get_setting(&settings.powerbank_ping)) {
+            if (!wifi_inited) {
                 wifi_inited = true;
                 init_wifi();
             }

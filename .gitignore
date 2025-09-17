@@ -1,1 +1,3 @@
 .vscode/settings.json
+secrets/secrets.yaml
+pgpemu-esp32/.cache

@@ -16,21 +16,15 @@ Settings settings = {
     .verbose = true,
 };
 
-void init_settings()
-{
+void init_settings() {
     settings.mutex = xSemaphoreCreateMutex();
-    xSemaphoreTake(settings.mutex, portMAX_DELAY); // block until end of this function
+    xSemaphoreTake(settings.mutex, portMAX_DELAY);  // block until end of this function
 }
 
-void settings_ready()
-{
-    xSemaphoreGive(settings.mutex);
-}
+void settings_ready() { xSemaphoreGive(settings.mutex); }
 
-bool toggle_setting(bool *var)
-{
-    if (!var || !xSemaphoreTake(settings.mutex, 10000 / portTICK_PERIOD_MS))
-    {
+bool toggle_setting(bool* var) {
+    if (!var || !xSemaphoreTake(settings.mutex, 10000 / portTICK_PERIOD_MS)) {
         return false;
     }
 
@@ -40,10 +34,8 @@ bool toggle_setting(bool *var)
     return true;
 }
 
-bool get_setting(bool *var)
-{
-    if (!var || !xSemaphoreTake(settings.mutex, portMAX_DELAY))
-    {
+bool get_setting(bool* var) {
+    if (!var || !xSemaphoreTake(settings.mutex, portMAX_DELAY)) {
         return false;
     }
 
@@ -53,10 +45,8 @@ bool get_setting(bool *var)
     return result;
 }
 
-uint8_t get_setting_uint8(uint8_t *var)
-{
-    if (!var || !xSemaphoreTake(settings.mutex, portMAX_DELAY))
-    {
+uint8_t get_setting_uint8(uint8_t* var) {
+    if (!var || !xSemaphoreTake(settings.mutex, portMAX_DELAY)) {
         return 0;
     }
 
@@ -66,10 +56,8 @@ uint8_t get_setting_uint8(uint8_t *var)
     return result;
 }
 
-bool set_setting_bool(bool *var, bool val)
-{
-    if (!var || !xSemaphoreTake(settings.mutex, 10000 / portTICK_PERIOD_MS))
-    {
+bool set_setting_bool(bool* var, bool val) {
+    if (!var || !xSemaphoreTake(settings.mutex, 10000 / portTICK_PERIOD_MS)) {
         return false;
     }
 
@@ -79,10 +67,8 @@ bool set_setting_bool(bool *var, bool val)
     return true;
 }
 
-bool set_setting_uint8(uint8_t *var, const uint8_t val)
-{
-    if (!var || !xSemaphoreTake(settings.mutex, portMAX_DELAY))
-    {
+bool set_setting_uint8(uint8_t* var, const uint8_t val) {
+    if (!var || !xSemaphoreTake(settings.mutex, portMAX_DELAY)) {
         return false;
     }
 
@@ -92,14 +78,11 @@ bool set_setting_uint8(uint8_t *var, const uint8_t val)
     return true;
 }
 
-bool set_chosen_device(uint8_t id)
-{
-    if (!is_valid_secrets_id(id))
-    {
+bool set_chosen_device(uint8_t id) {
+    if (!is_valid_secrets_id(id)) {
         return false;
     }
-    if (!xSemaphoreTake(settings.mutex, portMAX_DELAY))
-    {
+    if (!xSemaphoreTake(settings.mutex, portMAX_DELAY)) {
         return false;
     }
 

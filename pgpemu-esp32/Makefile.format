@@ -1,0 +1,8 @@
+# Format all C source files in the project using clang-format
+
+CLANG_FORMAT ?= clang-format
+
+format:
+	find main -name '*.c' -o -name '*.h' | xargs $(CLANG_FORMAT) -i --style=file
+
+.PHONY: format

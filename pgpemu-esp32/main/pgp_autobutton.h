@@ -5,8 +5,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 
-typedef struct
-{
+typedef struct {
     // which session does this belong to
     esp_gatt_if_t gatts_if;
     uint16_t conn_id;

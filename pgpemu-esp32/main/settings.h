@@ -7,8 +7,7 @@
 #include "freertos/FreeRTOSConfig.h"
 #include "freertos/semphr.h"
 
-typedef struct
-{
+typedef struct {
     // any read/write must lock this
     SemaphoreHandle_t mutex;
 
@@ -35,17 +34,20 @@ typedef struct
 
     // verbose log messages
     bool verbose;
+
+    // very verbose log messages
+    bool very_verbose;
 } Settings;
 
 extern Settings settings;
 
 void init_settings();
 void settings_ready();
-bool toggle_setting(bool *var);
-bool get_setting(bool *var);
-uint8_t get_setting_uint8(uint8_t *var);
-bool set_setting_bool(bool *var, bool val);
-bool set_setting_uint8(uint8_t *var, const uint8_t val);
+bool toggle_setting(bool* var);
+bool get_setting(bool* var);
+uint8_t get_setting_uint8(uint8_t* var);
+bool set_setting_bool(bool* var, bool val);
+bool set_setting_uint8(uint8_t* var, const uint8_t val);
 bool set_chosen_device(uint8_t id);
 
 #endif /* SETTINGS_H */

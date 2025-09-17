@@ -1,49 +1,39 @@
+#include "stats.h"
+
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "log_tags.h"
 #include "nvs.h"
 
-#include "stats.h"
+static void stats_task(void* pvParameters);
 
-#include "log_tags.h"
-
-static void stats_task(void *pvParameters);
-
-static const char *KEY_RUNTIME_10MIN = "runtime10min";
+static const char* KEY_RUNTIME_10MIN = "runtime10min";
 
 static uint32_t runtime = 0;
-static const uint32_t runtime_max = 500; // only count until about 3 days to avoid flash wear
+static const uint32_t runtime_max = 500;  // only count until about 3 days to avoid flash wear
 
-void init_stats()
-{
-    xTaskCreate(stats_task, "stats_task", 2048, NULL, 9, NULL);
-}
+void init_stats() { xTaskCreate(stats_task, "stats_task", 2048, NULL, 9, NULL); }
 
-uint32_t stats_get_runtime()
-{
-    return 10 * runtime;
-}
+uint32_t stats_get_runtime() { return 10 * runtime; }
 
-static uint32_t read_runtime()
-{
+static uint32_t read_runtime() {
     nvs_handle_t handle;
     esp_err_t err = nvs_open("stats", NVS_READONLY, &handle);
-    if (err != ESP_OK)
-    {
-        if (err == ESP_ERR_NVS_NOT_FOUND)
-        {
+    if (err != ESP_OK) {
+        if (err == ESP_ERR_NVS_NOT_FOUND) {
             ESP_LOGW(STATS_TAG, "runtime count initialized with 0");
             return 0;
         }
         ESP_LOGW(STATS_TAG, "%s nvs open failed: %s", __func__, esp_err_to_name(err));
-        return UINT32_MAX; // error
+        return UINT32_MAX;  // error
     }
 
     uint32_t runtime = 0;
     err = nvs_get_u32(handle, KEY_RUNTIME_10MIN, &runtime);
-    if (err != ESP_OK)
-    {
-        ESP_LOGW(STATS_TAG, "%s nvs read %s failed: %s", __func__, KEY_RUNTIME_10MIN, esp_err_to_name(err));
+    if (err != ESP_OK) {
+        ESP_LOGW(STATS_TAG, "%s nvs read %s failed: %s", __func__, KEY_RUNTIME_10MIN,
+                 esp_err_to_name(err));
 
         nvs_close(handle);
         return 0;
@@ -53,20 +43,18 @@ static uint32_t read_runtime()
     return runtime;
 }
 
-static void write_runtime(uint32_t runtime)
-{
+static void write_runtime(uint32_t runtime) {
     nvs_handle_t handle;
     esp_err_t err = nvs_open("stats", NVS_READWRITE, &handle);
-    if (err != ESP_OK)
-    {
+    if (err != ESP_OK) {
         ESP_LOGE(STATS_TAG, "%s nvs open failed: %s", __func__, esp_err_to_name(err));
         return;
     }
 
     err = nvs_set_u32(handle, KEY_RUNTIME_10MIN, runtime);
-    if (err != ESP_OK)
-    {
-        ESP_LOGE(STATS_TAG, "%s nvs write %s failed: %s", __func__, KEY_RUNTIME_10MIN, esp_err_to_name(err));
+    if (err != ESP_OK) {
+        ESP_LOGE(STATS_TAG, "%s nvs write %s failed: %s", __func__, KEY_RUNTIME_10MIN,
+                 esp_err_to_name(err));
         nvs_close(handle);
         return;
     }
@@ -75,13 +63,11 @@ static void write_runtime(uint32_t runtime)
     nvs_close(handle);
 }
 
-static void stats_task(void *pvParameters)
-{
+static void stats_task(void* pvParameters) {
     TickType_t previousWakeTime = xTaskGetTickCount();
     runtime = read_runtime();
 
-    if (runtime == UINT32_MAX)
-    {
+    if (runtime == UINT32_MAX) {
         ESP_LOGE(STATS_TAG, "failed starting task");
         vTaskDelete(NULL);
         return;
@@ -89,10 +75,10 @@ static void stats_task(void *pvParameters)
 
     ESP_LOGI(STATS_TAG, "task start");
 
-    while (true)
-    {
+    while (true) {
         if (runtime > runtime_max) {
-            ESP_LOGI(STATS_TAG, "stopping runtime counting to avoid flash wear at count %lu", runtime);
+            ESP_LOGI(STATS_TAG, "stopping runtime counting to avoid flash wear at count %lu",
+                     runtime);
             break;
         }
 

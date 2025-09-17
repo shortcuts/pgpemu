@@ -1,7 +1,13 @@
+
 # build cert-test for PC to test app/device handshake
 cert-test: main/pc/*.c main/pgp_cert.c main/secrets.c 
 	gcc -Wall -Imain $^ -o cert-test
 
+# build and run nvs_helper unit test
+test-nvs-helper: main/pc/test_nvs_helper.c main/nvs_helper.c
+	gcc -Wall -Imain $^ -o test-nvs-helper
+
+
 .PHONY: clean
 clean:
-	rm -f cert-test
+	rm -f cert-test test-nvs-helper
