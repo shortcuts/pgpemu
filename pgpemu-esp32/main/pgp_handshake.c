@@ -18,7 +18,7 @@ static const bool use_debug_buffer_values = false;
 void handle_pgp_handshake_first(esp_gatt_if_t gatts_if, uint16_t descr_value, uint16_t conn_id) {
     client_state_t* client_state = get_or_create_client_state_entry(conn_id);
     if (!client_state) {
-        ESP_LOGE(HANDSHAKE_TAG, "couldn't get/create client state, conn_id=%d", conn_id);
+        ESP_LOGE(HANDSHAKE_TAG, "[%d] couldn't get/create client state", conn_id);
         return;
     }
 
@@ -64,14 +64,14 @@ void handle_pgp_handshake_first(esp_gatt_if_t gatts_if, uint16_t descr_value, ui
                                          378, client_state->cert_buffer);
         }
 
-        ESP_LOGD(HANDSHAKE_TAG, "start CERT PAIRING, conn_id=%d", conn_id);
+        ESP_LOGD(HANDSHAKE_TAG, "[%d] start CERT PAIRING", conn_id);
         // the size of notify_data[] need less than MTU size
         esp_ble_gatts_send_indicate(gatts_if, conn_id,
                                     certificate_handle_table[IDX_CHAR_SFIDA_COMMANDS_VAL],
                                     sizeof(notify_data), notify_data, false);
     } else if (descr_value == 0x0000) {
         client_state->notify = false;
-        ESP_LOGD(HANDSHAKE_TAG, "notify disable, conn_id=%d", conn_id);
+        ESP_LOGD(HANDSHAKE_TAG, "[%d] notify disable", conn_id);
     } else {
         ESP_LOGE(HANDSHAKE_TAG, "unknown/indicate value");
     }
@@ -81,13 +81,13 @@ void handle_pgp_handshake_second(esp_gatt_if_t gatts_if, const uint8_t* prepare_
                                  uint16_t conn_id) {
     client_state_t* client_state = get_client_state_entry(conn_id);
     if (!client_state) {
-        ESP_LOGE(HANDSHAKE_TAG, "couldn't get client state, conn_id=%d", conn_id);
+        ESP_LOGE(HANDSHAKE_TAG, "[%d] couldn't get client state", conn_id);
         return;
     }
 
     if (client_state->cert_state >= 1) {
-        ESP_LOGD(HANDSHAKE_TAG, "Handshake state=%d, received %d b, conn_id=%d",
-                 client_state->cert_state, datalen, conn_id);
+        ESP_LOGD(HANDSHAKE_TAG, "[%d] Handshake state=%d, received %d b", conn_id,
+                 client_state->cert_state, datalen);
     }
 
     switch (client_state->cert_state) {

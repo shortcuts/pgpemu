@@ -92,9 +92,9 @@ void connection_start(uint16_t conn_id) {
     entry->conn_id = conn_id;
     entry->connection_start = xTaskGetTickCount();
 
-    ESP_LOGI(HANDSHAKE_TAG,
-             "conn_id=%d connected, active_connections=%d, handshake_duration=%lu ms", conn_id,
-             active_connections, pdTICKS_TO_MS(entry->connection_start - entry->handshake_start));
+    ESP_LOGI(HANDSHAKE_TAG, "[%d] connected, active_connections=%d, handshake_duration=%lu ms",
+             conn_id, active_connections,
+             pdTICKS_TO_MS(entry->connection_start - entry->handshake_start));
 }
 
 void connection_update(uint16_t conn_id) {
@@ -128,7 +128,7 @@ void connection_stop(uint16_t conn_id) {
     entry->connection_end = xTaskGetTickCount();
     entry->cert_state = 0;
 
-    ESP_LOGI(HANDSHAKE_TAG, "conn_id=%d was connected for %lu ms", conn_id,
+    ESP_LOGI(HANDSHAKE_TAG, "[%d] was connected for %lu ms", conn_id,
              pdTICKS_TO_MS(entry->connection_end - entry->connection_start));
 
     // TODO: we scrub the client state here. this means we won't know if he has the reconnection key
@@ -137,8 +137,8 @@ void connection_stop(uint16_t conn_id) {
 }
 
 static void dump_client_state(int idx, client_state_t* entry) {
-    ESP_LOGI(HANDSHAKE_TAG, "%d: conn_id=%d, cert_state=%d, recon_key=%d, notify=%d", idx,
-             entry->conn_id, entry->cert_state, entry->has_reconnect_key, entry->notify);
+    ESP_LOGI(HANDSHAKE_TAG, "[%d] %d cert_state=%d, recon_key=%d, notify=%d", entry->conn_id, idx,
+             entry->cert_state, entry->has_reconnect_key, entry->notify);
     ESP_LOGI(HANDSHAKE_TAG, "timestamps: hs=%lu, rc=%lu, cs=%lu, ce=%lu", entry->handshake_start,
              entry->reconnection_at, entry->connection_start, entry->connection_end);
 
@@ -173,7 +173,7 @@ void dump_client_connection_times() {
     for (int i = 0; i < MAX_CONNECTIONS; i++) {
         client_state_t* entry = &client_states[i];
         if (entry->connection_start) {
-            ESP_LOGI(HANDSHAKE_TAG, "- conn_id=%d connected for %lu ms", entry->conn_id,
+            ESP_LOGI(HANDSHAKE_TAG, "[%d] connected for %lu ms", entry->conn_id,
                      pdTICKS_TO_MS(now - entry->connection_start));
         }
     }

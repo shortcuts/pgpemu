@@ -339,8 +339,8 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
             }
         } break;
         case ESP_GATTS_READ_EVT:
-            ESP_LOGI(BT_GATTS_TAG, "ESP_GATTS_READ_EVT: %s, conn_id=%d",
-                     char_name_from_handle(param->read.handle), param->read.conn_id);
+            ESP_LOGD(BT_GATTS_TAG, "[%d] ESP_GATTS_READ_EVT: %s", param->read.conn_id,
+                     char_name_from_handle(param->read.handle));
             if (pgp_get_handshake_state(param->read.conn_id) == 1) {
                 if (esp_log_level_get(BT_GATTS_TAG) >= ESP_LOG_VERBOSE) {
                     ESP_LOGV(BT_GATTS_TAG, "DATA SENT TO APP");
@@ -353,8 +353,8 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
             }
             break;
         case ESP_GATTS_WRITE_EVT:
-            ESP_LOGI(BT_GATTS_TAG, "ESP_GATTS_WRITE_EVT: %s, conn_id=%d",
-                     char_name_from_handle(param->write.handle), param->write.conn_id);
+            ESP_LOGD(BT_GATTS_TAG, "[%d] ESP_GATTS_WRITE_EVT: %s", param->write.conn_id,
+                     char_name_from_handle(param->write.handle));
             if (!param->write.is_prep) {
                 // the data length of gattc write  must be less than MAX_VALUE_LENGTH.
                 ESP_LOGD(BT_GATTS_TAG, "GATT_WRITE_EVT handle=%d, value len=%d",
@@ -423,8 +423,7 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
                      param->start.status, param->start.service_handle);
             break;
         case ESP_GATTS_CONNECT_EVT:
-            ESP_LOGI(BT_GATTS_TAG,
-                     "ESP_GATTS_CONNECT_EVT, conn_id=%d, mac=%02x:%02x:%02x:%02x:%02x:%02x",
+            ESP_LOGD(BT_GATTS_TAG, "[%d] ESP_GATTS_CONNECT_EVT, mac=%02x:%02x:%02x:%02x:%02x:%02x",
                      param->connect.conn_id, param->connect.remote_bda[0],
                      param->connect.remote_bda[1], param->connect.remote_bda[2],
                      param->connect.remote_bda[3], param->connect.remote_bda[4],
