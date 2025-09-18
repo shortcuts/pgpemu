@@ -1,6 +1,7 @@
 #ifndef LED_OUTPUT_H
 #define LED_OUTPUT_H
 
+#include <stdbool.h>
 void init_led_output();
 
 // leds turn off after given duration. set duration to 0 to keep leds on until next event.

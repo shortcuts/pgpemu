@@ -1,5 +1,4 @@
 #include "button_input.h"
-#include "config_portal.h"
 #include "config_secrets.h"
 #include "config_storage.h"
 #include "esp_log.h"
@@ -72,11 +71,9 @@ void app_main() {
         return;
     }
 
-    // if button is pressed on boot start wifi ap/configuration portal
     if (setup_button_pressed_on_boot()) {
-        settings_ready();       // release mutex
-        start_config_portal();  // blocks forever
-        return;
+        settings_ready();  // release mutex
+        ESP_LOGI(PGPEMU_TAG, "setup button pressed on boot; continuing startup");
     }
 
     // push button

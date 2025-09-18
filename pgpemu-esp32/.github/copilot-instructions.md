@@ -1,16 +1,17 @@
 # Copilot Instructions for `pgpemu-esp32`
 
 ## Project Overview
-- **Purpose:** Emulates a Pokémon GO Plus device on ESP32-C3 hardware, providing BLE, button, LED, and WiFi captive portal functionality.
-- **Structure:**
-  - All main logic is in `main/` (e.g., `pgp_gatts.c`, `pgp_gap.c`, `pgp_handshake.c`, `config_portal.c`).
+  - All main logic is in `main/` (e.g., `pgp_gatts.c`, `pgp_gap.c`, `pgp_handshake.c`).
+ **Purpose:** Emulates a Pokémon GO Plus device on ESP32-C3 hardware, providing BLE, button, and LED functionality.
+ **Structure:**
+   - All main logic is in `main/` (e.g., `pgp_gatts.c`, `pgp_gap.c`, `pgp_handshake.c`).
   - Uses ESP-IDF build system (CMake/Makefile) and ESP-IDF APIs for BLE, WiFi, NVS, etc.
   - `build/` is generated; do not edit.
 
 ## Key Components
 - **BLE GATT Server:** `pgp_gatts.c`, `pgp_gap.c`, `pgp_gatts_debug.c` handle BLE services and device advertising.
 - **Button/LED:** `button_input.c`, `led_output.c`, `pgp_led_handler.c` manage hardware I/O.
-- **WiFi Setup Portal:** `config_portal.c`, `captive_dns.c` provide a captive portal for device configuration.
+ 
 - **Secrets/Settings:** `config_secrets.c`, `settings.c`, `nvs_helper.c` manage persistent storage in NVS.
 - **Certificates:** `pgp_cert.c` and related files handle device certificates for authentication.
 - **PC Test Harness:** `main/pc/` and `Makefile.test` allow building a test binary (`cert-test`) for handshake/cert logic on a PC.
