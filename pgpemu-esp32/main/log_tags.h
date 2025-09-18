@@ -2,13 +2,13 @@
 #define LOG_TAGS_H
 
 // before initialization
-void log_levels_init();
+void log_levels_debug();
 
 // everything verbose
-void log_levels_max();
+void log_levels_verbose();
 
 // more manageable outputs
-void log_levels_min();
+void log_levels_info();
 
 static const char BT_GAP_TAG[] = "pgp_bt_gap";
 static const char BT_GATTS_TAG[] = "pgp_bt_gatts";

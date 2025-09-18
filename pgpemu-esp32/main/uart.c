@@ -1,6 +1,7 @@
 #include "driver/uart.h"
 
 #include <stdarg.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -153,17 +154,19 @@ static void process_char(uint8_t c) {
         ESP_LOGI(UART_TAG, "output led %s",
                  get_setting(&settings.use_led) ? "available" : "not available");
     } else if (c == 'l') {
-        // toggle verbose logging
-        if (!toggle_setting(&settings.verbose)) {
+        // cycle through log levels
+        if (!cycle_setting(&settings.log_level, 1, 3)) {
             ESP_LOGE(UART_TAG, "failed!");
         }
-        bool new_state = get_setting(&settings.verbose);
-        if (new_state) {
-            log_levels_max();
+        uint8_t log_level = get_setting_uint8(&settings.log_level);
+        if (log_level == 3) {
+            log_levels_verbose();
+        } else if (log_level == 2) {
+            log_levels_info();
         } else {
-            log_levels_min();
+            log_levels_debug();
         }
-        ESP_LOGI(UART_TAG, "verbose %s", new_state ? "on" : "off");
+        ESP_LOGI(UART_TAG, "log level %d", log_level);
     } else if (c == 'A') {
         ESP_LOGI(UART_TAG, "starting advertising");
         pgp_advertise();
@@ -230,7 +233,7 @@ static void process_char(uint8_t c) {
                  get_setting(&settings.use_button) ? "available" : "not available");
         ESP_LOGI(UART_TAG, "Output led: %s",
                  get_setting(&settings.use_led) ? "available" : "not available");
-        ESP_LOGI(UART_TAG, "Verbose log: %s", get_setting(&settings.verbose) ? "on" : "off");
+        ESP_LOGI(UART_TAG, "Log level: %d", get_setting_uint8(&settings.log_level));
         ESP_LOGI(UART_TAG, "Chosen device #: %d - Name: %s",
                  get_setting_uint8(&settings.chosen_device), PGP_CLONE_NAME);
         ESP_LOGI(UART_TAG, "Connections: %d / Target: %d", get_active_connections(),

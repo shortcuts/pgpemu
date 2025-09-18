@@ -1,5 +1,7 @@
 #include "settings.h"
 
+#include <stdint.h>
+
 #include "config_secrets.h"
 
 // runtime settings
@@ -13,7 +15,7 @@ Settings settings = {
     .use_button = false,
     .use_led = false,
     .led_interactions = true,
-    .verbose = true,
+    .log_level = 1,
 };
 
 void init_settings() {
@@ -22,6 +24,21 @@ void init_settings() {
 }
 
 void settings_ready() { xSemaphoreGive(settings.mutex); }
+
+bool cycle_setting(uint8_t* var, uint8_t min, uint8_t max) {
+    if (!var || !min || !max || !xSemaphoreTake(settings.mutex, 10000 / portTICK_PERIOD_MS)) {
+        return false;
+    }
+
+    (*var)++;
+
+    if (*var > max) {
+        *var = min;
+    }
+
+    xSemaphoreGive(settings.mutex);
+    return true;
+}
 
 bool toggle_setting(bool* var) {
     if (!var || !xSemaphoreTake(settings.mutex, 10000 / portTICK_PERIOD_MS)) {

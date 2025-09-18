@@ -21,7 +21,7 @@ void app_main() {
     init_uart();
 
     // set log levels which let init msgs through
-    log_levels_init();
+    log_levels_debug();
 
     // check reset reason
     esp_reset_reason_t reset_reason = esp_reset_reason();
@@ -41,12 +41,15 @@ void app_main() {
     read_stored_settings(false);
 
     // restore log levels
-    if (settings.verbose) {
+    if (settings.log_level == 3) {
         ESP_LOGI(PGPEMU_TAG, "log levels verbose");
-        log_levels_max();
+        log_levels_verbose();
+    } else if (settings.log_level == 2) {
+        ESP_LOGI(PGPEMU_TAG, "log levels info");
+        log_levels_info();
     } else {
-        ESP_LOGI(PGPEMU_TAG, "log levels default");
-        log_levels_min();
+        ESP_LOGI(PGPEMU_TAG, "log levels debug");
+        log_levels_debug();
     }
 
     // rgb led

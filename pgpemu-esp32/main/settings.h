@@ -32,8 +32,8 @@ typedef struct {
     // show pokestop/pokemon interactions using the LED (errors like "bag full" are always shown)
     bool led_interactions;
 
-    // verbose log messages
-    bool verbose;
+    // 1 = debug, 2 = info, 3 = verbose
+    uint8_t log_level;
 
     // very verbose log messages
     bool very_verbose;
@@ -44,6 +44,7 @@ extern Settings settings;
 void init_settings();
 void settings_ready();
 bool toggle_setting(bool* var);
+bool cycle_setting(uint8_t* var, uint8_t min, uint8_t max);
 bool get_setting(bool* var);
 uint8_t get_setting_uint8(uint8_t* var);
 bool set_setting_bool(bool* var, bool val);
