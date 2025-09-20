@@ -139,8 +139,8 @@ def main():
             print_line(line)
             if not f"slot={i}".encode("utf8") in line:
                 print("failed selecting slot:", line)
-                break
-            
+                continue
+
             if not serial_command(ser, "N", secret.name):
                 break
             if not serial_command(ser, "M", secret.mac):
