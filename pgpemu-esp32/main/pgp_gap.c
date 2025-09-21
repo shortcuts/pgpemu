@@ -69,7 +69,8 @@ void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t* par
     case ESP_GAP_BLE_AUTH_CMPL_EVT:
         ESP_LOGI(BT_GAP_TAG, "New bonding done with device %d", esp_ble_get_bond_device_num());
         break;
-    case ESP_GAP_BLE_SEC_REQ_EVT | ESP_GAP_BLE_PASSKEY_REQ_EVT:
+    case ESP_GAP_BLE_PASSKEY_REQ_EVT:
+    case ESP_GAP_BLE_SEC_REQ_EVT:
         ESP_LOGI(BT_GAP_TAG, "Bond not found");
         break;
     case ESP_GAP_BLE_UPDATE_CONN_PARAMS_EVT:
