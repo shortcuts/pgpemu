@@ -1,13 +1,13 @@
 #ifndef PGP_HANDSHAKE_MULTI_H
 #define PGP_HANDSHAKE_MULTI_H
 
-#include <portmacro.h>
-#include <stdbool.h>
-#include <stdint.h>
-
 #include "freertos/FreeRTOS.h"
 #include "freertos/FreeRTOSConfig.h"
 #include "freertos/task.h"
+
+#include <portmacro.h>
+#include <stdbool.h>
+#include <stdint.h>
 
 static const size_t CERT_BUFFER_LEN = 378;
 

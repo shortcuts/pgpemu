@@ -1,8 +1,8 @@
 #include "settings.h"
 
-#include <stdint.h>
-
 #include "config_secrets.h"
+
+#include <stdint.h>
 
 // runtime settings
 Settings settings = {
@@ -11,10 +11,7 @@ Settings settings = {
     .target_active_connections = 1,
     .autocatch = true,
     .autospin = true,
-    .powerbank_ping = false,
     .use_button = false,
-    .use_led = false,
-    .led_interactions = true,
     .log_level = 1,
 };
 
@@ -23,7 +20,9 @@ void init_settings() {
     xSemaphoreTake(settings.mutex, portMAX_DELAY);  // block until end of this function
 }
 
-void settings_ready() { xSemaphoreGive(settings.mutex); }
+void settings_ready() {
+    xSemaphoreGive(settings.mutex);
+}
 
 bool cycle_setting(uint8_t* var, uint8_t min, uint8_t max) {
     if (!var || !min || !max || !xSemaphoreTake(settings.mutex, 10000 / portTICK_PERIOD_MS)) {
@@ -71,17 +70,6 @@ uint8_t get_setting_uint8(uint8_t* var) {
 
     xSemaphoreGive(settings.mutex);
     return result;
-}
-
-bool set_setting_bool(bool* var, bool val) {
-    if (!var || !xSemaphoreTake(settings.mutex, 10000 / portTICK_PERIOD_MS)) {
-        return false;
-    }
-
-    *var = val;
-
-    xSemaphoreGive(settings.mutex);
-    return true;
 }
 
 bool set_setting_uint8(uint8_t* var, const uint8_t val) {

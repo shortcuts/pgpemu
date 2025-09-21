@@ -53,15 +53,21 @@ static void autobutton_task(void* pvParameters) {
             button_pattern &= 0x03ff;  // just to be safe
 
             // make little endian byte array for sending
-            uint8_t notify_data[2] = {(button_pattern >> 8) & 0x03, button_pattern & 0xff};
+            uint8_t notify_data[2] = { (button_pattern >> 8) & 0x03, button_pattern & 0xff };
 
-            ESP_LOGI(BUTTON_TASK_TAG, "[%d] pressing button delay=%d ms, duration=%d ms",
-                     item.conn_id, item.delay, press_duration * 50);
+            ESP_LOGD(BUTTON_TASK_TAG,
+                "[%d] pressing button delay=%d ms, duration=%d ms",
+                item.conn_id,
+                item.delay,
+                press_duration * 50);
             vTaskDelay(item.delay / portTICK_PERIOD_MS);
 
-            esp_ble_gatts_send_indicate(item.gatts_if, item.conn_id,
-                                        led_button_handle_table[IDX_CHAR_BUTTON_VAL],
-                                        sizeof(notify_data), notify_data, false);
+            esp_ble_gatts_send_indicate(item.gatts_if,
+                item.conn_id,
+                led_button_handle_table[IDX_CHAR_BUTTON_VAL],
+                sizeof(notify_data),
+                notify_data,
+                false);
         }
     }
 

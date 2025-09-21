@@ -20,9 +20,7 @@ static const char CONFIG_SECRETS_TAG[] = "config_secrets";
 static const char CONFIG_STORAGE_TAG[] = "config_storage";
 static const char HANDSHAKE_TAG[] = "pgp_handshake";
 static const char LEDHANDLER_TAG[] = "pgp_led";
-static const char LEDOUTPUT_TAG[] = "led_output";
 static const char PGPEMU_TAG[] = "PGPEMU";
-static const char POWERBANK_TASK_TAG[] = "powerbank";
 static const char STATS_TAG[] = "stats";
 static const char UART_TAG[] = "uart_events";
 

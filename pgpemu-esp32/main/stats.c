@@ -13,9 +13,13 @@ static const char* KEY_RUNTIME_10MIN = "runtime10min";
 static uint32_t runtime = 0;
 static const uint32_t runtime_max = 500;  // only count until about 3 days to avoid flash wear
 
-void init_stats() { xTaskCreate(stats_task, "stats_task", 2048, NULL, 9, NULL); }
+void init_stats() {
+    xTaskCreate(stats_task, "stats_task", 2048, NULL, 9, NULL);
+}
 
-uint32_t stats_get_runtime() { return 10 * runtime; }
+uint32_t stats_get_runtime() {
+    return 10 * runtime;
+}
 
 static uint32_t read_runtime() {
     nvs_handle_t handle;
@@ -32,8 +36,11 @@ static uint32_t read_runtime() {
     uint32_t runtime = 0;
     err = nvs_get_u32(handle, KEY_RUNTIME_10MIN, &runtime);
     if (err != ESP_OK) {
-        ESP_LOGW(STATS_TAG, "%s nvs read %s failed: %s", __func__, KEY_RUNTIME_10MIN,
-                 esp_err_to_name(err));
+        ESP_LOGW(STATS_TAG,
+            "%s nvs read %s failed: %s",
+            __func__,
+            KEY_RUNTIME_10MIN,
+            esp_err_to_name(err));
 
         nvs_close(handle);
         return 0;
@@ -53,8 +60,11 @@ static void write_runtime(uint32_t runtime) {
 
     err = nvs_set_u32(handle, KEY_RUNTIME_10MIN, runtime);
     if (err != ESP_OK) {
-        ESP_LOGE(STATS_TAG, "%s nvs write %s failed: %s", __func__, KEY_RUNTIME_10MIN,
-                 esp_err_to_name(err));
+        ESP_LOGE(STATS_TAG,
+            "%s nvs write %s failed: %s",
+            __func__,
+            KEY_RUNTIME_10MIN,
+            esp_err_to_name(err));
         nvs_close(handle);
         return;
     }
@@ -77,8 +87,8 @@ static void stats_task(void* pvParameters) {
 
     while (true) {
         if (runtime > runtime_max) {
-            ESP_LOGI(STATS_TAG, "stopping runtime counting to avoid flash wear at count %lu",
-                     runtime);
+            ESP_LOGI(
+                STATS_TAG, "stopping runtime counting to avoid flash wear at count %lu", runtime);
             break;
         }
 

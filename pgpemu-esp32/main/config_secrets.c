@@ -1,7 +1,5 @@
 #include "config_secrets.h"
 
-#include <string.h>
-
 #include "esp_log.h"
 #include "esp_rom_crc.h"
 #include "esp_system.h"
@@ -11,13 +9,17 @@
 #include "nvs_helper.h"
 #include "secrets.h"
 
+#include <string.h>
+
 // nvs keys
 static const char KEY_CLONE_NAME[] = "name";
 static const char KEY_MAC[] = "mac";
 static const char KEY_DEVICE_KEY[] = "dkey";
 static const char KEY_BLOB[] = "blob";
 
-bool is_valid_secrets_id(uint8_t id) { return id <= 9; }
+bool is_valid_secrets_id(uint8_t id) {
+    return id <= 9;
+}
 
 static bool open_secrets_id(uint8_t id, nvs_open_mode_t openMode, nvs_handle_t* outHandle) {
     if (!outHandle) {
@@ -48,8 +50,8 @@ void show_secrets_slots() {
 
     for (int i = 0; i < 10; i++) {
         namespace[strlen("pgpsecret_")] = '0' + i;
-        char name[sizeof(PGP_CLONE_NAME)] = {0};
-        char mac[sizeof(PGP_MAC)] = {0};
+        char name[sizeof(PGP_CLONE_NAME)] = { 0 };
+        char mac[sizeof(PGP_MAC)] = { 0 };
 
         bool gotData = false;
         err = nvs_open(namespace, NVS_READONLY, &handle);
@@ -70,8 +72,16 @@ void show_secrets_slots() {
         }
 
         if (gotData) {
-            ESP_LOGI(CONFIG_SECRETS_TAG, "- %s: device=%s mac=%02x:%02x:%02x:%02x:%02x:%02x",
-                     namespace, name, mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+            ESP_LOGI(CONFIG_SECRETS_TAG,
+                "- %s: device=%s mac=%02x:%02x:%02x:%02x:%02x:%02x",
+                namespace,
+                name,
+                mac[0],
+                mac[1],
+                mac[2],
+                mac[3],
+                mac[4],
+                mac[5]);
         } else {
             ESP_LOGI(CONFIG_SECRETS_TAG, "- %s: (none)", namespace);
         }

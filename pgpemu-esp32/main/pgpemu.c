@@ -3,13 +3,11 @@
 #include "config_storage.h"
 #include "esp_log.h"
 #include "esp_system.h"
-#include "led_output.h"
 #include "log_tags.h"
 #include "pgp_autobutton.h"
 #include "pgp_bluetooth.h"
 #include "pgp_gap.h"
 #include "pgp_gatts.h"
-#include "powerbank.h"
 #include "secrets.h"
 #include "settings.h"
 #include "setup_button.h"
@@ -52,15 +50,6 @@ void app_main() {
         log_levels_debug();
     }
 
-    // rgb led
-    if (settings.use_led) {
-        init_led_output();
-        // show red
-        show_rgb_event(true, false, false, 0);
-    } else {
-        ESP_LOGI(PGPEMU_TAG, "output led disabled");
-    }
-
     // read secrets from nvs (settings are safe to use because mutex is still locked)
     read_secrets_id(settings.chosen_device, PGP_CLONE_NAME, PGP_MAC, PGP_DEVICE_KEY, PGP_BLOB);
 
@@ -68,9 +57,9 @@ void app_main() {
         // release mutex
         settings_ready();
         ESP_LOGE(PGPEMU_TAG,
-                 "NO PGP SECRETS AVAILABLE IN SLOT %d! Set them using secrets_upload.py or chose "
-                 "another using the 'X' menu!",
-                 settings.chosen_device);
+            "NO PGP SECRETS AVAILABLE IN SLOT %d! Set them using secrets_upload.py or chose "
+            "another using the 'X' menu!",
+            settings.chosen_device);
         return;
     }
 
@@ -85,9 +74,6 @@ void app_main() {
     } else {
         ESP_LOGI(PGPEMU_TAG, "input button disabled");
     }
-
-    // make sure we're not turned off
-    init_powerbank();
 
     // runtime counter
     init_stats();
@@ -106,15 +92,16 @@ void app_main() {
 
     // done
     ESP_LOGI(PGPEMU_TAG, "Device: %s", PGP_CLONE_NAME);
-    ESP_LOGI(PGPEMU_TAG, "MAC: %02x:%02x:%02x:%02x:%02x:%02x", PGP_MAC[0], PGP_MAC[1], PGP_MAC[2],
-             PGP_MAC[3], PGP_MAC[4], PGP_MAC[5]);
+    ESP_LOGI(PGPEMU_TAG,
+        "MAC: %02x:%02x:%02x:%02x:%02x:%02x",
+        PGP_MAC[0],
+        PGP_MAC[1],
+        PGP_MAC[2],
+        PGP_MAC[3],
+        PGP_MAC[4],
+        PGP_MAC[5]);
     ESP_LOGI(PGPEMU_TAG, "Ready.");
 
     // make settings available
     settings_ready();
-
-    // show green for 1 s
-    show_rgb_event(false, true, false, 1000);
-    // show blue until someone connects
-    show_rgb_event(false, false, true, 0);
 }

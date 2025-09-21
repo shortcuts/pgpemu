@@ -1,7 +1,5 @@
 #include "pgp_bluetooth.h"
 
-#include <string.h>
-
 #include "esp_bt.h"
 #include "esp_bt_main.h"
 #include "esp_gap_ble_api.h"
@@ -14,6 +12,8 @@
 #include "pgp_gatts.h"
 #include "pgp_handshake_multi.h"
 #include "secrets.h"
+
+#include <string.h>
 
 static const uint16_t ESP_APP_ID = 0x55;
 

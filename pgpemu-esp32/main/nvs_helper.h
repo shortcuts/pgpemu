@@ -1,9 +1,9 @@
 #ifndef NVS_HELPER_H
 #define NVS_HELPER_H
 
-#include <stdbool.h>
-
 #include "esp_system.h"
+
+#include <stdbool.h>
 
 /**
  * @brief Check result of NVS read operation and log warning/error if needed.

@@ -1,8 +1,8 @@
 // Minimal unit test for nvs_helper.c (PC build)
+#include "nvs_helper.h"
+
 #include <assert.h>
 #include <stdio.h>
-
-#include "nvs_helper.h"
 
 // Dummy error codes for PC test
 #define ESP_OK 0

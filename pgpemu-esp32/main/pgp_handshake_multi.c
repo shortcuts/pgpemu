@@ -1,24 +1,27 @@
 #include "pgp_handshake_multi.h"
 
-#include <string.h>
-
 #include "esp_log.h"
-#include "led_output.h"
 #include "log_tags.h"
+
+#include <string.h>
 
 static int active_connections = 0;
 
 #define MAX_CONNECTIONS CONFIG_BT_ACL_CONNECTIONS
 
 // map which cert_states index corresponds to which conn_id
-static uint16_t conn_id_map[MAX_CONNECTIONS] = {0};
+static uint16_t conn_id_map[MAX_CONNECTIONS] = { 0 };
 
 // keep track of handshake state per connection
-static client_state_t client_states[MAX_CONNECTIONS] = {0};
+static client_state_t client_states[MAX_CONNECTIONS] = { 0 };
 
-void init_handshake_multi() { memset(conn_id_map, 0xff, sizeof(conn_id_map)); }
+void init_handshake_multi() {
+    memset(conn_id_map, 0xff, sizeof(conn_id_map));
+}
 
-int get_active_connections() { return active_connections; }
+int get_active_connections() {
+    return active_connections;
+}
 
 client_state_t* get_client_state_entry(uint16_t conn_id) {
     for (int i = 0; i < MAX_CONNECTIONS; i++) {
@@ -84,17 +87,15 @@ void connection_start(uint16_t conn_id) {
         ESP_LOGE(HANDSHAKE_TAG, "connection_start: conn_id %d unknown", conn_id);
         return;
     }
-    if (active_connections == 1) {
-        // turn leds off
-        show_rgb_event(false, false, false, 0);
-    }
 
     entry->conn_id = conn_id;
     entry->connection_start = xTaskGetTickCount();
 
-    ESP_LOGI(HANDSHAKE_TAG, "[%d] connected, active_connections=%d, handshake_duration=%lu ms",
-             conn_id, active_connections,
-             pdTICKS_TO_MS(entry->connection_start - entry->handshake_start));
+    ESP_LOGI(HANDSHAKE_TAG,
+        "[%d] connected, active_connections=%d, handshake_duration=%lu ms",
+        conn_id,
+        active_connections,
+        pdTICKS_TO_MS(entry->connection_start - entry->handshake_start));
 }
 
 void connection_update(uint16_t conn_id) {
@@ -114,10 +115,6 @@ void connection_stop(uint16_t conn_id) {
         ESP_LOGE(HANDSHAKE_TAG, "we counted connections wrong!");
         active_connections = 0;
     }
-    if (active_connections == 0) {
-        // show blue as long as nobody is connected
-        show_rgb_event(false, false, true, 0);
-    }
 
     client_state_t* entry = get_client_state_entry(conn_id);
     if (!entry) {
@@ -128,19 +125,28 @@ void connection_stop(uint16_t conn_id) {
     entry->connection_end = xTaskGetTickCount();
     entry->cert_state = 0;
 
-    ESP_LOGI(HANDSHAKE_TAG, "[%d] was connected for %lu ms", conn_id,
-             pdTICKS_TO_MS(entry->connection_end - entry->connection_start));
+    ESP_LOGI(HANDSHAKE_TAG,
+        "[%d] was connected for %lu ms",
+        conn_id,
+        pdTICKS_TO_MS(entry->connection_end - entry->connection_start));
 
-    // TODO: we scrub the client state here. this means we won't know if he has the reconnection key
-    // when he connects again
     delete_client_state_entry(entry);
 }
 
 static void dump_client_state(int idx, client_state_t* entry) {
-    ESP_LOGI(HANDSHAKE_TAG, "[%d] %d cert_state=%d, recon_key=%d, notify=%d", entry->conn_id, idx,
-             entry->cert_state, entry->has_reconnect_key, entry->notify);
-    ESP_LOGI(HANDSHAKE_TAG, "timestamps: hs=%lu, rc=%lu, cs=%lu, ce=%lu", entry->handshake_start,
-             entry->reconnection_at, entry->connection_start, entry->connection_end);
+    ESP_LOGI(HANDSHAKE_TAG,
+        "[%d] %d cert_state=%d, recon_key=%d, notify=%d",
+        entry->conn_id,
+        idx,
+        entry->cert_state,
+        entry->has_reconnect_key,
+        entry->notify);
+    ESP_LOGI(HANDSHAKE_TAG,
+        "timestamps: hs=%lu, rc=%lu, cs=%lu, ce=%lu",
+        entry->handshake_start,
+        entry->reconnection_at,
+        entry->connection_start,
+        entry->connection_end);
 
     ESP_LOGI(HANDSHAKE_TAG, "keys:");
     ESP_LOG_BUFFER_HEX(HANDSHAKE_TAG, entry->state_0_nonce, sizeof(entry->state_0_nonce));
@@ -148,8 +154,8 @@ static void dump_client_state(int idx, client_state_t* entry) {
     ESP_LOG_BUFFER_HEX(HANDSHAKE_TAG, entry->main_nonce, sizeof(entry->main_nonce));
     ESP_LOG_BUFFER_HEX(HANDSHAKE_TAG, entry->outer_nonce, sizeof(entry->outer_nonce));
     ESP_LOG_BUFFER_HEX(HANDSHAKE_TAG, entry->session_key, sizeof(entry->session_key));
-    ESP_LOG_BUFFER_HEX(HANDSHAKE_TAG, entry->reconnect_challenge,
-                       sizeof(entry->reconnect_challenge));
+    ESP_LOG_BUFFER_HEX(
+        HANDSHAKE_TAG, entry->reconnect_challenge, sizeof(entry->reconnect_challenge));
 }
 
 void dump_client_states() {
@@ -173,8 +179,10 @@ void dump_client_connection_times() {
     for (int i = 0; i < MAX_CONNECTIONS; i++) {
         client_state_t* entry = &client_states[i];
         if (entry->connection_start) {
-            ESP_LOGI(HANDSHAKE_TAG, "[%d] connected for %lu ms", entry->conn_id,
-                     pdTICKS_TO_MS(now - entry->connection_start));
+            ESP_LOGI(HANDSHAKE_TAG,
+                "[%d] connected for %lu ms",
+                entry->conn_id,
+                pdTICKS_TO_MS(now - entry->connection_start));
         }
     }
 }

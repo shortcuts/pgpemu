@@ -1,9 +1,9 @@
 #ifndef PGP_GAP_H
 #define PGP_GAP_H
 
-#include <stdint.h>
-
 #include "esp_gap_ble_api.h"
+
+#include <stdint.h>
 
 static const uint8_t ADV_CONFIG_FLAG = (1 << 0);
 static const uint8_t SCAN_RSP_CONFIG_FLAG = (1 << 1);

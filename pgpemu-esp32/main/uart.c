@@ -1,10 +1,5 @@
 #include "driver/uart.h"
 
-#include <stdarg.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <string.h>
-
 #include "config_secrets.h"
 #include "config_storage.h"
 #include "driver/usb_serial_jtag.h"
@@ -22,13 +17,16 @@
 #include "stats.h"
 #include "uart.h"
 
+#include <stdarg.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <string.h>
+
 // scratchpad for reading/writing to nvs
 static char tmp_clone_name[sizeof(PGP_CLONE_NAME)];
 static uint8_t tmp_mac[sizeof(PGP_MAC)];
 static uint8_t tmp_device_key[sizeof(PGP_DEVICE_KEY)];
 static uint8_t tmp_blob[sizeof(PGP_BLOB)];
-
-#if CONFIG_IDF_TARGET_ESP32C3 /* ----------- C3 : USB-Serial-JTAG ------ */
 
 static int console_read(uint8_t* dst, size_t len, TickType_t to) {
     return usb_serial_jtag_read_bytes(dst, len, to);
@@ -37,28 +35,11 @@ static int console_write(const void* src, size_t len, TickType_t to) {
     return usb_serial_jtag_write_bytes(src, len, to);
 }
 
-#else /* -------- ESP32 & ESP32-S3 : UART0 ---- */
-
-static const uart_port_t CONSOLE_UART = UART_NUM_0;
-static QueueHandle_t uart_evt_q = NULL;
-
-static int console_read(uint8_t* dst, size_t len, TickType_t to) {
-    return uart_read_bytes(CONSOLE_UART, dst, len, to);
-}
-static int console_write(const void* src, size_t len, TickType_t to) {
-    return uart_write_bytes(CONSOLE_UART, src, len);
-}
-#endif
-
 /* convenience helpers (blocking, timeout 10 s) */
 #define CONSOLE_GETCHAR(c) (console_read((uint8_t*)&(c), 1, pdMS_TO_TICKS(10000)) == 1)
 #define CONSOLE_PUTS(str) console_write(str, strlen(str), portMAX_DELAY)
 
-#if CONFIG_IDF_TARGET_ESP32C3
-static void usb_console_task(void*); /* USB task   (c3)               */
-#else
-static void console_task(void*); /* UART task  (esp32/s3)         */
-#endif
+static void usb_console_task(void*);
 // static void uart_event_task(void *pvParameters);
 static void uart_secrets_handler();
 static void uart_target_connections_handler();
@@ -66,7 +47,6 @@ static bool decode_to_buf(char targetType, uint8_t* inBuf, int inBytes);
 static void uart_restart_command();
 
 void init_uart() {
-#if CONFIG_IDF_TARGET_ESP32C3
     usb_serial_jtag_driver_config_t cfg = USB_SERIAL_JTAG_DRIVER_CONFIG_DEFAULT();
     cfg.tx_buffer_size = 256;
     cfg.rx_buffer_size = 256;
@@ -77,33 +57,6 @@ void init_uart() {
 #pragma GCC diagnostic pop
 
     xTaskCreate(usb_console_task, "usb_console", 4096, NULL, 12, NULL);
-#else
-    /* Configure parameters of an UART driver,
-     * communication pins and install the driver */
-    uart_config_t uart_config = {
-        .baud_rate = 115200,
-        .data_bits = UART_DATA_8_BITS,
-        .parity = UART_PARITY_DISABLE,
-        .stop_bits = UART_STOP_BITS_1,
-        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
-        .rx_flow_ctrl_thresh = 0,
-#if CONFIG_IDF_TARGET_ESP32S3
-        .tx_fifo_watermark = 0,
-#endif
-        .source_clk = UART_SCLK_DEFAULT,
-    };
-
-    uart_param_config(EX_UART_NUM, &uart_config);
-
-    // Set UART pins (using UART0 default pins ie no changes.)
-    uart_set_pin(EX_UART_NUM, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE,
-                 UART_PIN_NO_CHANGE);
-
-    // Install UART driver, and get the queue.
-    uart_driver_install(UART_NUM_0, BUF_SIZE * 2, BUF_SIZE * 2, 20, &uart0_queue, 0);
-
-    xTaskCreate(console_task, "uart_console", 4096, NULL, 12, NULL);
-#endif
 }
 
 static void process_char(uint8_t c) {
@@ -125,34 +78,14 @@ static void process_char(uint8_t c) {
             ESP_LOGE(UART_TAG, "failed!");
         }
         ESP_LOGI(UART_TAG, "autocatch %s", get_setting(&settings.autocatch) ? "on" : "off");
-    } else if (c == 'p') {
-        // toggle ping
-        if (!toggle_setting(&settings.powerbank_ping)) {
-            ESP_LOGE(UART_TAG, "failed!");
-        }
-        ESP_LOGI(UART_TAG, "powerbank ping %s",
-                 get_setting(&settings.powerbank_ping) ? "on" : "off");
-    } else if (c == 'i') {
-        // toggle show led interactions
-        if (!toggle_setting(&settings.led_interactions)) {
-            ESP_LOGE(UART_TAG, "failed!");
-        }
-        ESP_LOGI(UART_TAG, "show led interactions %s",
-                 get_setting(&settings.led_interactions) ? "on" : "off");
     } else if (c == 'B') {
         // toggle input button
         if (!toggle_setting(&settings.use_button)) {
             ESP_LOGE(UART_TAG, "failed!");
         }
-        ESP_LOGI(UART_TAG, "input button %s",
-                 get_setting(&settings.use_button) ? "available" : "not available");
-    } else if (c == 'O') {
-        // toggle output led
-        if (!toggle_setting(&settings.use_led)) {
-            ESP_LOGE(UART_TAG, "failed!");
-        }
-        ESP_LOGI(UART_TAG, "output led %s",
-                 get_setting(&settings.use_led) ? "available" : "not available");
+        ESP_LOGI(UART_TAG,
+            "input button %s",
+            get_setting(&settings.use_button) ? "available" : "not available");
     } else if (c == 'l') {
         // cycle through log levels
         if (!cycle_setting(&settings.log_level, 1, 3)) {
@@ -160,13 +93,15 @@ static void process_char(uint8_t c) {
         }
         uint8_t log_level = get_setting_uint8(&settings.log_level);
         if (log_level == 3) {
+            ESP_LOGI(UART_TAG, "log level 3 - verbose");
             log_levels_verbose();
         } else if (log_level == 2) {
+            ESP_LOGI(UART_TAG, "log level 2 - info");
             log_levels_info();
         } else {
+            ESP_LOGI(UART_TAG, "log level 1 - debug");
             log_levels_debug();
         }
-        ESP_LOGI(UART_TAG, "log level %d", log_level);
     } else if (c == 'A') {
         ESP_LOGI(UART_TAG, "starting advertising");
         pgp_advertise();
@@ -197,52 +132,53 @@ static void process_char(uint8_t c) {
     } else if (c == 'm') {
         uart_target_connections_handler();
     } else if (c == 'h' || c == '?') {
-        ESP_LOGI(UART_TAG, "Device: %s", PGP_CLONE_NAME);
-        ESP_LOGI(UART_TAG, "User Settings (lost on restart unless saved):");
-        ESP_LOGI(UART_TAG, "- s - toggle PGP autospin");
-        ESP_LOGI(UART_TAG, "- c - toggle PGP autocatch");
-        ESP_LOGI(UART_TAG, "- p - toggle powerbank ping");
-        ESP_LOGI(UART_TAG, "- i - toggle showing autospin/catch actions on LED");
-        ESP_LOGI(UART_TAG, "- l - toggle verbose logging");
         ESP_LOGI(UART_TAG,
-                 "- m... - set maximum client connections (eg. 3 clients max. with 'm3', up to %d)",
-                 CONFIG_BT_ACL_CONNECTIONS);
-        ESP_LOGI(UART_TAG, "- S - save user settings permanently");
-        ESP_LOGI(UART_TAG, "Hardware Settings (only read at boot time, use 'S' to save):");
-        ESP_LOGI(UART_TAG, "- B - toggle input button available");
-        ESP_LOGI(UART_TAG, "- O - toggle output RGB LED available");
-        ESP_LOGI(UART_TAG, "Commands:");
-        ESP_LOGI(UART_TAG, "- h,? - help");
-        ESP_LOGI(UART_TAG, "- X... - edit secrets mode (select eg. slot 2 with 'X2!')");
-        ESP_LOGI(UART_TAG, "- A - start BT advertising");
-        ESP_LOGI(UART_TAG, "- a - stop BT advertising");
-        ESP_LOGI(UART_TAG, "- t - show BT connection times");
-        ESP_LOGI(UART_TAG, "- C - show BT client states");
-        ESP_LOGI(UART_TAG, "- r - show runtime counter");
-        ESP_LOGI(UART_TAG, "- T - show FreeRTOS task list");
-        ESP_LOGI(UART_TAG, "- f - show all configuration values");
-        ESP_LOGI(UART_TAG, "- R - restart");
+            "---HELP---\n"
+            "Device: %s\n"
+            "User Settings (lost on restart unless saved):\n"
+            "- s - toggle autospin\n"
+            "- c - toggle autocatch\n"
+            "- l - cycle through log levels\n"
+            "- S - save user settings permanently\n"
+            "Hardware Settings (only read at boot time, use 'S' to save):\n"
+            "- B - toggle input button\n"
+            "Commands:\n"
+            "- h,? - help\n"
+            "- X... - edit secrets mode (select eg. slot 2 with 'X2!')\n"
+            "- r - show runtime counter\n"
+            "- T - show FreeRTOS task list\n"
+            "- f - show all configuration values\n"
+            "- R - restart"
+            "Bluetooth:\n"
+            "- A - start advertising\n"
+            "- a - stop advertising\n"
+            "- t - show connection times and count\n"
+            "- C - show client states\n"
+            "- r - reset connections\n"
+            "- m... - set maximum client connections (eg. 3 clients max. with 'm3', up to %d)\n",
+            PGP_CLONE_NAME,
+            CONFIG_BT_ACL_CONNECTIONS);
     } else if (c == 'f') {
-        ESP_LOGI(UART_TAG, "Autospin: %s", get_setting(&settings.autospin) ? "on" : "off");
-        ESP_LOGI(UART_TAG, "Autocatch: %s", get_setting(&settings.autocatch) ? "on" : "off");
-        ESP_LOGI(UART_TAG, "Powerbank ping: %s",
-                 get_setting(&settings.powerbank_ping) ? "on" : "off");
-        ESP_LOGI(UART_TAG, "Show led interactions: %s",
-                 get_setting(&settings.led_interactions) ? "on" : "off");
-        ESP_LOGI(UART_TAG, "Input button: %s",
-                 get_setting(&settings.use_button) ? "available" : "not available");
-        ESP_LOGI(UART_TAG, "Output led: %s",
-                 get_setting(&settings.use_led) ? "available" : "not available");
-        ESP_LOGI(UART_TAG, "Log level: %d", get_setting_uint8(&settings.log_level));
-        ESP_LOGI(UART_TAG, "Chosen device #: %d - Name: %s",
-                 get_setting_uint8(&settings.chosen_device), PGP_CLONE_NAME);
-        ESP_LOGI(UART_TAG, "Connections: %d / Target: %d", get_active_connections(),
-                 get_setting_uint8(&settings.target_active_connections));
+        ESP_LOGI(UART_TAG,
+            "---STATS---\n"
+            "Autospin: %s\n"
+            "Autocatch: %s\n"
+            "Input button: %s\n"
+            "Log level: %d\n"
+            "Chosen device #: %d - Name: %s\n"
+            "Connections: %d / %d",
+            get_setting(&settings.autospin) ? "on" : "off",
+            get_setting(&settings.autocatch) ? "on" : "off",
+            get_setting(&settings.use_button) ? "available" : "not available",
+            get_setting_uint8(&settings.log_level),
+            get_setting_uint8(&settings.chosen_device),
+            PGP_CLONE_NAME,
+            get_active_connections(),
+            get_setting_uint8(&settings.target_active_connections));
     }
 }
 
 /* polling version (USB-Serial-JTAG, ESP32-C3) */
-#if CONFIG_IDF_TARGET_ESP32C3
 static void usb_console_task(void* pv) {
     uint8_t c;
     for (;;) {
@@ -251,20 +187,6 @@ static void usb_console_task(void* pv) {
         }
     }
 }
-#else
-/* UART queue version (ESP32 / S3) */
-static void console_task(void* pv) {
-    uart_event_t evt;
-    uint8_t tmp[64];
-
-    while (true) {
-        if (xQueueReceive(uart_evt_q, &evt, portMAX_DELAY) && evt.type == UART_DATA) {
-            int n = console_read(tmp, evt.size, 0);
-            for (int i = 0; i < n; i++) process_char(tmp[i]);
-        }
-    }
-}
-#endif
 
 static void uart_secrets_handler() {
     // uart rx buffer
@@ -294,178 +216,179 @@ static void uart_secrets_handler() {
         isLineBreak = (*(buf + pos) == '\n' || *(buf + pos) == '\r');
 
         switch (state) {
-            case 0:
-                // we received a command byte
+        case 0:
+            // we received a command byte
 
-                // reset buf pos
-                pos = 0;
-                switch (buf[0]) {
-                    case '\n':
-                    case '\r':
-                    case 'X':
-                        // ignore
-                        break;
+            // reset buf pos
+            pos = 0;
+            switch (buf[0]) {
+            case '\n':
+            case '\r':
+            case 'X':
+                // ignore
+                break;
 
-                    case '?':
-                    case 'h':
-                        // help/list slots
-                        ESP_LOGW(UART_TAG, "Secrets Mode");
-                        ESP_LOGI(UART_TAG, "User Commands:");
-                        ESP_LOGI(UART_TAG, "- h,? - help");
-                        ESP_LOGI(UART_TAG, "- q - leave secrets mode");
-                        ESP_LOGI(UART_TAG, "- 0-9 - select secrets slot");
-                        ESP_LOGI(UART_TAG, "- ! - activate selected slot and restart");
-                        ESP_LOGI(UART_TAG, "- l - list slots");
-                        ESP_LOGI(UART_TAG, "- C - clear slot");
-                        ESP_LOGI(UART_TAG,
-                                 "- there are additional commands but they are for use in "
-                                 "secrets_upload.py only!");
-                        break;
+            case '?':
+            case 'h':
+                // help/list slots
+                ESP_LOGW(UART_TAG, "Secrets Mode");
+                ESP_LOGI(UART_TAG, "User Commands:");
+                ESP_LOGI(UART_TAG, "- h,? - help");
+                ESP_LOGI(UART_TAG, "- q - leave secrets mode");
+                ESP_LOGI(UART_TAG, "- 0-9 - select secrets slot");
+                ESP_LOGI(UART_TAG, "- ! - activate selected slot and restart");
+                ESP_LOGI(UART_TAG, "- l - list slots");
+                ESP_LOGI(UART_TAG, "- C - clear slot");
+                ESP_LOGI(UART_TAG,
+                    "- there are additional commands but they are for use in "
+                    "secrets_upload.py only!");
+                break;
 
-                    case 'l':
-                        show_secrets_slots();
-                        break;
+            case 'l':
+                show_secrets_slots();
+                break;
 
-                    case '!':
-                        // activate selected slot and restart
-                        if (!slot_chosen) {
-                            ESP_LOGE(UART_TAG, "no slot chosen!");
+            case '!':
+                // activate selected slot and restart
+                if (!slot_chosen) {
+                    ESP_LOGE(UART_TAG, "no slot chosen!");
+                } else {
+                    ESP_LOGW(UART_TAG, "SETTING SLOT=%d AND RESTARTING", chosen_slot);
+                    if (set_chosen_device(chosen_slot)) {
+                        if (write_config_storage()) {
+                            uart_restart_command();
                         } else {
-                            ESP_LOGW(UART_TAG, "SETTING SLOT=%d AND RESTARTING", chosen_slot);
-                            if (set_chosen_device(chosen_slot)) {
-                                if (write_config_storage()) {
-                                    uart_restart_command();
-                                } else {
-                                    ESP_LOGE(UART_TAG, "failed writing to nvs");
-                                }
-                            } else {
-                                ESP_LOGE(UART_TAG, "failed editing settings");
-                            }
+                            ESP_LOGE(UART_TAG, "failed writing to nvs");
                         }
-                        break;
-
-                    case 's': {
-                        // get CRC of scratch buffer
-                        uint32_t crc = get_secrets_crc32(tmp_mac, tmp_device_key, tmp_blob);
-                        ESP_LOGI(UART_TAG, "slot=tmp crc=%08lx", crc);
-                        break;
+                    } else {
+                        ESP_LOGE(UART_TAG, "failed editing settings");
                     }
-
-                    case 'S':
-                        // read nvs slot to scratch buffer and get CRC of that
-                        if (slot_chosen) {
-                            if (read_secrets_id(chosen_slot, tmp_clone_name, tmp_mac,
-                                                tmp_device_key, tmp_blob)) {
-                                uint32_t crc = get_secrets_crc32(tmp_mac, tmp_device_key, tmp_blob);
-                                ESP_LOGI(UART_TAG, "slot=%d crc=%08lx", chosen_slot, crc);
-                            } else {
-                                ESP_LOGE(UART_TAG, "failed reading slot=%d", chosen_slot);
-                            }
-                        }
-                        break;
-
-                    case '0':
-                    case '1':
-                    case '2':
-                    case '3':
-                    case '4':
-                    case '5':
-                    case '6':
-                    case '7':
-                    case '8':
-                    case '9':
-                        // select secrets slot
-                        chosen_slot = buf[0] - '0';
-                        slot_chosen = true;
-                        ESP_LOGW(UART_TAG, "slot=%d", chosen_slot);
-                        break;
-
-                    case 'N':
-                        // set name
-                    case 'M':
-                        // set mac
-                    case 'K':
-                        // set device key
-                    case 'B':
-                        // set blob
-                        state = buf[0];
-                        ESP_LOGW(UART_TAG, "set=%c", state);
-                        break;
-
-                    case 'C':
-                        // clear secret
-                        if (slot_chosen) {
-                            ESP_LOGW(UART_TAG, "clear=%d", delete_secrets_id(chosen_slot));
-                        }
-                        break;
-
-                    case 'W':
-                        // write secret
-                        if (slot_chosen) {
-                            ESP_LOGW(UART_TAG, "write=%d",
-                                     write_secrets_id(chosen_slot, tmp_clone_name, tmp_mac,
-                                                      tmp_device_key, tmp_blob));
-                        }
-                        break;
-
-                    case 'q':
-                        // quit
-                    default:
-                        if (buf[0] != 'q') {
-                            ESP_LOGE(UART_TAG, "invalid command '%c'", buf[0]);
-                        }
-                        running = false;
                 }
-                fflush(stdout);
+                break;
+
+            case 's': {
+                // get CRC of scratch buffer
+                uint32_t crc = get_secrets_crc32(tmp_mac, tmp_device_key, tmp_blob);
+                ESP_LOGI(UART_TAG, "slot=tmp crc=%08lx", crc);
+                break;
+            }
+
+            case 'S':
+                // read nvs slot to scratch buffer and get CRC of that
+                if (slot_chosen) {
+                    if (read_secrets_id(
+                            chosen_slot, tmp_clone_name, tmp_mac, tmp_device_key, tmp_blob)) {
+                        uint32_t crc = get_secrets_crc32(tmp_mac, tmp_device_key, tmp_blob);
+                        ESP_LOGI(UART_TAG, "slot=%d crc=%08lx", chosen_slot, crc);
+                    } else {
+                        ESP_LOGE(UART_TAG, "failed reading slot=%d", chosen_slot);
+                    }
+                }
+                break;
+
+            case '0':
+            case '1':
+            case '2':
+            case '3':
+            case '4':
+            case '5':
+            case '6':
+            case '7':
+            case '8':
+            case '9':
+                // select secrets slot
+                chosen_slot = buf[0] - '0';
+                slot_chosen = true;
+                ESP_LOGW(UART_TAG, "slot=%d", chosen_slot);
                 break;
 
             case 'N':
                 // set name
-                if (pos >= (sizeof(PGP_CLONE_NAME) - 1)) {
-                    ESP_LOGE(UART_TAG, "name too long");
-                    running = false;
-                } else if (isLineBreak) {
-                    // copy name to global var
-                    ESP_LOGW(UART_TAG, "N=[OK]");
-                    // overwrite \n with termination byte
-                    buf[pos] = 0;
-                    memcpy(tmp_clone_name, buf, pos + 1);
-                    // back to command mode
-                    state = 0;
-                    pos = 0;
-                } else {
-                    pos++;
-                }
-                break;
-
             case 'M':
                 // set mac
             case 'K':
                 // set device key
             case 'B':
                 // set blob
-                if (pos >= (sizeof(buf) - 1)) {
-                    // this shouldn't happen normally because our buf is generously oversized
-                    ESP_LOGE(UART_TAG, "data too long");
-                    running = false;
-                } else if (isLineBreak) {
-                    // base64 decode and write to the correct global variable from secrets.c
-                    if (decode_to_buf(state, buf, pos)) {
-                        ESP_LOGW(UART_TAG, "%c=[OK]", state);
-                    } else {
-                        ESP_LOGW(UART_TAG, "%c=[FAIL]", state);
-                    }
-                    // back to command mode
-                    state = 0;
-                    pos = 0;
-                } else {
-                    pos++;
+                state = buf[0];
+                ESP_LOGW(UART_TAG, "set=%c", state);
+                break;
+
+            case 'C':
+                // clear secret
+                if (slot_chosen) {
+                    ESP_LOGW(UART_TAG, "clear=%d", delete_secrets_id(chosen_slot));
                 }
                 break;
 
+            case 'W':
+                // write secret
+                if (slot_chosen) {
+                    ESP_LOGW(UART_TAG,
+                        "write=%d",
+                        write_secrets_id(
+                            chosen_slot, tmp_clone_name, tmp_mac, tmp_device_key, tmp_blob));
+                }
+                break;
+
+            case 'q':
+                // quit
             default:
-                ESP_LOGE(UART_TAG, "invalid state");
+                if (buf[0] != 'q') {
+                    ESP_LOGE(UART_TAG, "invalid command '%c'", buf[0]);
+                }
                 running = false;
+            }
+            fflush(stdout);
+            break;
+
+        case 'N':
+            // set name
+            if (pos >= (sizeof(PGP_CLONE_NAME) - 1)) {
+                ESP_LOGE(UART_TAG, "name too long");
+                running = false;
+            } else if (isLineBreak) {
+                // copy name to global var
+                ESP_LOGW(UART_TAG, "N=[OK]");
+                // overwrite \n with termination byte
+                buf[pos] = 0;
+                memcpy(tmp_clone_name, buf, pos + 1);
+                // back to command mode
+                state = 0;
+                pos = 0;
+            } else {
+                pos++;
+            }
+            break;
+
+        case 'M':
+            // set mac
+        case 'K':
+            // set device key
+        case 'B':
+            // set blob
+            if (pos >= (sizeof(buf) - 1)) {
+                // this shouldn't happen normally because our buf is generously oversized
+                ESP_LOGE(UART_TAG, "data too long");
+                running = false;
+            } else if (isLineBreak) {
+                // base64 decode and write to the correct global variable from secrets.c
+                if (decode_to_buf(state, buf, pos)) {
+                    ESP_LOGW(UART_TAG, "%c=[OK]", state);
+                } else {
+                    ESP_LOGW(UART_TAG, "%c=[FAIL]", state);
+                }
+                // back to command mode
+                state = 0;
+                pos = 0;
+            } else {
+                pos++;
+            }
+            break;
+
+        default:
+            ESP_LOGE(UART_TAG, "invalid state");
+            running = false;
         }
     }
 
@@ -480,27 +403,27 @@ static bool decode_to_buf(char targetType, uint8_t* inBuf, int inBytes) {
     uint8_t* outBuf;
 
     switch (targetType) {
-        case 'M':
-            // set mac
-            outBuf = tmp_mac;
-            len = sizeof(tmp_mac);
-            break;
+    case 'M':
+        // set mac
+        outBuf = tmp_mac;
+        len = sizeof(tmp_mac);
+        break;
 
-        case 'K':
-            // set device key
-            outBuf = tmp_device_key;
-            len = sizeof(tmp_device_key);
-            break;
+    case 'K':
+        // set device key
+        outBuf = tmp_device_key;
+        len = sizeof(tmp_device_key);
+        break;
 
-        case 'B':
-            // set blob
-            outBuf = tmp_blob;
-            len = sizeof(tmp_blob);
-            break;
+    case 'B':
+        // set blob
+        outBuf = tmp_blob;
+        len = sizeof(tmp_blob);
+        break;
 
-        default:
-            ESP_LOGE(UART_TAG, "invalid targetType=%c", targetType);
-            return false;
+    default:
+        ESP_LOGE(UART_TAG, "invalid targetType=%c", targetType);
+        return false;
     }
 
     size_t writtenLen = 0;
@@ -512,8 +435,11 @@ static bool decode_to_buf(char targetType, uint8_t* inBuf, int inBytes) {
     }
 
     if (writtenLen != len) {
-        ESP_LOGE(UART_TAG, "wrong writtenLen! inBytes=%d -base64-> wanted=%d, got=%d", inBytes, len,
-                 writtenLen);
+        ESP_LOGE(UART_TAG,
+            "wrong writtenLen! inBytes=%d -base64-> wanted=%d, got=%d",
+            inBytes,
+            len,
+            writtenLen);
         return false;
     }
 
@@ -545,8 +471,9 @@ static void uart_target_connections_handler() {
     }
 
     if (set_setting_uint8(&settings.target_active_connections, new_value)) {
-        ESP_LOGI(UART_TAG, "target_active_connections now %d (press 'S' to save permanently)",
-                 new_value);
+        ESP_LOGI(UART_TAG,
+            "target_active_connections now %d (press 'S' to save permanently)",
+            new_value);
     } else {
         ESP_LOGE(UART_TAG, "failed editing setting");
     }

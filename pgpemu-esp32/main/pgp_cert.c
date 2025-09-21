@@ -1,18 +1,18 @@
 /*** encryption and certification ***/
 #include "pgp_cert.h"
 
+#include "secrets.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "secrets.h"
-
 #ifdef ESP_PLATFORM
+
+#include "log_tags.h"
 
 #include <aes/esp_aes.h>
 #include <esp_log.h>
-
-#include "log_tags.h"
 
 void pgp_aes_encrypt(AES_Context* ctx, const uint8_t* inp, uint8_t* out) {
     esp_aes_crypt_ecb(ctx, ESP_AES_ENCRYPT, inp, out);
@@ -25,21 +25,23 @@ void aes_setkey(AES_Context* ctx, const uint8_t* key) {
 
 #else  // PC target (build cert-test)
 
+#include "pc/aes.h"
+
 #include <assert.h>
 #include <stdint.h>
-
-#include "pc/aes.h"
 
 void pgp_aes_encrypt(AES_Context* ctx, const uint8_t* inp, uint8_t* out) {
     memcpy(out, inp, 16);
     AES_ECB_encrypt(ctx, out);
 }
 
-void aes_setkey(AES_Context* ctx, const uint8_t* key) { AES_init_ctx(ctx, key); }
+void aes_setkey(AES_Context* ctx, const uint8_t* key) {
+    AES_init_ctx(ctx, key);
+}
 
 #endif
 
-uint8_t flash_data[10] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+uint8_t flash_data[10] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 
 #ifdef ESP_PLATFORM
 static
@@ -75,8 +77,11 @@ void init_nonce_hash(const uint8_t* inp_nonce, const int datalen, uint8_t* nonce
 /**
  * iv is 16 bytes
  */
-void aes_hash(AES_Context* ctx, const uint8_t* nonce, const uint8_t* data, const int count,
-              uint8_t* output) {
+void aes_hash(AES_Context* ctx,
+    const uint8_t* nonce,
+    const uint8_t* data,
+    const int count,
+    uint8_t* output) {
     uint8_t tmp[16];
     uint8_t tmp2[16];
     uint8_t nonce_hash[16];
@@ -104,8 +109,10 @@ void init_nonce_ctr(const uint8_t* inp_nonce, uint8_t* nonce_ctr) {
     nonce_ctr[15] = 0;
 }
 
-void encrypt_block(AES_Context* ctx, const uint8_t* nonce_iv, const uint8_t* nonce,
-                   uint8_t* output) {
+void encrypt_block(AES_Context* ctx,
+    const uint8_t* nonce_iv,
+    const uint8_t* nonce,
+    uint8_t* output) {
     uint8_t tmp[16];
 
     uint8_t nonce_ctr[16];
@@ -126,8 +133,11 @@ void inc_ctr(uint8_t* ctr) {
     }
 }
 
-void aes_ctr(AES_Context* ctx, const uint8_t* nonce, const uint8_t* data, int count,
-             uint8_t* output) {
+void aes_ctr(AES_Context* ctx,
+    const uint8_t* nonce,
+    const uint8_t* data,
+    int count,
+    uint8_t* output) {
     uint8_t ctr[16];
     uint8_t ectr[16];
 
@@ -156,9 +166,12 @@ void randomize_buffer(uint8_t* buf, size_t len) {
     }
 }
 
-void generate_chal_0(const uint8_t* mac, const uint8_t* the_challenge, const uint8_t* main_nonce,
-                     const uint8_t* main_key, const uint8_t* outer_nonce,
-                     struct challenge_data* output) {
+void generate_chal_0(const uint8_t* mac,
+    const uint8_t* the_challenge,
+    const uint8_t* main_nonce,
+    const uint8_t* main_key,
+    const uint8_t* outer_nonce,
+    struct challenge_data* output) {
     uint8_t revmac[6];
     uint8_t tmp_hash[16];
     AES_Context ctx;
@@ -190,8 +203,10 @@ void generate_chal_0(const uint8_t* mac, const uint8_t* the_challenge, const uin
     aes_ctr(&ctx, output->nonce, (uint8_t*)&main_data, 80, output->encrypted_main_challenge);
 }
 
-void generate_next_chal(const uint8_t* indata, const uint8_t* key, const uint8_t* nonce,
-                        struct next_challenge* output) {
+void generate_next_chal(const uint8_t* indata,
+    const uint8_t* key,
+    const uint8_t* nonce,
+    struct next_challenge* output) {
     AES_Context ctx;
     uint8_t data[16];
     uint8_t tmp_hash[16];

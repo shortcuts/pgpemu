@@ -1,15 +1,10 @@
 # Override some defaults so BT stack is enabled
 # in this example
 
-#
-# BT config
-#
 CONFIG_BT_ENABLED=y
 CONFIG_BT_GATTS_ENABLE=y
-
-#
-# ESP32-specific config
-#
-#CONFIG_ESP32_ENABLE_STACK_BT=y
-# CONFIG_ESP32_ENABLE_STACK_NONE is not set
-#CONFIG_MEMMAP_BT=y
+CONFIG_BT_BLE_ENABLED=y      # BLE only
+CONFIG_BT_CLASSIC_ENABLED=n  # disables HFP, PBAP, A2DP, SPP
+CONFIG_BT_SPP_ENABLED=n      # disable SPP if you don't need it
+CONFIG_BT_HFP_ENABLE=n
+CONFIG_BT_PBAP_ENABLE=n

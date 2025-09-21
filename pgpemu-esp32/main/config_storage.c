@@ -12,16 +12,15 @@
 
 static const char KEY_AUTOCATCH[] = "catch";
 static const char KEY_AUTOSPIN[] = "spin";
-static const char KEY_POWERBANK_PING[] = "ping";
 static const char KEY_CHOSEN_DEVICE[] = "device";
 static const char KEY_CONNECTION_COUNT[] = "conns";
 static const char KEY_USE_BUTTON[] = "usebut";
-static const char KEY_USE_LED[] = "useled";
-static const char KEY_SHOW_LED_INTERACTIONS[] = "ledinter";
 static const char KEY_LOG_LEVEL[] = "log_level";
 
 void init_config_storage() {
     esp_err_t err;
+
+    ESP_LOGD(CONFIG_STORAGE_TAG, "initializing config storage");
 
     // initialize NVS
     err = nvs_flash_init();
@@ -36,8 +35,7 @@ void init_config_storage() {
 // use_mutex=false is for use in app_main when the mutex isn't available yet
 void read_stored_settings(bool use_mutex) {
     esp_err_t err;
-    int8_t autocatch = 0, autospin = 0, powerbank_ping = 0, use_button = 0, use_led = 0,
-           led_interactions = 0, log_level = 0;
+    int8_t autocatch = 0, autospin = 0, use_button = 0, log_level = 0;
     uint8_t chosen_device = 0, connection_count = 0;
 
     if (use_mutex) {
@@ -53,7 +51,7 @@ void read_stored_settings(bool use_mutex) {
     if (err != ESP_OK) {
         if (err == ESP_ERR_NVS_NOT_FOUND) {
             ESP_LOGW(CONFIG_STORAGE_TAG,
-                     "user settings partition doesn't exist, using default settings");
+                "user settings partition doesn't exist, using default settings");
         } else {
             ESP_ERROR_CHECK(err);  // panic
         }
@@ -71,21 +69,9 @@ void read_stored_settings(bool use_mutex) {
     if (nvs_read_check(CONFIG_STORAGE_TAG, err, KEY_AUTOSPIN)) {
         settings.autospin = (bool)autospin;
     }
-    err = nvs_get_i8(user_settings_handle, KEY_POWERBANK_PING, &powerbank_ping);
-    if (nvs_read_check(CONFIG_STORAGE_TAG, err, KEY_POWERBANK_PING)) {
-        settings.powerbank_ping = (bool)powerbank_ping;
-    }
     err = nvs_get_i8(user_settings_handle, KEY_USE_BUTTON, &use_button);
     if (nvs_read_check(CONFIG_STORAGE_TAG, err, KEY_USE_BUTTON)) {
         settings.use_button = (bool)use_button;
-    }
-    err = nvs_get_i8(user_settings_handle, KEY_USE_LED, &use_led);
-    if (nvs_read_check(CONFIG_STORAGE_TAG, err, KEY_USE_LED)) {
-        settings.use_led = (bool)use_led;
-    }
-    err = nvs_get_i8(user_settings_handle, KEY_SHOW_LED_INTERACTIONS, &led_interactions);
-    if (nvs_read_check(CONFIG_STORAGE_TAG, err, KEY_SHOW_LED_INTERACTIONS)) {
-        settings.led_interactions = (bool)led_interactions;
     }
     err = nvs_get_i8(user_settings_handle, KEY_LOG_LEVEL, &log_level);
     if (nvs_read_check(CONFIG_STORAGE_TAG, err, KEY_LOG_LEVEL)) {
@@ -106,8 +92,10 @@ void read_stored_settings(bool use_mutex) {
         if (connection_count <= CONFIG_BT_ACL_CONNECTIONS && connection_count > 0) {
             settings.target_active_connections = connection_count;
         } else {
-            ESP_LOGE(CONFIG_STORAGE_TAG, "invalid target active connections: %d (1-%d allowed)",
-                     connection_count, CONFIG_BT_ACL_CONNECTIONS);
+            ESP_LOGE(CONFIG_STORAGE_TAG,
+                "invalid target active connections: %d (1-%d allowed)",
+                connection_count,
+                CONFIG_BT_ACL_CONNECTIONS);
         }
     }
 
@@ -139,14 +127,8 @@ bool write_config_storage() {
     all_ok = all_ok && nvs_write_check(CONFIG_STORAGE_TAG, err, KEY_AUTOCATCH);
     err = nvs_set_i8(user_settings_handle, KEY_AUTOSPIN, settings.autospin);
     all_ok = all_ok && nvs_write_check(CONFIG_STORAGE_TAG, err, KEY_AUTOSPIN);
-    err = nvs_set_i8(user_settings_handle, KEY_POWERBANK_PING, settings.powerbank_ping);
-    all_ok = all_ok && nvs_write_check(CONFIG_STORAGE_TAG, err, KEY_POWERBANK_PING);
     err = nvs_set_i8(user_settings_handle, KEY_USE_BUTTON, settings.use_button);
     all_ok = all_ok && nvs_write_check(CONFIG_STORAGE_TAG, err, KEY_USE_BUTTON);
-    err = nvs_set_i8(user_settings_handle, KEY_USE_LED, settings.use_led);
-    all_ok = all_ok && nvs_write_check(CONFIG_STORAGE_TAG, err, KEY_USE_LED);
-    err = nvs_set_i8(user_settings_handle, KEY_SHOW_LED_INTERACTIONS, settings.led_interactions);
-    all_ok = all_ok && nvs_write_check(CONFIG_STORAGE_TAG, err, KEY_SHOW_LED_INTERACTIONS);
     err = nvs_set_i8(user_settings_handle, KEY_LOG_LEVEL, settings.log_level);
     all_ok = all_ok && nvs_write_check(CONFIG_STORAGE_TAG, err, KEY_LOG_LEVEL);
 
