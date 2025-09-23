@@ -54,7 +54,9 @@ static void autosettings_task(void* pvParameters) {
                 SETTINGS_TAG, "[%d] toggling setting after delay=%d ms", item.conn_id, item.delay);
             vTaskDelay(item.delay / portTICK_PERIOD_MS);
 
-            toggle_setting(&settings.autospin);
+            if (!get_setting(&settings.autospin)) {
+                toggle_setting(&settings.autospin);
+            }
         }
     }
 
