@@ -17,12 +17,17 @@ static void autobutton_task(void* pvParameters);
 
 bool init_autobutton() {
     button_queue = xQueueCreate(10, sizeof(button_queue_item_t));
-    if (button_queue == 0) {
-        ESP_LOGE(BUTTON_TASK_TAG, "%s creating button queue failed", __func__);
+    if (!button_queue) {
+        ESP_LOGE(SETTINGS_TAG, "%s creating button queue failed", __func__);
         return false;
     }
 
-    xTaskCreate(autobutton_task, "autobutton_task", 3072, NULL, 11, NULL);
+    BaseType_t ret = xTaskCreate(autobutton_task, "autobutton_task", 3072, NULL, 11, NULL);
+    if (ret != pdPASS) {
+        ESP_LOGE(SETTINGS_TAG, "%s creating task failed", __func__);
+        vQueueDelete(button_queue);
+        return false;
+    }
 
     return true;
 }

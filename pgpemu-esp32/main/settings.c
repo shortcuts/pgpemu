@@ -1,6 +1,8 @@
 #include "settings.h"
 
 #include "config_secrets.h"
+#include "esp_log.h"
+#include "log_tags.h"
 
 #include <stdint.h>
 
@@ -18,6 +20,45 @@ Settings settings = {
 void init_settings() {
     settings.mutex = xSemaphoreCreateMutex();
     xSemaphoreTake(settings.mutex, portMAX_DELAY);  // block until end of this function
+}
+
+QueueHandle_t settings_queue;
+
+static void autosettings_task(void* pvParameters);
+
+bool init_autosetting() {
+    settings_queue = xQueueCreate(10, sizeof(settings_queue_item_t));
+    if (!settings_queue) {
+        ESP_LOGE(SETTINGS_TAG, "%s creating settings queue failed", __func__);
+        return false;
+    }
+
+    BaseType_t ret = xTaskCreate(autosettings_task, "autosettings_task", 3072, NULL, 11, NULL);
+    if (ret != pdPASS) {
+        ESP_LOGE(SETTINGS_TAG, "%s creating task failed", __func__);
+        vQueueDelete(settings_queue);
+        return false;
+    }
+
+    return true;
+}
+
+static void autosettings_task(void* pvParameters) {
+    settings_queue_item_t item;
+
+    ESP_LOGI(SETTINGS_TAG, "task start");
+
+    while (1) {
+        if (xQueueReceive(settings_queue, &item, portMAX_DELAY)) {
+            ESP_LOGD(
+                SETTINGS_TAG, "[%d] toggling setting after delay=%d ms", item.conn_id, item.delay);
+            vTaskDelay(item.delay / portTICK_PERIOD_MS);
+
+            toggle_setting(&settings.autospin);
+        }
+    }
+
+    vTaskDelete(NULL);
 }
 
 void settings_ready() {
@@ -59,6 +100,10 @@ bool get_setting(bool* var) {
 
     xSemaphoreGive(settings.mutex);
     return result;
+}
+
+char* get_setting_log_value(bool* var) {
+    return get_setting(var) ? "on" : "off";
 }
 
 uint8_t get_setting_uint8(uint8_t* var) {

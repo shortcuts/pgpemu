@@ -59,7 +59,7 @@ void init_uart() {
     xTaskCreate(usb_console_task, "usb_console", 4096, NULL, 12, NULL);
 }
 
-static void process_char(uint8_t c) {
+void process_char(uint8_t c) {
     if (c == 't') {
         // show connection status
         dump_client_connection_times();
@@ -71,21 +71,19 @@ static void process_char(uint8_t c) {
         if (!toggle_setting(&settings.autospin)) {
             ESP_LOGE(UART_TAG, "failed!");
         }
-        ESP_LOGI(UART_TAG, "autospin %s", get_setting(&settings.autospin) ? "on" : "off");
+        ESP_LOGI(UART_TAG, "autospin %s", get_setting_log_value(&settings.autospin));
     } else if (c == 'c') {
         // toggle autocatch
         if (!toggle_setting(&settings.autocatch)) {
             ESP_LOGE(UART_TAG, "failed!");
         }
-        ESP_LOGI(UART_TAG, "autocatch %s", get_setting(&settings.autocatch) ? "on" : "off");
+        ESP_LOGI(UART_TAG, "autocatch %s", get_setting_log_value(&settings.autocatch));
     } else if (c == 'B') {
         // toggle input button
         if (!toggle_setting(&settings.use_button)) {
             ESP_LOGE(UART_TAG, "failed!");
         }
-        ESP_LOGI(UART_TAG,
-            "input button %s",
-            get_setting(&settings.use_button) ? "available" : "not available");
+        ESP_LOGI(UART_TAG, "input button %s", get_setting_log_value(&settings.use_button));
     } else if (c == 'l') {
         // cycle through log levels
         if (!cycle_setting(&settings.log_level, 1, 3)) {
@@ -167,9 +165,9 @@ static void process_char(uint8_t c) {
             "Log level: %d\n"
             "Chosen device #: %d - Name: %s\n"
             "Connections: %d / %d",
-            get_setting(&settings.autospin) ? "on" : "off",
-            get_setting(&settings.autocatch) ? "on" : "off",
-            get_setting(&settings.use_button) ? "available" : "not available",
+            get_setting_log_value(&settings.autospin),
+            get_setting_log_value(&settings.autocatch),
+            get_setting_log_value(&settings.use_button),
             get_setting_uint8(&settings.log_level),
             get_setting_uint8(&settings.chosen_device),
             PGP_CLONE_NAME,

@@ -78,6 +78,12 @@ void app_main() {
     // runtime counter
     init_stats();
 
+    // start autosetting task
+    if (!init_autosetting()) {
+        ESP_LOGI(PGPEMU_TAG, "creating setting task failed");
+        return;
+    }
+
     // start autobutton task
     if (!init_autobutton()) {
         ESP_LOGI(PGPEMU_TAG, "creating button task failed");

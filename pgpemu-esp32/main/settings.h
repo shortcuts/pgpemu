@@ -1,6 +1,7 @@
 #ifndef SETTINGS_H
 #define SETTINGS_H
 
+#include "esp_gatt_defs.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/FreeRTOSConfig.h"
 #include "freertos/semphr.h"
@@ -29,11 +30,25 @@ typedef struct {
 
 extern Settings settings;
 
+typedef struct {
+    // which session does this belong to
+    esp_gatt_if_t gatts_if;
+    uint16_t conn_id;
+
+    // delay after which setting is toggled
+    int delay;
+} settings_queue_item_t;
+
+extern QueueHandle_t settings_queue;
+
+bool init_autosetting();
+
 void init_settings();
 void settings_ready();
 bool toggle_setting(bool* var);
 bool cycle_setting(uint8_t* var, uint8_t min, uint8_t max);
 bool get_setting(bool* var);
+char* get_setting_log_value(bool* var);
 uint8_t get_setting_uint8(uint8_t* var);
 bool set_setting_uint8(uint8_t* var, const uint8_t val);
 bool set_chosen_device(uint8_t id);

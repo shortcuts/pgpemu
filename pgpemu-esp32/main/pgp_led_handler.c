@@ -8,6 +8,9 @@
 #include "log_tags.h"
 #include "pgp_autobutton.h"
 #include "settings.h"
+#include "uart.h"
+
+const int retoggle_delay = 300000;
 
 void handle_led_notify_from_app(esp_gatt_if_t gatts_if, uint16_t conn_id, const uint8_t* buffer) {
     int number_of_patterns = buffer[3] & 0x1f;
@@ -92,27 +95,54 @@ void handle_led_notify_from_app(esp_gatt_if_t gatts_if, uint16_t conn_id, const 
         ESP_LOGD(LEDHANDLER_TAG, "[%d] Turn LEDs off.", conn_id);
     } else if (count_white && count_white == count_notoff) {
         // only white
-        ESP_LOGW(LEDHANDLER_TAG, "[%d] Can't spin Pokestop. Bag is full.", conn_id);
+        process_char('s');
+
+        ESP_LOGW(LEDHANDLER_TAG,
+            "[%d] Bag is full: press button %s - re-enabling autospin after %d ms",
+            conn_id,
+            get_setting_log_value(&settings.autospin),
+            retoggle_delay);
+
+        settings_queue_item_t item;
+        item.gatts_if = gatts_if;
+        item.conn_id = conn_id;
+        item.delay = retoggle_delay;
+        xQueueSend(settings_queue, &item, portMAX_DELAY);
     } else if (count_red && count_off && count_red == count_notoff) {
         // blinking just red
         ESP_LOGW(
             LEDHANDLER_TAG, "[%d] Pokeballs are empty or Pokestop went out of range.", conn_id);
     } else if (count_red && !count_off && count_red == count_notoff) {
         // only red
-        ESP_LOGW(LEDHANDLER_TAG, "[%d] Can't catch Pokemon. Box is full.", conn_id);
+        process_char('c');
+        ESP_LOGW(LEDHANDLER_TAG,
+            "[%d] Box is full: press button %s",
+            conn_id,
+            get_setting_log_value(&settings.autospin));
     } else if (count_green && count_green == count_notoff) {
         // blinking green
-        ESP_LOGI(LEDHANDLER_TAG, "[%d] Pokemon in range!", conn_id);
+        ESP_LOGI(LEDHANDLER_TAG,
+            "[%d] Pokemon in range: press button %s",
+            conn_id,
+            get_setting_log_value(&settings.autocatch));
         if (get_setting(&settings.autocatch)) {
             press_button = true;
         }
     } else if (count_yellow && count_yellow == count_notoff) {
         // blinking yellow
-        ESP_LOGI(LEDHANDLER_TAG, "[%d] New Pokemon in range!", conn_id);
-        press_button = true;
+        ESP_LOGI(LEDHANDLER_TAG,
+            "[%d] New pokemon in range: press button %s",
+            conn_id,
+            get_setting_log_value(&settings.autocatch));
+        if (get_setting(&settings.autocatch)) {
+            press_button = true;
+        }
     } else if (count_blue && count_blue == count_notoff) {
         // blinking blue
-        ESP_LOGI(LEDHANDLER_TAG, "[%d] Pokestop in range!", conn_id);
+        ESP_LOGI(LEDHANDLER_TAG,
+            "[%d] Pokestop in range: press button %s",
+            conn_id,
+            get_setting_log_value(&settings.autospin));
         if (get_setting(&settings.autospin)) {
             press_button = true;
         }
