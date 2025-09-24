@@ -7,6 +7,7 @@
 #include "freertos/task.h"
 #include "log_tags.h"
 #include "pgp_autobutton.h"
+#include "pgp_autosetting.h"
 #include "settings.h"
 #include "uart.h"
 
@@ -90,35 +91,34 @@ void handle_led_notify_from_app(esp_gatt_if_t gatts_if, uint16_t conn_id, const 
         LEDHANDLER_TAG, "[%d] LED pattern total duration: %d ms", conn_id, pattern_duration * 50);
 
     bool press_button = false;
+    char retoggle_setting = 0;
 
     if (count_off && !count_notoff) {
         ESP_LOGD(LEDHANDLER_TAG, "[%d] Turn LEDs off.", conn_id);
     } else if (count_white && count_white == count_notoff) {
         // only white
         process_char('s');
-
+        retoggle_setting = 's';
         ESP_LOGW(LEDHANDLER_TAG,
-            "[%d] Bag is full: press button %s - re-enabling autospin after %d ms",
+            "[%d] Bag is full: press button %s",
             conn_id,
-            get_setting_log_value(&settings.autospin),
-            retoggle_delay);
-
-        settings_queue_item_t item;
-        item.gatts_if = gatts_if;
-        item.conn_id = conn_id;
-        item.delay = retoggle_delay;
-        xQueueSend(settings_queue, &item, portMAX_DELAY);
+            get_setting_log_value(&settings.autospin));
     } else if (count_red && count_off && count_red == count_notoff) {
         // blinking just red
-        ESP_LOGW(
-            LEDHANDLER_TAG, "[%d] Pokeballs are empty or Pokestop went out of range.", conn_id);
+        process_char('c');
+        retoggle_setting = 'c';
+        ESP_LOGW(LEDHANDLER_TAG,
+            "[%d] Pokeballs are empty or Pokestop went out of range: press button %s",
+            conn_id,
+            get_setting_log_value(&settings.autocatch));
     } else if (count_red && !count_off && count_red == count_notoff) {
         // only red
         process_char('c');
+        retoggle_setting = 'c';
         ESP_LOGW(LEDHANDLER_TAG,
             "[%d] Box is full: press button %s",
             conn_id,
-            get_setting_log_value(&settings.autospin));
+            get_setting_log_value(&settings.autocatch));
     } else if (count_green && count_green == count_notoff) {
         // blinking green
         ESP_LOGI(LEDHANDLER_TAG,
@@ -153,7 +153,7 @@ void handle_led_notify_from_app(esp_gatt_if_t gatts_if, uint16_t conn_id, const 
                 conn_id,
                 count_ballshake);
         } else if (count_red) {
-            ESP_LOGI(LEDHANDLER_TAG,
+            ESP_LOGW(LEDHANDLER_TAG,
                 "[%d] Pokemon fled after %d ball shakes.",
                 conn_id,
                 count_ballshake);
@@ -191,5 +191,20 @@ void handle_led_notify_from_app(esp_gatt_if_t gatts_if, uint16_t conn_id, const 
             item.delay = delay;
             xQueueSend(button_queue, &item, portMAX_DELAY);
         }
+    }
+
+    if (retoggle_setting != 0) {
+        ESP_LOGD(LEDHANDLER_TAG,
+            "[%d] queueing setting toggle for %c after %d ms",
+            conn_id,
+            retoggle_setting,
+            retoggle_delay);
+        setting_queue_item_t item = {
+            .gatts_if = gatts_if,
+            .conn_id = conn_id,
+            .delay = retoggle_delay,
+            .setting = retoggle_setting,
+        };
+        xQueueSend(setting_queue, &item, portMAX_DELAY);
     }
 }

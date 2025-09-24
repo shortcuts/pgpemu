@@ -5,6 +5,7 @@
 #include "esp_system.h"
 #include "log_tags.h"
 #include "pgp_autobutton.h"
+#include "pgp_autosetting.h"
 #include "pgp_bluetooth.h"
 #include "pgp_gap.h"
 #include "pgp_gatts.h"

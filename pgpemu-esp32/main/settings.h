@@ -30,19 +30,6 @@ typedef struct {
 
 extern Settings settings;
 
-typedef struct {
-    // which session does this belong to
-    esp_gatt_if_t gatts_if;
-    uint16_t conn_id;
-
-    // delay after which setting is toggled
-    int delay;
-} settings_queue_item_t;
-
-extern QueueHandle_t settings_queue;
-
-bool init_autosetting();
-
 void init_settings();
 void settings_ready();
 bool toggle_setting(bool* var);
