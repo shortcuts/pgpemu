@@ -1,5 +1,6 @@
 #include "pgp_gap.h"
 
+#include "config_storage.h"
 #include "esp_log.h"
 #include "log_tags.h"
 #include "pgp_handshake_multi.h"
@@ -68,6 +69,9 @@ void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t* par
         break;
     case ESP_GAP_BLE_AUTH_CMPL_EVT:
         ESP_LOGI(BT_GAP_TAG, "New bonding done with device %d", esp_ble_get_bond_device_num());
+
+        read_stored_settings(true);
+
         break;
     case ESP_GAP_BLE_PASSKEY_REQ_EVT:
     case ESP_GAP_BLE_SEC_REQ_EVT:
