@@ -170,19 +170,3 @@ void dump_client_states() {
         dump_client_state(i, &client_states[i]);
     }
 }
-
-void dump_client_connection_times() {
-    ESP_LOGI(HANDSHAKE_TAG, "active_connections: %d", active_connections);
-
-    TickType_t now = xTaskGetTickCount();
-
-    for (int i = 0; i < MAX_CONNECTIONS; i++) {
-        client_state_t* entry = &client_states[i];
-        if (entry->connection_start) {
-            ESP_LOGI(HANDSHAKE_TAG,
-                "[%d] connected for %lu ms",
-                entry->conn_id,
-                pdTICKS_TO_MS(now - entry->connection_start));
-        }
-    }
-}

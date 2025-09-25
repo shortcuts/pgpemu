@@ -12,21 +12,18 @@ bool nvs_read_check(const char* tag, esp_err_t err, const char* name) {
         return true;
     case ESP_ERR_NVS_NOT_FOUND:
         ESP_LOGW(tag, "nvs value %s is not initialized yet!", name);
-        break;
     default:
         ESP_LOGE(tag, "nvs error reading %s: %s", name, esp_err_to_name(err));
+        return false;
     }
-
-    return false;
 }
 
 bool nvs_write_check(const char* tag, esp_err_t err, const char* name) {
-    switch (err) {
-    case ESP_OK:
+    if (err == ESP_OK) {
         return true;
-    default:
-        ESP_LOGE(tag, "nvs error writing %s: %s", name, esp_err_to_name(err));
     }
+
+    ESP_LOGE(tag, "nvs error writing %s: %s", name, esp_err_to_name(err));
 
     return false;
 }

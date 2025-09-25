@@ -46,7 +46,6 @@ client_state_t* get_or_create_client_state_entry(uint16_t conn_id);
 int get_cert_state(uint16_t conn_id);
 
 void dump_client_states();
-void dump_client_connection_times();
 
 void connection_start(uint16_t conn_id);
 void connection_update(uint16_t conn_id);

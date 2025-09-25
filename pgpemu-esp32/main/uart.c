@@ -40,9 +40,8 @@ static int console_write(const void* src, size_t len, TickType_t to) {
 #define CONSOLE_PUTS(str) console_write(str, strlen(str), portMAX_DELAY)
 
 static void usb_console_task(void*);
-// static void uart_event_task(void *pvParameters);
 static void uart_secrets_handler();
-static void uart_target_connections_handler();
+static void uart_bluetooth_handler();
 static bool decode_to_buf(char targetType, uint8_t* inBuf, int inBytes);
 static void uart_restart_command();
 
@@ -60,119 +59,112 @@ void init_uart() {
 }
 
 void process_char(uint8_t c) {
-    if (c == 't') {
-        // show connection status
-        dump_client_connection_times();
-    } else if (c == 'C') {
-        // show full client details
-        dump_client_states();
-    } else if (c == 's') {
-        // toggle autospin
-        if (!toggle_setting(&settings.autospin)) {
-            ESP_LOGE(UART_TAG, "failed!");
-        }
-        ESP_LOGI(UART_TAG, "autospin %s", get_setting_log_value(&settings.autospin));
-    } else if (c == 'c') {
-        // toggle autocatch
-        if (!toggle_setting(&settings.autocatch)) {
-            ESP_LOGE(UART_TAG, "failed!");
-        }
-        ESP_LOGI(UART_TAG, "autocatch %s", get_setting_log_value(&settings.autocatch));
-    } else if (c == 'B') {
-        // toggle input button
-        if (!toggle_setting(&settings.use_button)) {
-            ESP_LOGE(UART_TAG, "failed!");
-        }
-        ESP_LOGI(UART_TAG, "input button %s", get_setting_log_value(&settings.use_button));
-    } else if (c == 'l') {
-        // cycle through log levels
-        if (!cycle_setting(&settings.log_level, 1, 3)) {
-            ESP_LOGE(UART_TAG, "failed!");
-        }
-        uint8_t log_level = get_setting_uint8(&settings.log_level);
-        if (log_level == 3) {
-            ESP_LOGI(UART_TAG, "log level 3 - verbose");
-            log_levels_verbose();
-        } else if (log_level == 2) {
-            ESP_LOGI(UART_TAG, "log level 2 - info");
-            log_levels_info();
-        } else {
-            ESP_LOGI(UART_TAG, "log level 1 - debug");
-            log_levels_debug();
-        }
-    } else if (c == 'A') {
-        ESP_LOGI(UART_TAG, "starting advertising");
-        pgp_advertise();
-    } else if (c == 'a') {
-        ESP_LOGI(UART_TAG, "stopping advertising");
-        pgp_advertise_stop();
-    } else if (c == 'S') {
-        ESP_LOGI(UART_TAG, "saving configuration to nvs");
-        bool ok = write_config_storage();
-        if (ok) {
-            ESP_LOGI(UART_TAG, "success!");
-        }
-    } else if (c == 'r') {
-        ESP_LOGI(UART_TAG, "runtime: %lu min", stats_get_runtime());
-    } else if (c == 'R') {
-        // restart esp32
-        uart_restart_command();
-    } else if (c == 'T') {
-        // show task list
-        char buf[1024];  // "min. 40 bytes per task"
-        vTaskList(buf);
-
-        ESP_LOGI(UART_TAG, "Task List:\nTask Name\tStatus\tPrio\tHWM\tTask\tAffinity\n%s", buf);
-        ESP_LOGI(UART_TAG, "Heap free: %lu bytes", esp_get_free_heap_size());
-    } else if (c == 'X') {
-        // enter secrets mode
-        uart_secrets_handler();
-    } else if (c == 'm') {
-        uart_target_connections_handler();
-    } else if (c == 'h' || c == '?') {
+    switch (c) {
+    case '?':
         ESP_LOGI(UART_TAG,
             "---HELP---\n"
-            "Device: %s\n"
-            "User Settings (lost on restart unless saved):\n"
+            "Secrets: %s\n"
+            "User Settings:\n"
             "- s - toggle autospin\n"
             "- c - toggle autocatch\n"
             "- l - cycle through log levels\n"
             "- S - save user settings permanently\n"
-            "Hardware Settings (only read at boot time, use 'S' to save):\n"
-            "- B - toggle input button\n"
             "Commands:\n"
-            "- h,? - help\n"
-            "- X... - edit secrets mode (select eg. slot 2 with 'X2!')\n"
+            "- ? - help\n"
+            "- x - select secrets slot (e.g. slot 2 with 'X2')\n"
             "- r - show runtime counter\n"
-            "- T - show FreeRTOS task list\n"
+            "- t - show FreeRTOS task list\n"
             "- f - show all configuration values\n"
-            "- R - restart"
+            "- R - restart\n"
+            "Hardware:\n"
+            "- B - toggle input button\n"
             "Bluetooth:\n"
-            "- A - start advertising\n"
-            "- a - stop advertising\n"
-            "- t - show connection times and count\n"
-            "- C - show client states\n"
-            "- r - reset connections\n"
-            "- m... - set maximum client connections (eg. 3 clients max. with 'm3', up to %d)\n",
+            "- bA - start advertising\n"
+            "- ba - stop advertising\n"
+            "- bs - show client states\n"
+            "- br - reset connections\n"
+            "- b... - set maximum client connections (e.g. 3 clients max. with 'b3', up to %d)\n",
             PGP_CLONE_NAME,
             CONFIG_BT_ACL_CONNECTIONS);
-    } else if (c == 'f') {
+        break;
+    case 'f':
         ESP_LOGI(UART_TAG,
             "---STATS---\n"
             "Autospin: %s\n"
             "Autocatch: %s\n"
             "Input button: %s\n"
             "Log level: %d\n"
-            "Chosen device #: %d - Name: %s\n"
+            "Chosen device #: %d\n"
             "Connections: %d / %d",
             get_setting_log_value(&settings.autospin),
             get_setting_log_value(&settings.autocatch),
             get_setting_log_value(&settings.use_button),
             get_setting_uint8(&settings.log_level),
             get_setting_uint8(&settings.chosen_device),
-            PGP_CLONE_NAME,
             get_active_connections(),
             get_setting_uint8(&settings.target_active_connections));
+        break;
+    case 'S':
+        ESP_LOGI(UART_TAG, "saving configuration to nvs");
+        if (write_config_storage()) {
+            ESP_LOGI(UART_TAG, "success!");
+        }
+        break;
+    case 'x':
+        uart_secrets_handler();
+        break;
+    case 'b':
+        uart_bluetooth_handler();
+        break;
+    case 's':
+        if (!toggle_setting(&settings.autospin)) {
+            ESP_LOGE(UART_TAG, "failed!");
+        }
+        ESP_LOGI(UART_TAG, "autospin: %s", get_setting_log_value(&settings.autospin));
+        break;
+    case 'c':
+        if (!toggle_setting(&settings.autocatch)) {
+            ESP_LOGE(UART_TAG, "failed!");
+        }
+        ESP_LOGI(UART_TAG, "autocatch: %s", get_setting_log_value(&settings.autocatch));
+        break;
+    case 'B':
+        if (!toggle_setting(&settings.use_button)) {
+            ESP_LOGE(UART_TAG, "failed!");
+        }
+        ESP_LOGI(UART_TAG, "input button: %s", get_setting_log_value(&settings.use_button));
+        break;
+    case 'l':
+        if (!cycle_setting(&settings.log_level, 1, 3)) {
+            ESP_LOGE(UART_TAG, "failed!");
+        }
+        uint8_t log_level = get_setting_uint8(&settings.log_level);
+        if (log_level == 3) {
+            ESP_LOGI(UART_TAG, "log level 3: verbose");
+            log_levels_verbose();
+        } else if (log_level == 2) {
+            ESP_LOGI(UART_TAG, "log level 2: info");
+            log_levels_info();
+        } else {
+            ESP_LOGI(UART_TAG, "log level 1: debug");
+            log_levels_debug();
+        }
+        break;
+    case 'r':
+        ESP_LOGI(UART_TAG, "runtime: %lu min", stats_get_runtime());
+        break;
+    case 'R':
+        uart_restart_command();
+        break;
+    case 't':
+        char buf[1024];  // "min. 40 bytes per task"
+        vTaskList(buf);
+
+        ESP_LOGI(UART_TAG, "Task List:\nTask Name\tStatus\tPrio\tHWM\tTask\tAffinity\n%s", buf);
+        ESP_LOGI(UART_TAG, "Heap free: %lu bytes", esp_get_free_heap_size());
+        break;
+    default:
+        ESP_LOGE(UART_TAG, "unhandled input: %c", c);
     }
 }
 
@@ -450,29 +442,47 @@ static void uart_restart_command() {
     esp_restart();
 }
 
-static void uart_target_connections_handler() {
+static void uart_bluetooth_handler() {
     uint8_t buf;
+
     int size = console_read(&buf, 1, 10000 / portTICK_PERIOD_MS);
     if (size != 1) {
         // timeout
-        ESP_LOGE(UART_TAG, "[m]aximum active connections setting timeout");
-        return;
-    } else if (buf < '1' || buf > '9') {
-        ESP_LOGE(UART_TAG, "only ascii numbers 1-%d are allowed", CONFIG_BT_ACL_CONNECTIONS);
+        ESP_LOGE(UART_TAG, "bluetooth setting timeout");
         return;
     }
 
-    int new_value = buf - '0';
-    if (new_value < 1 || new_value > CONFIG_BT_ACL_CONNECTIONS) {
-        ESP_LOGE(UART_TAG, "out of range: 1-%d", CONFIG_BT_ACL_CONNECTIONS);
-        return;
-    }
-
-    if (set_setting_uint8(&settings.target_active_connections, new_value)) {
-        ESP_LOGI(UART_TAG,
-            "target_active_connections now %d (press 'S' to save permanently)",
-            new_value);
-    } else {
-        ESP_LOGE(UART_TAG, "failed editing setting");
+    switch (buf) {
+    case 'A':
+        ESP_LOGI(UART_TAG, "starting advertising");
+        pgp_advertise();
+        break;
+    case 'a':
+        ESP_LOGI(UART_TAG, "stopping advertising");
+        pgp_advertise_stop();
+        break;
+    case 's':
+        dump_client_states();
+        break;
+    case 'r':
+        break;
+    case '1':
+    case '2':
+    case '3':
+    case '4':
+    case '5':
+    case '6':
+    case '7':
+    case '8':
+    case '9':
+        if (set_setting_uint8(&settings.target_active_connections, buf - '0')) {
+            ESP_LOGI(
+                UART_TAG, "target_active_connections now %c (press 'S' to save permanently)", buf);
+        } else {
+            ESP_LOGE(UART_TAG, "failed editing setting");
+        }
+        break;
+    default:
+        ESP_LOGE(UART_TAG, "unknown bluetooth handler case: b%c", buf);
     }
 }
