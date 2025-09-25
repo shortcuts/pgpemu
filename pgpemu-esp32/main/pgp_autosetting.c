@@ -52,10 +52,12 @@ static void autosetting_task(void* pvParameters) {
                 if (!get_setting(&settings.autospin)) {
                     toggle_setting(&settings.autospin);
                 }
+                break;
             case 'c':
                 if (!get_setting(&settings.autocatch)) {
                     toggle_setting(&settings.autocatch);
                 }
+                break;
             default:
                 ESP_LOGW(
                     SETTING_TASK_TAG, "[%d] unhandled toggle case: %c", item.conn_id, item.setting);
