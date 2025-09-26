@@ -7,12 +7,9 @@
 #include "pgp_autobutton.h"
 #include "pgp_autosetting.h"
 #include "pgp_bluetooth.h"
-#include "pgp_gap.h"
-#include "pgp_gatts.h"
 #include "secrets.h"
 #include "settings.h"
 #include "setup_button.h"
-#include "stats.h"
 #include "uart.h"
 
 void app_main() {
@@ -75,9 +72,6 @@ void app_main() {
     } else {
         ESP_LOGI(PGPEMU_TAG, "input button disabled");
     }
-
-    // runtime counter
-    init_stats();
 
     // start autosetting task
     if (!init_autosetting()) {

@@ -151,7 +151,7 @@ void process_char(uint8_t c) {
         }
         break;
     case 'r':
-        ESP_LOGI(UART_TAG, "runtime: %lu min", stats_get_runtime());
+        stats_get_runtime();
         break;
     case 'R':
         uart_restart_command();

@@ -6,99 +6,74 @@
 #include "log_tags.h"
 #include "nvs.h"
 
-static void stats_task(void* pvParameters);
+#include <stdint.h>
 
-static const char* KEY_RUNTIME_10MIN = "runtime10min";
+#define MAX_CONNECTIONS CONFIG_BT_ACL_CONNECTIONS
 
-static uint32_t runtime = 0;
-static const uint32_t runtime_max = 500;  // only count until about 3 days to avoid flash wear
+static StatsForConn stats[MAX_CONNECTIONS];
+static size_t stats_len = 0;
 
-void init_stats() {
-    xTaskCreate(stats_task, "stats_task", 2048, NULL, 9, NULL);
-}
-
-uint32_t stats_get_runtime() {
-    return 10 * runtime;
-}
-
-static uint32_t read_runtime() {
-    nvs_handle_t handle;
-    esp_err_t err = nvs_open("stats", NVS_READONLY, &handle);
-    if (err != ESP_OK) {
-        if (err == ESP_ERR_NVS_NOT_FOUND) {
-            ESP_LOGW(STATS_TAG, "runtime count initialized with 0");
-            return 0;
+StatsForConn* get_conn_entry(uint16_t conn_id) {
+    for (size_t i = 0; i < stats_len; i++) {
+        if (stats[i].conn_id == conn_id) {
+            return &stats[i];
         }
-        ESP_LOGW(STATS_TAG, "%s nvs open failed: %s", __func__, esp_err_to_name(err));
-        return UINT32_MAX;  // error
+    }
+    if (stats_len < MAX_CONNECTIONS) {
+        stats[stats_len].conn_id = conn_id;
+        stats[stats_len].stats = (Stats){ 0 };
+        stats_len++;
+
+        ESP_LOGI(STATS_TAG, "new entry for conn_id %d added, current len %d", conn_id, stats_len);
+
+        return &stats[stats_len];
     }
 
-    uint32_t runtime = 0;
-    err = nvs_get_u32(handle, KEY_RUNTIME_10MIN, &runtime);
-    if (err != ESP_OK) {
-        ESP_LOGW(STATS_TAG,
-            "%s nvs read %s failed: %s",
-            __func__,
-            KEY_RUNTIME_10MIN,
-            esp_err_to_name(err));
+    ESP_LOGE(STATS_TAG, "no stat found for conn_id %d or impossible to store a new entry", conn_id);
 
-        nvs_close(handle);
-        return 0;
-    }
-
-    nvs_close(handle);
-    return runtime;
+    return NULL;
 }
 
-static void write_runtime(uint32_t runtime) {
-    nvs_handle_t handle;
-    esp_err_t err = nvs_open("stats", NVS_READWRITE, &handle);
-    if (err != ESP_OK) {
-        ESP_LOGE(STATS_TAG, "%s nvs open failed: %s", __func__, esp_err_to_name(err));
-        return;
-    }
-
-    err = nvs_set_u32(handle, KEY_RUNTIME_10MIN, runtime);
-    if (err != ESP_OK) {
-        ESP_LOGE(STATS_TAG,
-            "%s nvs write %s failed: %s",
-            __func__,
-            KEY_RUNTIME_10MIN,
-            esp_err_to_name(err));
-        nvs_close(handle);
-        return;
-    }
-
-    nvs_commit(handle);
-    nvs_close(handle);
-}
-
-static void stats_task(void* pvParameters) {
-    TickType_t previousWakeTime = xTaskGetTickCount();
-    runtime = read_runtime();
-
-    if (runtime == UINT32_MAX) {
-        ESP_LOGE(STATS_TAG, "failed starting task");
-        vTaskDelete(NULL);
-        return;
-    }
-
-    ESP_LOGI(STATS_TAG, "task start");
-
-    while (true) {
-        if (runtime > runtime_max) {
-            ESP_LOGI(
-                STATS_TAG, "stopping runtime counting to avoid flash wear at count %lu", runtime);
-            break;
+void delete_conn_entry(uint16_t conn_id) {
+    for (size_t i = 0; i < stats_len; i++) {
+        if (stats[i].conn_id == conn_id) {
+            stats[i] = stats[stats_len - 1];
+            stats_len--;
         }
-
-        // every 10 minutes
-        vTaskDelayUntil(&previousWakeTime, (10 * 60 * 1000) / portTICK_PERIOD_MS);
-
-        runtime++;
-        write_runtime(runtime);
-        ESP_LOGD(STATS_TAG, "runtime counter now: %lu min", 10 * runtime);
     }
+}
 
-    vTaskDelete(NULL);
+void increment_caught(uint16_t conn_id) {
+    StatsForConn* s = get_conn_entry(conn_id);
+    if (s) {
+        s->stats.caught++;
+    }
+}
+
+void increment_fled(uint16_t conn_id) {
+    StatsForConn* s = get_conn_entry(conn_id);
+    if (s) {
+        s->stats.fled++;
+    }
+}
+
+void increment_spin(uint16_t conn_id) {
+    StatsForConn* s = get_conn_entry(conn_id);
+    if (s) {
+        s->stats.spin++;
+    }
+}
+
+void stats_get_runtime() {
+    for (size_t i = 0; i < stats_len; i++) {
+        ESP_LOGI(STATS_TAG,
+            "---STATS %d---\n"
+            "Caught: %d\n"
+            "Fled: %d\n"
+            "Spin: %d",
+            stats[i].conn_id,
+            stats[i].stats.caught,
+            stats[i].stats.fled,
+            stats[i].stats.spin);
+    }
 }

@@ -9,6 +9,7 @@
 #include "pgp_autobutton.h"
 #include "pgp_autosetting.h"
 #include "settings.h"
+#include "stats.h"
 #include "uart.h"
 
 const int retoggle_delay = 300000;
@@ -148,11 +149,13 @@ void handle_led_notify_from_app(esp_gatt_if_t gatts_if, uint16_t conn_id, const 
         }
     } else if (count_ballshake) {
         if (count_blue && count_green) {
+            increment_caught(conn_id);
             ESP_LOGI(LEDHANDLER_TAG,
                 "[%d] Caught Pokemon after %d ball shakes.",
                 conn_id,
                 count_ballshake);
         } else if (count_red) {
+            increment_fled(conn_id);
             ESP_LOGW(LEDHANDLER_TAG,
                 "[%d] Pokemon fled after %d ball shakes.",
                 conn_id,
@@ -165,6 +168,7 @@ void handle_led_notify_from_app(esp_gatt_if_t gatts_if, uint16_t conn_id, const 
         }
     } else if (count_red && count_green && count_blue && !count_off) {
         // blinking grb-grb...
+        increment_spin(conn_id);
         ESP_LOGI(LEDHANDLER_TAG, "[%d] Got items from Pokestop.", conn_id);
     } else {
         if (get_setting(&settings.autospin) || get_setting(&settings.autocatch)) {
