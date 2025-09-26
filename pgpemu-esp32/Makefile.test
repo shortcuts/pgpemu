@@ -7,7 +7,6 @@ cert-test: main/pc/*.c main/pgp_cert.c main/secrets.c
 test-nvs-helper: main/pc/test_nvs_helper.c main/nvs_helper.c
 	gcc -Wall -Imain $^ -o test-nvs-helper
 
-
 .PHONY: clean
 clean:
 	rm -f cert-test test-nvs-helper
