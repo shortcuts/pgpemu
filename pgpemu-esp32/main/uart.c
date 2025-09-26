@@ -78,6 +78,13 @@ void process_char(uint8_t c) {
             "- R - restart\n"
             "Hardware:\n"
             "- B - toggle input button\n"
+            "Secrets:\n"
+            "- x? - help\n"
+            "- xq - leave secrets mode\n"
+            "- x... - select secrets slot\n"
+            "- ! - activate selected slot and restart\n"
+            "- l - list slots\n"
+            "- C - clear slot\n"
             "Bluetooth:\n"
             "- bA - start advertising\n"
             "- ba - stop advertising\n"
@@ -217,29 +224,10 @@ static void uart_secrets_handler() {
             case 'X':
                 // ignore
                 break;
-
-            case '?':
-            case 'h':
-                // help/list slots
-                ESP_LOGW(UART_TAG, "Secrets Mode");
-                ESP_LOGI(UART_TAG, "User Commands:");
-                ESP_LOGI(UART_TAG, "- h,? - help");
-                ESP_LOGI(UART_TAG, "- q - leave secrets mode");
-                ESP_LOGI(UART_TAG, "- 0-9 - select secrets slot");
-                ESP_LOGI(UART_TAG, "- ! - activate selected slot and restart");
-                ESP_LOGI(UART_TAG, "- l - list slots");
-                ESP_LOGI(UART_TAG, "- C - clear slot");
-                ESP_LOGI(UART_TAG,
-                    "- there are additional commands but they are for use in "
-                    "secrets_upload.py only!");
-                break;
-
             case 'l':
                 show_secrets_slots();
                 break;
-
             case '!':
-                // activate selected slot and restart
                 if (!slot_chosen) {
                     ESP_LOGE(UART_TAG, "no slot chosen!");
                 } else {
@@ -255,16 +243,12 @@ static void uart_secrets_handler() {
                     }
                 }
                 break;
-
             case 's': {
-                // get CRC of scratch buffer
                 uint32_t crc = get_secrets_crc32(tmp_mac, tmp_device_key, tmp_blob);
                 ESP_LOGI(UART_TAG, "slot=tmp crc=%08lx", crc);
                 break;
             }
-
             case 'S':
-                // read nvs slot to scratch buffer and get CRC of that
                 if (slot_chosen) {
                     if (read_secrets_id(
                             chosen_slot, tmp_clone_name, tmp_mac, tmp_device_key, tmp_blob)) {
@@ -275,7 +259,6 @@ static void uart_secrets_handler() {
                     }
                 }
                 break;
-
             case '0':
             case '1':
             case '2':
@@ -291,7 +274,6 @@ static void uart_secrets_handler() {
                 slot_chosen = true;
                 ESP_LOGW(UART_TAG, "slot=%d", chosen_slot);
                 break;
-
             case 'N':
                 // set name
             case 'M':
@@ -303,14 +285,12 @@ static void uart_secrets_handler() {
                 state = buf[0];
                 ESP_LOGW(UART_TAG, "set=%c", state);
                 break;
-
             case 'C':
                 // clear secret
                 if (slot_chosen) {
                     ESP_LOGW(UART_TAG, "clear=%d", delete_secrets_id(chosen_slot));
                 }
                 break;
-
             case 'W':
                 // write secret
                 if (slot_chosen) {
@@ -320,18 +300,15 @@ static void uart_secrets_handler() {
                             chosen_slot, tmp_clone_name, tmp_mac, tmp_device_key, tmp_blob));
                 }
                 break;
-
             case 'q':
-                // quit
             default:
                 if (buf[0] != 'q') {
-                    ESP_LOGE(UART_TAG, "invalid command '%c'", buf[0]);
+                    ESP_LOGE(UART_TAG, "unhandled input: %c", buf[0]);
                 }
                 running = false;
             }
             fflush(stdout);
             break;
-
         case 'N':
             // set name
             if (pos >= (sizeof(PGP_CLONE_NAME) - 1)) {

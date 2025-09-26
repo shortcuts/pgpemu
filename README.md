@@ -1,288 +1,71 @@
 # Pokemon Go Plus Emulator for ESP32C3
 
-Autocatcher for Pokemon Go.
+Autocatcher/Gotcha/Pokemon Go Plus device emulator for Pokemon Go, with autospin and autocatch capabilities.
 
-**Note:** This repository doesn't contain the secret blobs needed to make a working emulator for a PGP!
-You need to dump these secrets yourself from your own original device (see [References](#references) for some pointers).
+> [!NOTE]  
+> This repository is based on [yohane's initial work](https://github.com/yohanes/pgpemu), [spezifisch's fork](https://github.com/spezifisch/pgpemu) and [paper183's fork](https://github.com/paper183/pgpemu).
+
+> [!WARNING]  
+> This repository doesn't contain the secret blobs needed to make a working emulator for a PGP! You need to dump these secrets yourself from your own original device (see [References](#references) for some pointers).
 
 ## Features
 
-> Added by this fork
+### Hardware and Configuration
 
-- Updated to ESP-IDF 5.4.2 which added bluedroid support to c3 (BLE mode only)
-- ESP32-C3 Supermini Support, much smaller chip and boards than original ESP32.
-- Wifi AP and Webpage to configure settings on the go without usb serial port.
-Hold button (GPIO3 to Ground) on boot to start Wifi AP instead of bluetooth, connect phone to SSID "PGPemu-Setup" and browse to http://192.168.4.1/
-Uses same button GPIO as the button to start/stop advertising in bluetooth PGP mode, so only one physical push button is needed.
+- ESP-IDF with BLE support
+- Tailored for ESP32-C3, draws around 0.05A on average
+- Secrets stored in [ESP32 NVS](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/storage/nvs_flash.html) instead of being compiled in
+- Settings menu using serial port
+- Secrets upload using serial port (see [Upload Secrets](#upload-secrets))
+- Toggle autocatch/autospin
 
-> Provided by Spezifisch's fork: https://github.com/spezifisch/pgpemu
+### Pokemon Go Plus
 
-- connect up to 4 different devices simultaneously
-- parse LED patterns to detect Pokemon/Pokestops/bag full/box full/Pokeballs empty/etc. and press button only when needed
-- randomized delay for pressing the button and press duration
-- PGP secrets are stored in [ESP32 NVS](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/storage/nvs_flash.html) instead of being compiled in
-- settings menu using serial port
-- secrets upload using serial port (see [Upload Secrets](#upload-secrets))
-- setting: autocatch/autospin on/off
-- setting: periodically turn on WiFi to waste some power so your powerbank doesn't turn off (depends on your powerbank if this works)
-- setting: chose between PGP secrets if you have dumps from multiple PGPs
-- setting: chose target number of client connections (Bluetooth advertising starts again automatically until all clients are connected)
-- store user settings in NVS
-- why not use it together with [a fashionable case](https://github.com/spezifisch/pgpemu-case)? :)
+- Connect up to 4 different devices simultaneously, with 1 or many secrets
+- LED patterns parsing for many use cases:
+    - Pokemon caught
+    - Pokemon fled
+    - Pokestop spin
+    - Bag full
+    - Box full
+    - Pokeballs empty
+- Randomized delay for button press and duration
+- Settings saved on reboot
 
-## Hardware
+## Installation
 
-Tested with:
+### Flash and Monitor your ESP32-C3
 
-- ESP32-C3 Supermini, draws around 0.05A on average.
-
-Not guaranteed to work with:
-- ESP32
-- ESP32-S3
-
-## Usage
-
-### Build Firmware
-
-You need ESP-IDF v4.5.2, see the [get started with esp-idf for esp32-c3 guide](https://docs.espressif.com/projects/esp-idf/en/stable/esp32c3/get-started/index.html) 
+You need ESP-IDF v4.5.1, see the [get started with ESP-IDF for ESP32-C3 guide](https://docs.espressif.com/projects/esp-idf/en/stable/esp32c3/get-started/index.html)
 
 I'm using the VSCode extension, see the [tools guide](https://docs.espressif.com/projects/vscode-esp-idf-extension/en/latest/installation.html), which requires you to configure the extension in the following way:
-1. Open the folder `pgpemu-esp32` in VSCode.
+1. Open the folder [./pgpemu-esp32](https://github.com/shortcuts/pgpemu/tree/main/pgpemu-esp32) as a new project in VSCode.
 2. Shift+⌘+P > ESP-IDF: Select Port to Use > choose your device (e.g. `/dev/tty.usbmodem101`)
 3. Shift+⌘+P > ESP-IDF: Set Espressif Device Target > esp32c3
 4. Shift+⌘+P > ESP-IDF: Select Flash Method > JTAG
 5. Shift+⌘+P > ESP-IDF: Build, Flash and Monitor
 
-### Upload Secrets
+### Upload Pokemon Go Plus secrets
 
-Go to `./secrets`, rename `secrets.example.yaml` to `secrets.yaml` and edit it with your dumped PGP secrets.
+> You must have Python 3.8+ and [Poetry](https://python-poetry.org/) installed.
 
-You'll need Python 3.8+ and [Poetry](https://python-poetry.org/). Install dependencies:
+In the [./secrets](https://github.com/shortcuts/pgpemu/tree/main/secrets) directory, rename the `secrets.example.yaml` to `secrets.yaml` and edit it with your dumped Pokemon Go Plus secrets.
+
+Run:
 
 ```shell
 poetry install --no-root
 ```
 
-Then upload your secrets to your device using:
+Then, upload your secrets:
 
 ```shell
-# Linux: (replace /dev/ttyUSB0 with your ESP's serial tty)
-poetry run ./secrets_upload.py secrets.yaml /dev/ttyUSB0
+poetry run ./secrets_upload.py secrets.yaml /dev/tty.usbmodem101
 ```
 
-#### Troubleshooting
-
-If you get `busy device` or `serial.serialutil.SerialException: device reports readiness to read but returned no data (device disconnected or multiple access on port?)`
-make doubly sure that your previously opened serial terminal (e.g. ESP-IDF Monitor) is stopped.
-
-### Configuration
-
-Serial menu:
-
-```text
-I (978711) uart_events: User Settings (lost on restart unless saved):
-I (978711) uart_events: - s - toggle PGP autospin
-I (978711) uart_events: - c - toggle PGP autocatch
-I (978711) uart_events: - p - toggle powerbank ping
-I (978711) uart_events: - i - toggle showing autospin/catch actions on LED
-I (978711) uart_events: - l - toggle verbose logging
-I (978711) uart_events: - m... - set maximum client connections (eg. 3 clients max. with 'm3', up to 4)
-I (978711) uart_events: - S - save user settings permanently
-I (978711) uart_events: Hardware Settings (only read at boot time, use 'S' to save):
-I (978711) uart_events: - B - toggle input button available
-I (978711) uart_events: - O - toggle output RGB LED available
-I (978711) uart_events: Commands:
-I (978721) uart_events: - h,? - help
-I (978721) uart_events: - X... - edit secrets mode (select eg. slot 2 with 'X2!')
-I (978721) uart_events: - A - start BT advertising
-I (978721) uart_events: - a - stop BT advertising
-I (978721) uart_events: - t - show BT connection times
-I (978721) uart_events: - C - show BT client states
-I (978721) uart_events: - r - show runtime counter
-I (978721) uart_events: - T - show FreeRTOS task list
-I (978721) uart_events: - f - show all configuration values
-I (978721) uart_events: - R - restart
-```
-
-### Development
-
-From VSCode's Command Palette run "ESP-IDF: Add vscode configuration folder" [as described here](https://github.com/espressif/vscode-esp-idf-extension/blob/master/docs/C_CPP_CONFIGURATION.md) to get working C/C++ IntelliSense.
-
-## Show Case
-
-Catching Pokemon on connection ID 1 while spinning a Stop on connection ID 0:
-
-```text
-I (715392) pgp_led: Pokemon in range!
-I (715392) button_task: pressing button delay=1918 ms, duration=300 ms, conn_id=1
-I (716602) pgp_led: Pokestop in range!
-I (717312) button_task: pressing button delay=1595 ms, duration=500 ms, conn_id=0
-I (718382) pgp_led: LED pattern total duration: 6450 ms
-I (718392) pgp_led: Caught Pokemon after 3 ball shakes.
-I (720112) pgp_led: Got items from Pokestop.
-```
-
-Not catching Pokemon:
-
-```text
-I (503732) pgp_led: Pokemon in range!
-I (503732) button_task: pressing button delay=1198 ms, duration=250 ms, conn_id=1
-I (506092) pgp_led: Pokemon fled after 3 ball shakes.
-```
-
-Spinning Pokestops:
-
-```text
-I (142841) pgp_led: Pokestop in range!
-I (142841) button_task: pressing button delay=1895 ms, duration=300 ms, conn_id=0
-I (145851) pgp_led: Got items from Pokestop.
-```
-
-Bag full detection:
-
-```text
-I (151681) pgp_led: Pokestop in range!
-I (151681) button_task: pressing button delay=2288 ms, duration=350 ms, conn_id=0
-W (155031) pgp_led: Can't spin Pokestop. Bag is full.
-```
-
-Connect a second phone:
-
-```text
-I (324182) uart_events: starting advertising
-I (324192) pgp_bt_gap: advertising start successful
-I (356572) pgp_bt_gatts: ESP_GATTS_CONNECT_EVT, conn_id=1, mac=...
-...
-I (363552) pgp_led: Pokemon in range!
-I (363552) button_task: pressing button delay=1217 ms, duration=450 ms, conn_id=1   # <- note that this conn_id=1 is from our second connection
-W (365882) pgp_led: Pokeballs are empty or Pokestop went out of range.
-I (374712) pgp_led: Pokestop in range!
-I (374712) button_task: pressing button delay=1742 ms, duration=500 ms, conn_id=0   # <- all the while autocatch/spin from the first connection are still handled
-```
-
-After connecting a third phone:
-
-```text
-I (3241231) pgp_bt_gatts: ESP_GATTS_CONNECT_EVT, conn_id=2, mac=...
-...
-I (3283731) pgp_led: Pokestop in range!
-I (3283731) button_task: pressing button delay=1925 ms, duration=350 ms, conn_id=0
-I (3284351) pgp_led: Caught Pokemon after 3 ball shakes.
-I (3286761) pgp_led: Pokemon in range!
-I (3286761) button_task: pressing button delay=2444 ms, duration=250 ms, conn_id=1
-I (3286781) pgp_led: Got items from Pokestop.
-I (3290101) pgp_led: Pokemon fled after 1 ball shakes.
-I (3290231) pgp_bt_gatts: ESP_GATTS_READ_EVT: state=6, CHAR_BATTERY_LEVEL_VAL
-I (3291171) pgp_led: Pokemon in range!
-I (3291171) button_task: pressing button delay=1168 ms, duration=250 ms, conn_id=2
-I (3292271) pgp_led: New Pokemon in range!
-I (3292341) button_task: pressing button delay=1069 ms, duration=500 ms, conn_id=1
-I (3293501) pgp_led: Caught Pokemon after 3 ball shakes.
-I (3294341) pgp_led: Pokemon fled after 3 ball shakes.
-I (3299321) pgp_led: Pokemon in range!
-I (3299331) button_task: pressing button delay=1457 ms, duration=250 ms, conn_id=1
-I (3300471) pgp_led: Pokestop in range!
-I (3300781) button_task: pressing button delay=1148 ms, duration=300 ms, conn_id=2
-I (3301651) pgp_led: Caught Pokemon after 3 ball shakes.
-I (3302951) pgp_led: Got items from Pokestop.
-...
-I (3560521) uart_events: Task List:
-Task Name       Status  Prio    HWM     Task    Affinity
-uart_event_task X       12      688     8       -1
-IDLE            R       0       1112    6       1
-IDLE            R       0       1008    5       0
-powerbank_task  B       10      2408    9       -1
-ipc0            B       24      1068    1       0
-ipc1            B       24      1060    2       1
-esp_timer       S       22      3660    3       0
-auto_button_tas B       11      336     10      -1
-BTC_TASK        B       19      908     12      0
-hciT            B       22      1568    13      0
-BTU_TASK        B       20      1900    14      0
-btController    B       23      2080    11      0
-Tmr Svc         B       1       1568    7       0
-```
-
-Keeping track of multiple connections:
-
-```text
-# press 't':
-I (183264) pgp_handshake: active_connections: 2
-I (183264) pgp_handshake: - conn_id=0 connected for 137310 ms
-I (183264) pgp_handshake: - conn_id=1 connected for 91220 ms
-
-# press 'C' to see state tables for all 4 client slots:
-I (185944) pgp_handshake: active_connections: 2
-I (185944) pgp_handshake: conn_id_map:
-I (185944) pgp_handshake: 0: 0000
-I (185954) pgp_handshake: 1: 0001
-I (185954) pgp_handshake: 2: ffff
-I (185954) pgp_handshake: 3: ffff
-I (185964) pgp_handshake: client_states:
-I (185964) pgp_handshake: 0: conn_id=0, cert_state=6, recon_key=1, notify=1
-I (185974) pgp_handshake: timestamps: hs=4368, rc=0, cs=4537, ce=0
-I (185984) pgp_handshake: keys:
-I (185984) pgp_handshake: 8d 0f 9a 26 9c ed b3 5d 6d 3c e8 83 7d be e1 12 
-...
-I (186034) pgp_handshake: 1: conn_id=1, cert_state=6, recon_key=1, notify=1
-I (186044) pgp_handshake: timestamps: hs=8972, rc=0, cs=9146, ce=0
-I (186054) pgp_handshake: keys:
-I (186054) pgp_handshake: 9c 81 78 80 ab cf e3 8c 8e a0 b6 6c 7a 85 f8 5f
-...
-I (186114) pgp_handshake: 2: conn_id=0, cert_state=0, recon_key=0, notify=0
-I (186114) pgp_handshake: timestamps: hs=0, rc=0, cs=0, ce=0
-I (186124) pgp_handshake: keys:
-I (186124) pgp_handshake: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
-...
-I (186184) pgp_handshake: 3: conn_id=0, cert_state=0, recon_key=0, notify=0
-I (186184) pgp_handshake: timestamps: hs=0, rc=0, cs=0, ce=0
-I (186194) pgp_handshake: keys:
-I (186194) pgp_handshake: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
-...
-```
-
-Changing PGP secrets slots:
-
-```text
-# press 'X?':
-W (1182721) uart_events: Secrets Mode
-I (1182721) uart_events: User Commands:
-I (1182721) uart_events: - h,? - help
-I (1182721) uart_events: - q - leave secrets mode
-I (1182731) uart_events: - 0-9 - select secrets slot
-I (1182731) uart_events: - ! - activate selected slot and restart
-I (1182741) uart_events: - l - list slots
-I (1182741) uart_events: - C - clear slot
-I (1182751) uart_events: - there are additional commands but they are for use in secrets_upload.py only!
-
-# press 'l':
-I (359801) config_secrets: - pgpsecret_0: device=RedPGP mac=7c:bb:8a:...
-I (359811) config_secrets: - pgpsecret_1: device=BluePGP mac=7c:bb:8a:...
-I (359811) config_secrets: - pgpsecret_2: device=YellowPGP mac=7c:bb:8a:...
-I (359821) config_secrets: - pgpsecret_3: (none)
-I (359821) config_secrets: - pgpsecret_4: (none)
-I (359831) config_secrets: - pgpsecret_5: (none)
-I (359831) config_secrets: - pgpsecret_6: (none)
-I (359841) config_secrets: - pgpsecret_7: (none)
-I (359841) config_secrets: - pgpsecret_8: (none)
-I (359851) config_secrets: - pgpsecret_9: (none)
-
-# press '2!':
-W (438551) uart_events: slot=2
-W (439841) uart_events: SETTING SLOT=2 AND RESTARTING
-I (439851) uart_events: closing nvs
-I (439851) uart_events: restarting
-...
-I (1072) PGPEMU: Device: YellowPGP
-I (1072) PGPEMU: MAC: 7c:bb:8a:...
-I (1072) PGPEMU: Ready.
-I (1092) pgp_bt_gap: advertising start successful
-```
-
-Uploading secrets:
+#### Usage
 
 ```console
-$ poetry run ./secrets_upload.py secrets.yaml /dev/ttyUSB0
 reading input secrets file
 - DeviceSecrets(RedPGP)
 - DeviceSecrets(BluePGP)
@@ -370,13 +153,129 @@ leaving secrets mode
 OK!
 ```
 
-## Credits
+#### Troubleshooting
 
-- <https://github.com/yohanes/pgpemu> - Original PGPEMU implementation
-- <https://github.com/spezifisch/pgpemu> - Spezifisch's fork
+If you get `busy device` or `serial.serialutil.SerialException: device reports readiness to read but returned no data (device disconnected or multiple access on port?)`
+make doubly sure that your previously opened serial terminal (e.g. ESP-IDF Monitor) is stopped.
+
+## Usage
+
+### Help menu
+
+Press `?`:
+
+```
+Secrets: XXXX
+User Settings:
+- s - toggle autospin
+- c - toggle autocatch
+- l - cycle through log levels
+- S - save user settings permanently
+Commands:
+- ? - help
+- x - select secrets slot (e.g. slot 2 with 'X2')
+- r - show runtime counter
+- t - show FreeRTOS task list
+- f - show all configuration values
+- R - restart
+Hardware:
+- B - toggle input button
+Secrets:
+- x? - help
+- xq - leave secrets mode
+- x... - select secrets slot
+- ! - activate selected slot and restart
+- l - list slots
+- C - clear slot
+Bluetooth:
+- bA - start advertising
+- ba - stop advertising
+- bs - show client states
+- br - reset connections
+- b... - set maximum client connections (e.g. 3 clients max. with 'b3', up to 4)
+```
+
+### Runtime stats
+
+Press `r`:
+
+```
+I (1670781) stats: ---STATS 0---
+Caught: 11
+Fled: 12
+Spin: 14
+```
+
+### Bluetooth client states
+
+Press `bs`:
+
+```
+I (1716661) pgp_handshake: active_connections: 1
+I (1716661) pgp_handshake: conn_id_map:
+I (1716661) pgp_handshake: 0: ffff
+I (1716661) pgp_handshake: 1: ffff
+I (1716661) pgp_handshake: 2: ffff
+I (1716661) pgp_handshake: 3: ffff
+I (1716661) pgp_handshake: client_states:
+I (1716661) pgp_handshake: [0] 0 cert_state=6, recon_key=1, notify=1
+I (1716661) pgp_handshake: timestamps: hs=6358, rc=0, cs=6502, ce=0
+I (1716661) pgp_handshake: keys:
+I (1716671) pgp_handshake: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+I (1716671) pgp_handshake: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+I (1716671) pgp_handshake: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+I (1716671) pgp_handshake: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+I (1716671) pgp_handshake: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+I (1716671) pgp_handshake: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+I (1716671) pgp_handshake: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+I (1716671) pgp_handshake: [0] 1 cert_state=0, recon_key=0, notify=0
+I (1716671) pgp_handshake: timestamps: hs=0, rc=0, cs=0, ce=0
+I (1716671) pgp_handshake: keys:
+I (1716671) pgp_handshake: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+I (1716671) pgp_handshake: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+I (1716671) pgp_handshake: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+I (1716671) pgp_handshake: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+I (1716671) pgp_handshake: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+I (1716671) pgp_handshake: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+I (1716671) pgp_handshake: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+I (1716671) pgp_handshake: [0] 2 cert_state=0, recon_key=0, notify=0
+I (1716671) pgp_handshake: timestamps: hs=0, rc=0, cs=0, ce=0
+I (1716671) pgp_handshake: keys:
+I (1716671) pgp_handshake: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+I (1716671) pgp_handshake: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+I (1716681) pgp_handshake: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+I (1716681) pgp_handshake: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+I (1716681) pgp_handshake: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+I (1716681) pgp_handshake: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+I (1716681) pgp_handshake: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+I (1716681) pgp_handshake: [0] 3 cert_state=0, recon_key=0, notify=0
+I (1716681) pgp_handshake: timestamps: hs=0, rc=0, cs=0, ce=0
+I (1716681) pgp_handshake: keys:
+I (1716681) pgp_handshake: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+I (1716681) pgp_handshake: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+I (1716681) pgp_handshake: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+I (1716681) pgp_handshake: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+I (1716681) pgp_handshake: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+I (1716691) pgp_handshake: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+I (1716691) pgp_handshake: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+```
+
+### Change secret slot
+
+Press `x2` for the secret in the second slot:
+
+```text
+W (438551) uart_events: slot=2
+W (439841) uart_events: SETTING SLOT=2 AND RESTARTING
+I (439851) uart_events: closing nvs
+I (439851) uart_events: restarting
+```
 
 ## References
 
+- <https://github.com/yohanes/pgpemu> - Original PGPEMU implementation
+- <https://github.com/spezifisch/pgpemu> - Spezifisch's fork
+- <https://github.com/paper183/pgpemu> - Paper183's fork
 - <https://www.reddit.com/r/pokemongodev/comments/5ovj04/pokemon_go_plus_reverse_engineering_write_up/>
 - <https://www.reddit.com/r/pokemongodev/comments/8544ol/my_1_gotcha_is_connecting_and_spinning_catching_2/>
 - <https://tinyhack.com/2018/11/21/reverse-engineering-pokemon-go-plus/>
