@@ -47,20 +47,14 @@ I'm using the VSCode extension, see the [tools guide](https://docs.espressif.com
 
 ### Upload Pokemon Go Plus secrets
 
-> You must have Python 3.8+ and [Poetry](https://python-poetry.org/) installed.
+> You must have Go 1.25.1+ installed
 
 In the [./secrets](https://github.com/shortcuts/pgpemu/tree/main/secrets) directory, rename the `secrets.example.yaml` to `secrets.yaml` and edit it with your dumped Pokemon Go Plus secrets.
 
 Run:
 
-```shell
-poetry install --no-root
-```
-
-Then, upload your secrets:
-
-```shell
-poetry run ./secrets_upload.py secrets.yaml /dev/tty.usbmodem101
+```sh
+go run main.go -port /dev/tty.usbmodem101 -file secrets.yaml -baud 115200 -timeout 2
 ```
 
 #### Usage
