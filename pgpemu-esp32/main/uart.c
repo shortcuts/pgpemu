@@ -79,12 +79,11 @@ void process_char(uint8_t c) {
             "Hardware:\n"
             "- B - toggle input button\n"
             "Secrets:\n"
-            "- x? - help\n"
             "- xq - leave secrets mode\n"
+            "- xl - list slots\n"
+            "- xc - clear slot\n"
             "- x... - select secrets slot\n"
             "- ! - activate selected slot and restart\n"
-            "- l - list slots\n"
-            "- C - clear slot\n"
             "Bluetooth:\n"
             "- bA - start advertising\n"
             "- ba - stop advertising\n"
@@ -285,13 +284,13 @@ static void uart_secrets_handler() {
                 state = buf[0];
                 ESP_LOGW(UART_TAG, "set=%c", state);
                 break;
-            case 'C':
+            case 'c':
                 // clear secret
                 if (slot_chosen) {
                     ESP_LOGW(UART_TAG, "clear=%d", delete_secrets_id(chosen_slot));
                 }
                 break;
-            case 'W':
+            case 'w':
                 // write secret
                 if (slot_chosen) {
                     ESP_LOGW(UART_TAG,
@@ -431,17 +430,16 @@ static void uart_bluetooth_handler() {
 
     switch (buf) {
     case 'A':
-        ESP_LOGI(UART_TAG, "starting advertising");
         pgp_advertise();
         break;
     case 'a':
-        ESP_LOGI(UART_TAG, "stopping advertising");
         pgp_advertise_stop();
         break;
     case 's':
         dump_client_states();
         break;
     case 'r':
+        reset_client_states();
         break;
     case '1':
     case '2':

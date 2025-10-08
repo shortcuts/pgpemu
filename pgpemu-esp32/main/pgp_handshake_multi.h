@@ -1,6 +1,7 @@
 #ifndef PGP_HANDSHAKE_MULTI_H
 #define PGP_HANDSHAKE_MULTI_H
 
+#include "esp_bt_defs.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/FreeRTOSConfig.h"
 #include "freertos/task.h"
@@ -14,6 +15,7 @@ static const size_t CERT_BUFFER_LEN = 378;
 typedef struct {
     // esp bt connection id
     uint16_t conn_id;
+    esp_bd_addr_t remote_bda;
     int cert_state;
     // TODO: we probably need to save the remote mac address so that we associate a reconnecting
     // client with its previous client state
@@ -44,8 +46,11 @@ client_state_t* get_client_state_entry(uint16_t conn_id);
 client_state_t* get_or_create_client_state_entry(uint16_t conn_id);
 
 int get_cert_state(uint16_t conn_id);
+void set_remote_bda(uint16_t conn_id, esp_bd_addr_t remote_bda);
 
 void dump_client_states();
+void reset_client_states();
+
 
 void connection_start(uint16_t conn_id);
 void connection_update(uint16_t conn_id);

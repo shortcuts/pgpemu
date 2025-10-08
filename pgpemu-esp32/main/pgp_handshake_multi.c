@@ -1,5 +1,7 @@
 #include "pgp_handshake_multi.h"
 
+#include "esp_bt_defs.h"
+#include "esp_gap_ble_api.h"
 #include "esp_log.h"
 #include "log_tags.h"
 
@@ -77,6 +79,15 @@ int get_cert_state(uint16_t conn_id) {
         return 0;
     }
     return entry->cert_state;
+}
+
+void set_remote_bda(uint16_t conn_id, esp_bd_addr_t remote_bda) {
+    client_state_t* entry = get_or_create_client_state_entry(conn_id);
+    if (!entry) {
+        ESP_LOGE(HANDSHAKE_TAG, "set_remote_bda: conn_id %d unknown", conn_id);
+        return;
+    }
+    memcpy(entry->remote_bda, remote_bda, sizeof(esp_bd_addr_t));
 }
 
 void connection_start(uint16_t conn_id) {
@@ -168,5 +179,18 @@ void dump_client_states() {
     ESP_LOGI(HANDSHAKE_TAG, "client_states:");
     for (int i = 0; i < MAX_CONNECTIONS; i++) {
         dump_client_state(i, &client_states[i]);
+    }
+}
+
+
+void reset_client_states() {
+    ESP_LOGI(HANDSHAKE_TAG, "active_connections: %d", active_connections);
+    for (int i = 0; i < MAX_CONNECTIONS; i++) {
+        // make sure it's not an empty slot
+        if (conn_id_map[i] != 0xffff) {
+            ESP_LOGI(HANDSHAKE_TAG, "disconnecting %d", i);
+            esp_ble_gap_disconnect(client_states[i].remote_bda);
+            connection_stop(client_states[i].conn_id);
+        }
     }
 }

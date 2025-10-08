@@ -65,6 +65,12 @@ void increment_spin(uint16_t conn_id) {
 }
 
 void stats_get_runtime() {
+    if (stats_len == 0) {
+        ESP_LOGI(STATS_TAG, "no stats found");
+
+        return;
+    }
+
     for (size_t i = 0; i < stats_len; i++) {
         ESP_LOGI(STATS_TAG,
             "---STATS %d---\n"

@@ -12,6 +12,9 @@ extern uint8_t adv_config_done;
 // start BT advertising if we have fewer connections than configured
 void advertise_if_needed();
 
+// close every connections
+void pgp_disconnect();
+
 // explicitly start BT advertising
 void pgp_advertise();
 
