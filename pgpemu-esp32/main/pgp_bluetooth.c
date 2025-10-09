@@ -21,7 +21,8 @@ static const uint16_t ESP_APP_ID = 0x55;
 static uint8_t mac[6];
 uint8_t bt_mac[6];
 
-// inspired by https://github.com/espressif/esp-idf/blob/master/examples/bluetooth/bluedroid/ble/gatt_security_server/main/example_ble_sec_gatts_demo.c
+// inspired by
+// https://github.com/espressif/esp-idf/blob/master/examples/bluetooth/bluedroid/ble/gatt_security_server/main/example_ble_sec_gatts_demo.c
 bool init_bluetooth() {
     init_handshake_multi();
 
@@ -48,15 +49,16 @@ bool init_bluetooth() {
         return false;
     }
 
-    ret = esp_bluedroid_init();
+    esp_bluedroid_config_t cfg = BT_BLUEDROID_INIT_CONFIG_DEFAULT();
+    ret = esp_bluedroid_init_with_cfg(&cfg);
     if (ret) {
-        ESP_LOGE(BT_TAG, "%s init bluetooth failed: %s", __func__, esp_err_to_name(ret));
+        ESP_LOGE(BT_TAG, "%s init bluedroid failed: %s", __func__, esp_err_to_name(ret));
         return false;
     }
 
     ret = esp_bluedroid_enable();
     if (ret) {
-        ESP_LOGE(BT_TAG, "%s enable bluetooth failed: %s", __func__, esp_err_to_name(ret));
+        ESP_LOGE(BT_TAG, "%s enable bluedroid failed: %s", __func__, esp_err_to_name(ret));
         return false;
     }
 
@@ -82,15 +84,20 @@ bool init_bluetooth() {
      * stack*/
     esp_ble_auth_req_t auth_req = ESP_LE_AUTH_BOND;
     esp_ble_io_cap_t iocap = ESP_IO_CAP_IO;
-    uint8_t key_size = 16;
+    uint8_t key_size = 16;  // the key size should be 7~16 bytes
     uint8_t init_key = ESP_BLE_ENC_KEY_MASK | ESP_BLE_ID_KEY_MASK;
     uint8_t rsp_key = ESP_BLE_ENC_KEY_MASK | ESP_BLE_ID_KEY_MASK;
-    //set static passkey
+    // set static passkey
     uint32_t passkey = 197666;
+    uint8_t auth_option = ESP_BLE_ONLY_ACCEPT_SPECIFIED_AUTH_DISABLE;
+    uint8_t oob_support = ESP_BLE_OOB_DISABLE;
     esp_ble_gap_set_security_param(ESP_BLE_SM_SET_STATIC_PASSKEY, &passkey, sizeof(uint32_t));
     esp_ble_gap_set_security_param(ESP_BLE_SM_AUTHEN_REQ_MODE, &auth_req, sizeof(uint8_t));
     esp_ble_gap_set_security_param(ESP_BLE_SM_IOCAP_MODE, &iocap, sizeof(uint8_t));
     esp_ble_gap_set_security_param(ESP_BLE_SM_MAX_KEY_SIZE, &key_size, sizeof(uint8_t));
+    esp_ble_gap_set_security_param(
+        ESP_BLE_SM_ONLY_ACCEPT_SPECIFIED_SEC_AUTH, &auth_option, sizeof(uint8_t));
+    esp_ble_gap_set_security_param(ESP_BLE_SM_OOB_SUPPORT, &oob_support, sizeof(uint8_t));
     /* If your BLE device act as a Slave, the init_key means you hope which types of key of the
     master should distribut to you, and the response key means which key you can distribut to the
     Master; If your BLE device act as a master, the response key means you hope which types of key
