@@ -8,6 +8,8 @@
 
 uint8_t adv_config_done = 0;
 
+// review with
+// https://github.com/espressif/esp-idf/blob/master/examples/bluetooth/bluedroid/ble/gatt_security_client/main/example_ble_sec_gattc_demo.c
 static esp_ble_adv_params_t adv_params = {
     .adv_int_min = 0x20,
     .adv_int_max = 0x40,
@@ -73,10 +75,18 @@ void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t* par
         read_stored_settings(true);
 
         break;
+    // PASSKEY
     case ESP_GAP_BLE_PASSKEY_REQ_EVT:
-    case ESP_GAP_BLE_SEC_REQ_EVT:
-        ESP_LOGI(BT_GAP_TAG, "Bond not found");
+        ESP_LOGI(BT_GAP_TAG, "Passkey requested");
         break;
+    case ESP_GAP_BLE_PASSKEY_NOTIF_EVT:
+        ESP_LOGI(BT_GAP_TAG, "Passkey notify with code %06" PRIu32, param->ble_security.key_notif.passkey);
+        break;
+    case ESP_GAP_BLE_SEC_REQ_EVT:
+        ESP_LOGI(BT_GAP_TAG, "Security request received, accepting");
+        esp_ble_gap_security_rsp(param->ble_security.ble_req.bd_addr, true);
+        break;
+    // CONNECTION STATUS
     case ESP_GAP_BLE_UPDATE_CONN_PARAMS_EVT:
         ESP_LOGI(BT_GAP_TAG,
             "update connection params status=%d, min_int=%d, max_int=%d, conn_int=%d, "

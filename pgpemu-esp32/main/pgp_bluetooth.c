@@ -21,6 +21,7 @@ static const uint16_t ESP_APP_ID = 0x55;
 static uint8_t mac[6];
 uint8_t bt_mac[6];
 
+// inspired by https://github.com/espressif/esp-idf/blob/master/examples/bluetooth/bluedroid/ble/gatt_security_server/main/example_ble_sec_gatts_demo.c
 bool init_bluetooth() {
     init_handshake_multi();
 
@@ -37,7 +38,7 @@ bool init_bluetooth() {
     esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
     esp_err_t ret = esp_bt_controller_init(&bt_cfg);
     if (ret) {
-        ESP_LOGE(BT_TAG, "%s enable controller failed: %s", __func__, esp_err_to_name(ret));
+        ESP_LOGE(BT_TAG, "%s init controller failed: %s", __func__, esp_err_to_name(ret));
         return false;
     }
 
@@ -79,12 +80,14 @@ bool init_bluetooth() {
 
     /* set the security iocap & auth_req & key size & init key response key parameters to the
      * stack*/
-    esp_ble_auth_req_t auth_req =
-        ESP_LE_AUTH_BOND;                      // bonding with peer device after authentication
-    esp_ble_io_cap_t iocap = ESP_IO_CAP_NONE;  // set the IO capability to No output No input
-    uint8_t key_size = 16;                     // the key size should be 7~16 bytes
+    esp_ble_auth_req_t auth_req = ESP_LE_AUTH_BOND;
+    esp_ble_io_cap_t iocap = ESP_IO_CAP_IO;
+    uint8_t key_size = 16;
     uint8_t init_key = ESP_BLE_ENC_KEY_MASK | ESP_BLE_ID_KEY_MASK;
     uint8_t rsp_key = ESP_BLE_ENC_KEY_MASK | ESP_BLE_ID_KEY_MASK;
+    //set static passkey
+    uint32_t passkey = 197666;
+    esp_ble_gap_set_security_param(ESP_BLE_SM_SET_STATIC_PASSKEY, &passkey, sizeof(uint32_t));
     esp_ble_gap_set_security_param(ESP_BLE_SM_AUTHEN_REQ_MODE, &auth_req, sizeof(uint8_t));
     esp_ble_gap_set_security_param(ESP_BLE_SM_IOCAP_MODE, &iocap, sizeof(uint8_t));
     esp_ble_gap_set_security_param(ESP_BLE_SM_MAX_KEY_SIZE, &key_size, sizeof(uint8_t));

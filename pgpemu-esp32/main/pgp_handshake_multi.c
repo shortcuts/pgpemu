@@ -183,6 +183,7 @@ void dump_client_states() {
 }
 
 
+// align with https://github.com/espressif/esp-idf/blob/master/examples/bluetooth/bluedroid/ble/gatt_security_server/main/example_ble_sec_gatts_demo.c instead
 void reset_client_states() {
     ESP_LOGI(HANDSHAKE_TAG, "active_connections: %d", active_connections);
     for (int i = 0; i < MAX_CONNECTIONS; i++) {
