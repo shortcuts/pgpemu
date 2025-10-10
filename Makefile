@@ -24,11 +24,6 @@ clean:
 monitor: ## Monitors the flash
 	./scripts/monitor.fish
 
-install-secrets:
-	cd ./secrets && \
-		poetry install --no-root && \
-		poetry run ./secrets_upload.py secrets.yaml /dev/tty.usbmodem101
-
 ##@ Code
 
 format:
