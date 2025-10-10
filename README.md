@@ -36,7 +36,7 @@ Autocatcher/Gotcha/Pokemon Go Plus device emulator for Pokemon Go, with autospin
 
 In order to comply with Android 15+ support, a contract must be defined between the emulator and the device. The passkey is the only thing I found to make it work reliably.
 
-The passkey is: **0000**
+The passkey is: **000000**
 
 ## Installation
 
