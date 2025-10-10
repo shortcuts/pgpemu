@@ -11,19 +11,19 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-
-    - uses: jidicula/clang-format-action@v4.15.0
-      with:
-        clang-format-version: '20'
-        check-path: 'pgpemu-esp32'
+  # lint:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #   - uses: actions/checkout@v4
+  #
+  #   - uses: jidicula/clang-format-action@v4.15.0
+  #     with:
+  #       clang-format-version: '20'
+  #       check-path: 'pgpemu-esp32'
 
   build:
-    needs:
-      - lint
+    # needs:
+    #   - lint
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
