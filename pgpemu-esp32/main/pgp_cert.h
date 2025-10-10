@@ -50,28 +50,13 @@ void randomize_buffer(uint8_t* buf, size_t len);
 
 void aes_setkey(AES_Context* ctx, const uint8_t* key);
 
-void aes_hash(AES_Context* ctx,
-    const uint8_t* nonce,
-    const uint8_t* data,
-    const int count,
-    uint8_t* output);
+void aes_hash(AES_Context* ctx, const uint8_t* nonce, const uint8_t* data, const int count, uint8_t* output);
 
-void aes_ctr(AES_Context* ctx,
-    const uint8_t* nonce,
-    const uint8_t* data,
-    int count,
-    uint8_t* output);
+void aes_ctr(AES_Context* ctx, const uint8_t* nonce, const uint8_t* data, int count, uint8_t* output);
 
-void encrypt_block(AES_Context* ctx,
-    const uint8_t* nonce_iv,
-    const uint8_t* nonce,
-    uint8_t* output);
+void encrypt_block(AES_Context* ctx, const uint8_t* nonce_iv, const uint8_t* nonce, uint8_t* output);
 
-void aes_ctr(AES_Context* ctx,
-    const uint8_t* nonce,
-    const uint8_t* data,
-    int count,
-    uint8_t* output);
+void aes_ctr(AES_Context* ctx, const uint8_t* nonce, const uint8_t* data, int count, uint8_t* output);
 
 void generate_chal_0(const uint8_t* mac,
     const uint8_t* the_challenge,
@@ -80,10 +65,7 @@ void generate_chal_0(const uint8_t* mac,
     const uint8_t* outer_nonce,
     struct challenge_data* output);
 
-void generate_next_chal(const uint8_t* data,
-    const uint8_t* key,
-    const uint8_t* nonce,
-    struct next_challenge* output);
+void generate_next_chal(const uint8_t* data, const uint8_t* key, const uint8_t* nonce, struct next_challenge* output);
 
 void generate_reconnect_response(const uint8_t* key, const uint8_t* challenge, uint8_t* output);
 

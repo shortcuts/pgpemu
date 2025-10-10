@@ -73,10 +73,11 @@ void stats_get_runtime() {
 
     for (size_t i = 0; i < stats_len; i++) {
         ESP_LOGI(STATS_TAG,
-            "---STATS %d---\n"
-            "Caught: %d\n"
-            "Fled: %d\n"
-            "Spin: %d",
+            "---STATS---\n"
+            "Connection %d:\n"
+            "- Caught: %d\n"
+            "- Fled: %d\n"
+            "- Spin: %d",
             stats[i].conn_id,
             stats[i].stats.caught,
             stats[i].stats.fled,

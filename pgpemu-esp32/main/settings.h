@@ -12,9 +12,6 @@ typedef struct {
     // any read/write must lock this
     SemaphoreHandle_t mutex;
 
-    // set which PGP device presets stored in NVS should be cloned
-    uint8_t chosen_device;
-
     // set how many client connections are allowed at the same time
     uint8_t target_active_connections;
 
@@ -38,6 +35,5 @@ bool get_setting(bool* var);
 char* get_setting_log_value(bool* var);
 uint8_t get_setting_uint8(uint8_t* var);
 bool set_setting_uint8(uint8_t* var, const uint8_t val);
-bool set_chosen_device(uint8_t id);
 
 #endif /* SETTINGS_H */

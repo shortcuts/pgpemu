@@ -26,8 +26,7 @@ void advertise_if_needed() {
     if (get_active_connections() < target_active_connections) {
         pgp_advertise();
     } else {
-        ESP_LOGI(
-            BT_GAP_TAG, "not advertising again, %d connections reached", target_active_connections);
+        ESP_LOGI(BT_GAP_TAG, "not advertising again, %d connections reached", target_active_connections);
     }
 }
 
@@ -80,9 +79,7 @@ void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t* par
         ESP_LOGI(BT_GAP_TAG, "Passkey requested");
         break;
     case ESP_GAP_BLE_PASSKEY_NOTIF_EVT:
-        ESP_LOGI(BT_GAP_TAG,
-            "Passkey notify with code %06" PRIu32,
-            param->ble_security.key_notif.passkey);
+        ESP_LOGI(BT_GAP_TAG, "Passkey notify with code %06" PRIu32, param->ble_security.key_notif.passkey);
         break;
     case ESP_GAP_BLE_SEC_REQ_EVT:
         ESP_LOGI(BT_GAP_TAG, "Security request received, accepting");

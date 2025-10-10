@@ -148,8 +148,7 @@ static const uint16_t character_client_config_uuid = ESP_GATT_UUID_CHAR_CLIENT_C
 static const uint8_t char_prop_read = ESP_GATT_CHAR_PROP_BIT_READ;
 static const uint8_t char_prop_write = ESP_GATT_CHAR_PROP_BIT_WRITE;
 
-static const uint8_t char_prop_read_notify =
-    ESP_GATT_CHAR_PROP_BIT_READ | ESP_GATT_CHAR_PROP_BIT_NOTIFY;
+static const uint8_t char_prop_read_notify = ESP_GATT_CHAR_PROP_BIT_READ | ESP_GATT_CHAR_PROP_BIT_NOTIFY;
 static const uint8_t char_prop_notify = ESP_GATT_CHAR_PROP_BIT_NOTIFY;
 static const uint8_t dummy_value[2] = { 0x00, 0x00 };
 static uint8_t cert_buffer[378] = { 0 };
@@ -535,9 +534,7 @@ static const esp_gatts_attr_db_t gatt_db_certificate[CERT_LAST_IDX] = {
             (uint8_t*)cert_buffer } },
 };
 
-void gatts_profile_event_handler(esp_gatts_cb_event_t event,
-    esp_gatt_if_t gatts_if,
-    esp_ble_gatts_cb_param_t* param) {
+void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t* param) {
     ESP_LOGD(BT_GATTS_TAG, "%s: received event %d", __func__, event);
     switch (event) {
     case ESP_GATTS_REG_EVT: {
@@ -551,11 +548,9 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event,
         }
         adv_config_done |= ADV_CONFIG_FLAG;
 
-        esp_err_t raw_scan_ret =
-            esp_ble_gap_config_scan_rsp_data_raw(raw_scan_rsp_data, sizeof(raw_scan_rsp_data));
+        esp_err_t raw_scan_ret = esp_ble_gap_config_scan_rsp_data_raw(raw_scan_rsp_data, sizeof(raw_scan_rsp_data));
         if (raw_scan_ret) {
-            ESP_LOGE(
-                BT_GATTS_TAG, "config raw scan rsp data failed, error code = %x", raw_scan_ret);
+            ESP_LOGE(BT_GATTS_TAG, "config raw scan rsp data failed, error code = %x", raw_scan_ret);
         }
         adv_config_done |= SCAN_RSP_CONFIG_FLAG;
         /* esp_err_t create_attr_ret = esp_ble_gatts_create_attr_tab(gatt_db, gatts_if,
@@ -564,28 +559,21 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event,
         /*     ESP_LOGE(GATTS_TABLE_TAG, "create attr table failed, error code = %x",
          * create_attr_ret); */
         /* } */
-        esp_err_t create_attr_ret = esp_ble_gatts_create_attr_tab(
-            gatt_db_battery, gatts_if, BATTERY_LAST_IDX, BATTERY_INST_ID);
+        esp_err_t create_attr_ret =
+            esp_ble_gatts_create_attr_tab(gatt_db_battery, gatts_if, BATTERY_LAST_IDX, BATTERY_INST_ID);
         if (create_attr_ret) {
-            ESP_LOGE(BT_GATTS_TAG,
-                "create attr table for battery failed, error code = %x",
-                create_attr_ret);
+            ESP_LOGE(BT_GATTS_TAG, "create attr table for battery failed, error code = %x", create_attr_ret);
         }
 
-        create_attr_ret = esp_ble_gatts_create_attr_tab(
-            gatt_db_led_button, gatts_if, LED_BUTTON_LAST_IDX, LED_BUTTON_INST_ID);
+        create_attr_ret =
+            esp_ble_gatts_create_attr_tab(gatt_db_led_button, gatts_if, LED_BUTTON_LAST_IDX, LED_BUTTON_INST_ID);
         if (create_attr_ret) {
-            ESP_LOGE(BT_GATTS_TAG,
-                "create attr table for led button failed, error code = %x",
-                create_attr_ret);
+            ESP_LOGE(BT_GATTS_TAG, "create attr table for led button failed, error code = %x", create_attr_ret);
         }
 
-        create_attr_ret = esp_ble_gatts_create_attr_tab(
-            gatt_db_certificate, gatts_if, CERT_LAST_IDX, CERT_INST_ID);
+        create_attr_ret = esp_ble_gatts_create_attr_tab(gatt_db_certificate, gatts_if, CERT_LAST_IDX, CERT_INST_ID);
         if (create_attr_ret) {
-            ESP_LOGE(BT_GATTS_TAG,
-                "create attr table for cert  failed, error code = %x",
-                create_attr_ret);
+            ESP_LOGE(BT_GATTS_TAG, "create attr table for cert  failed, error code = %x", create_attr_ret);
         }
     } break;
     case ESP_GATTS_READ_EVT:
@@ -597,9 +585,8 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event,
             if (esp_log_level_get(BT_GATTS_TAG) >= ESP_LOG_VERBOSE) {
                 ESP_LOGV(BT_GATTS_TAG, "DATA SENT TO APP");
                 if (gatt_db_certificate[IDX_CHAR_SFIDA_TO_CENTRAL_VAL].att_desc.value) {
-                    ESP_LOG_BUFFER_HEX(BT_GATTS_TAG,
-                        gatt_db_certificate[IDX_CHAR_SFIDA_TO_CENTRAL_VAL].att_desc.value,
-                        52);
+                    ESP_LOG_BUFFER_HEX(
+                        BT_GATTS_TAG, gatt_db_certificate[IDX_CHAR_SFIDA_TO_CENTRAL_VAL].att_desc.value, 52);
                 }
             }
         }
@@ -611,10 +598,7 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event,
             char_name_from_handle(param->write.handle));
         if (!param->write.is_prep) {
             // the data length of gattc write  must be less than MAX_VALUE_LENGTH.
-            ESP_LOGD(BT_GATTS_TAG,
-                "GATT_WRITE_EVT handle=%d, value len=%d",
-                param->write.handle,
-                param->write.len);
+            ESP_LOGD(BT_GATTS_TAG, "GATT_WRITE_EVT handle=%d, value len=%d", param->write.handle, param->write.len);
             if (esp_log_level_get(BT_GATTS_TAG) >= ESP_LOG_VERBOSE) {
                 ESP_LOGV(BT_GATTS_TAG, "DATA FROM APP");
                 ESP_LOG_BUFFER_HEX(BT_GATTS_TAG, param->write.value, param->write.len);
@@ -623,10 +607,8 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event,
             if (certificate_handle_table[IDX_CHAR_SFIDA_COMMANDS_CFG] == param->write.handle) {
                 uint16_t descr_value = param->write.value[1] << 8 | param->write.value[0];
                 handle_pgp_handshake_first(gatts_if, descr_value, param->write.conn_id);
-            } else if (certificate_handle_table[IDX_CHAR_CENTRAL_TO_SFIDA_VAL]
-                       == param->write.handle) {
-                handle_pgp_handshake_second(
-                    gatts_if, param->write.value, param->write.len, param->write.conn_id);
+            } else if (certificate_handle_table[IDX_CHAR_CENTRAL_TO_SFIDA_VAL] == param->write.handle) {
+                handle_pgp_handshake_second(gatts_if, param->write.value, param->write.len, param->write.conn_id);
             } else if (led_button_handle_table[IDX_CHAR_LED_VAL] == param->write.handle) {
                 handle_led_notify_from_app(gatts_if, param->write.conn_id, param->write.value);
                 return;
@@ -660,8 +642,7 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event,
 
             /* send response when param->write.need_rsp is true*/
             if (param->write.need_rsp) {
-                esp_ble_gatts_send_response(
-                    gatts_if, param->write.conn_id, param->write.trans_id, ESP_GATT_OK, NULL);
+                esp_ble_gatts_send_response(gatts_if, param->write.conn_id, param->write.trans_id, ESP_GATT_OK, NULL);
             }
         } else {
             /* handle prepare write */
@@ -718,18 +699,12 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event,
     case ESP_GATTS_DISCONNECT_EVT:
         pgp_handshake_disconnect(param->disconnect.conn_id);
 
-        ESP_LOGW(BT_GATTS_TAG,
-            "[%d/%d] disconnected",
-            param->disconnect.conn_id,
-            get_active_connections());
+        ESP_LOGW(BT_GATTS_TAG, "[%d/%d] disconnected", param->disconnect.conn_id, get_active_connections());
 
         switch (param->disconnect.reason) {
         case ESP_GATT_CONN_TERMINATE_PEER_USER:
         case ESP_GATT_CONN_TERMINATE_LOCAL_HOST:
-            ESP_LOGI(BT_GATTS_TAG,
-                "[%d] disconect requested %d",
-                param->disconnect.conn_id,
-                param->disconnect.reason);
+            ESP_LOGI(BT_GATTS_TAG, "[%d] disconect requested %d", param->disconnect.conn_id, param->disconnect.reason);
             break;
         case ESP_GATT_CONN_UNKNOWN:
         case ESP_GATT_CONN_L2C_FAILURE:
@@ -739,26 +714,20 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event,
         case ESP_GATT_CONN_CONN_CANCEL:
         case ESP_GATT_CONN_NONE:
         default:
-            ESP_LOGW(BT_GATTS_TAG,
-                "[%d] disconnect error reason %d",
-                param->disconnect.conn_id,
-                param->disconnect.reason);
+            ESP_LOGW(
+                BT_GATTS_TAG, "[%d] disconnect error reason %d", param->disconnect.conn_id, param->disconnect.reason);
         }
 
         advertise_if_needed();
         break;
     case ESP_GATTS_CREAT_ATTR_TAB_EVT: {
         if (param->add_attr_tab.status != ESP_GATT_OK) {
-            ESP_LOGE(BT_GATTS_TAG,
-                "create attribute table failed, error code=0x%x",
-                param->add_attr_tab.status);
+            ESP_LOGE(BT_GATTS_TAG, "create attribute table failed, error code=0x%x", param->add_attr_tab.status);
         }
         int found = 0;
         if (param->add_attr_tab.svc_uuid.len == ESP_UUID_LEN_16) {
             if (param->add_attr_tab.svc_uuid.uuid.uuid16 == GATTS_SERVICE_UUID_BATTERY) {
-                memcpy(battery_handle_table,
-                    param->add_attr_tab.handles,
-                    sizeof(battery_handle_table));
+                memcpy(battery_handle_table, param->add_attr_tab.handles, sizeof(battery_handle_table));
                 esp_ble_gatts_start_service(battery_handle_table[IDX_BATTERY_SVC]);
                 ESP_LOGD(BT_GATTS_TAG,
                     "create battery attribute table success, handle = %d",
@@ -768,15 +737,10 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event,
         }
 
         if (param->add_attr_tab.svc_uuid.len == ESP_UUID_LEN_128) {
-            if (memcmp(param->add_attr_tab.svc_uuid.uuid.uuid128,
-                    GATTS_SERVICE_UUID_LED_BUTTON,
-                    ESP_UUID_LEN_128)
+            if (memcmp(param->add_attr_tab.svc_uuid.uuid.uuid128, GATTS_SERVICE_UUID_LED_BUTTON, ESP_UUID_LEN_128)
                 == 0) {
-                memcpy(led_button_handle_table,
-                    param->add_attr_tab.handles,
-                    sizeof(led_button_handle_table));
-                esp_err_t response_err =
-                    esp_ble_gatts_start_service(led_button_handle_table[IDX_LED_BUTTON_SVC]);
+                memcpy(led_button_handle_table, param->add_attr_tab.handles, sizeof(led_button_handle_table));
+                esp_err_t response_err = esp_ble_gatts_start_service(led_button_handle_table[IDX_LED_BUTTON_SVC]);
                 if (response_err != ESP_OK) {
                     ESP_LOGE(BT_GATTS_TAG, "failed starting service: %d", response_err);
                 }
@@ -785,21 +749,15 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event,
                     param->add_attr_tab.num_handle);
                 found = 1;
             }
-            if (memcmp(param->add_attr_tab.svc_uuid.uuid.uuid128,
-                    GATTS_SERVICE_UUID_CERTIFICATE,
-                    ESP_UUID_LEN_128)
+            if (memcmp(param->add_attr_tab.svc_uuid.uuid.uuid128, GATTS_SERVICE_UUID_CERTIFICATE, ESP_UUID_LEN_128)
                 == 0) {
-                memcpy(certificate_handle_table,
-                    param->add_attr_tab.handles,
-                    sizeof(certificate_handle_table));
-                esp_err_t response_err =
-                    esp_ble_gatts_start_service(certificate_handle_table[IDX_CERT_SVC]);
+                memcpy(certificate_handle_table, param->add_attr_tab.handles, sizeof(certificate_handle_table));
+                esp_err_t response_err = esp_ble_gatts_start_service(certificate_handle_table[IDX_CERT_SVC]);
                 if (response_err != ESP_OK) {
                     ESP_LOGE(BT_GATTS_TAG, "failed starting service: %d", response_err);
                 }
-                ESP_LOGD(BT_GATTS_TAG,
-                    "create cert attribute table success, handle = %d",
-                    param->add_attr_tab.num_handle);
+                ESP_LOGD(
+                    BT_GATTS_TAG, "create cert attribute table success, handle = %d", param->add_attr_tab.num_handle);
                 found = 1;
             }
         }
@@ -815,18 +773,13 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event,
     }
 }
 
-void gatts_event_handler(esp_gatts_cb_event_t event,
-    esp_gatt_if_t gatts_if,
-    esp_ble_gatts_cb_param_t* param) {
+void gatts_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t* param) {
     /* If event is register event, store the gatts_if for each profile */
     if (event == ESP_GATTS_REG_EVT) {
         if (param->reg.status == ESP_GATT_OK) {
             pgp_profile_tab[PROFILE_APP_IDX].gatts_if = gatts_if;
         } else {
-            ESP_LOGE(BT_GATTS_TAG,
-                "reg app failed, app_id %04x, status %d",
-                param->reg.app_id,
-                param->reg.status);
+            ESP_LOGE(BT_GATTS_TAG, "reg app failed, app_id %04x, status %d", param->reg.app_id, param->reg.status);
             return;
         }
     }
@@ -847,10 +800,7 @@ void gatts_event_handler(esp_gatts_cb_event_t event,
 void pgp_prepare_write_event_env(esp_gatt_if_t gatts_if,
     prepare_type_env_t* prepare_write_env,
     esp_ble_gatts_cb_param_t* param) {
-    ESP_LOGD(BT_GATTS_TAG,
-        "prepare write, handle=%d, value len=%d",
-        param->write.handle,
-        param->write.len);
+    ESP_LOGD(BT_GATTS_TAG, "prepare write, handle=%d, value len=%d", param->write.handle, param->write.len);
     esp_gatt_status_t status = ESP_GATT_OK;
     if (prepare_write_env->prepare_buf == NULL) {
         prepare_write_env->handle = param->write.handle;
@@ -897,30 +847,24 @@ void pgp_prepare_write_event_env(esp_gatt_if_t gatts_if,
     if (status != ESP_GATT_OK) {
         return;
     }
-    memcpy(
-        prepare_write_env->prepare_buf + param->write.offset, param->write.value, param->write.len);
+    memcpy(prepare_write_env->prepare_buf + param->write.offset, param->write.value, param->write.len);
     prepare_write_env->prepare_len += param->write.len;
 }
 
 void pgp_exec_write_event_env(esp_gatt_if_t gatts_if,
     prepare_type_env_t* prepare_write_env,
     esp_ble_gatts_cb_param_t* param) {
-    if (param->exec_write.exec_write_flag == ESP_GATT_PREP_WRITE_EXEC
-        && prepare_write_env->prepare_buf) {
-        ESP_LOG_BUFFER_HEX(
-            BT_GATTS_TAG, prepare_write_env->prepare_buf, prepare_write_env->prepare_len);
+    if (param->exec_write.exec_write_flag == ESP_GATT_PREP_WRITE_EXEC && prepare_write_env->prepare_buf) {
+        ESP_LOG_BUFFER_HEX(BT_GATTS_TAG, prepare_write_env->prepare_buf, prepare_write_env->prepare_len);
 
         // it seems that this will be called only by Android version of the Pokemon Go App
         ESP_LOGD(BT_GATTS_TAG, "WRITE EVT");
 
         if (certificate_handle_table[IDX_CHAR_CENTRAL_TO_SFIDA_VAL] == prepare_write_env->handle) {
-            handle_pgp_handshake_second(gatts_if,
-                prepare_write_env->prepare_buf,
-                prepare_write_env->prepare_len,
-                param->write.conn_id);
+            handle_pgp_handshake_second(
+                gatts_if, prepare_write_env->prepare_buf, prepare_write_env->prepare_len, param->write.conn_id);
         } else if (led_button_handle_table[IDX_CHAR_LED_VAL] == prepare_write_env->handle) {
-            handle_led_notify_from_app(
-                gatts_if, param->write.conn_id, prepare_write_env->prepare_buf);
+            handle_led_notify_from_app(gatts_if, param->write.conn_id, prepare_write_env->prepare_buf);
         }
     } else {
         ESP_LOGI(BT_GATTS_TAG, "ESP_GATT_PREP_WRITE_CANCEL");

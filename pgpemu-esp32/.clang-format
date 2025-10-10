@@ -1,5 +1,5 @@
 BasedOnStyle: Google
-ColumnLimit: 100
+ColumnLimit: 120
 SortIncludes: true
 DerivePointerAlignment: false
 PointerAlignment: Left

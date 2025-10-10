@@ -77,11 +77,7 @@ void init_nonce_hash(const uint8_t* inp_nonce, const int datalen, uint8_t* nonce
 /**
  * iv is 16 bytes
  */
-void aes_hash(AES_Context* ctx,
-    const uint8_t* nonce,
-    const uint8_t* data,
-    const int count,
-    uint8_t* output) {
+void aes_hash(AES_Context* ctx, const uint8_t* nonce, const uint8_t* data, const int count, uint8_t* output) {
     uint8_t tmp[16];
     uint8_t tmp2[16];
     uint8_t nonce_hash[16];
@@ -109,10 +105,7 @@ void init_nonce_ctr(const uint8_t* inp_nonce, uint8_t* nonce_ctr) {
     nonce_ctr[15] = 0;
 }
 
-void encrypt_block(AES_Context* ctx,
-    const uint8_t* nonce_iv,
-    const uint8_t* nonce,
-    uint8_t* output) {
+void encrypt_block(AES_Context* ctx, const uint8_t* nonce_iv, const uint8_t* nonce, uint8_t* output) {
     uint8_t tmp[16];
 
     uint8_t nonce_ctr[16];
@@ -133,11 +126,7 @@ void inc_ctr(uint8_t* ctr) {
     }
 }
 
-void aes_ctr(AES_Context* ctx,
-    const uint8_t* nonce,
-    const uint8_t* data,
-    int count,
-    uint8_t* output) {
+void aes_ctr(AES_Context* ctx, const uint8_t* nonce, const uint8_t* data, int count, uint8_t* output) {
     uint8_t ctr[16];
     uint8_t ectr[16];
 

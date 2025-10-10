@@ -165,8 +165,7 @@ static void dump_client_state(int idx, client_state_t* entry) {
     ESP_LOG_BUFFER_HEX(HANDSHAKE_TAG, entry->main_nonce, sizeof(entry->main_nonce));
     ESP_LOG_BUFFER_HEX(HANDSHAKE_TAG, entry->outer_nonce, sizeof(entry->outer_nonce));
     ESP_LOG_BUFFER_HEX(HANDSHAKE_TAG, entry->session_key, sizeof(entry->session_key));
-    ESP_LOG_BUFFER_HEX(
-        HANDSHAKE_TAG, entry->reconnect_challenge, sizeof(entry->reconnect_challenge));
+    ESP_LOG_BUFFER_HEX(HANDSHAKE_TAG, entry->reconnect_challenge, sizeof(entry->reconnect_challenge));
 }
 
 void dump_client_states() {

@@ -4,3 +4,4 @@ sdkconfig.old
 build
 cert-test
 build.log
+secrets.csv

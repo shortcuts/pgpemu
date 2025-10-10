@@ -43,8 +43,7 @@ void init_button_input() {
     // install gpio isr service
     gpio_install_isr_service(0);
     // hook isr handler for specific gpio pin
-    gpio_isr_handler_add(
-        CONFIG_GPIO_INPUT_BUTTON0, gpio_isr_handler, (void*)CONFIG_GPIO_INPUT_BUTTON0);
+    gpio_isr_handler_add(CONFIG_GPIO_INPUT_BUTTON0, gpio_isr_handler, (void*)CONFIG_GPIO_INPUT_BUTTON0);
 
     // start gpio task
     xTaskCreate(button_input_task, "button_input", 2048, NULL, 15, NULL);

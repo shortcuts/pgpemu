@@ -49,15 +49,12 @@ void app_main() {
     }
 
     // read secrets from nvs (settings are safe to use because mutex is still locked)
-    read_secrets_id(settings.chosen_device, PGP_CLONE_NAME, PGP_MAC, PGP_DEVICE_KEY, PGP_BLOB);
+    read_secrets(PGP_CLONE_NAME, PGP_MAC, PGP_DEVICE_KEY, PGP_BLOB);
 
     if (!PGP_VALID()) {
         // release mutex
         settings_ready();
-        ESP_LOGE(PGPEMU_TAG,
-            "NO PGP SECRETS AVAILABLE IN SLOT %d! Set them using secrets_upload.py or chose "
-            "another using the 'X' menu!",
-            settings.chosen_device);
+        ESP_LOGE(PGPEMU_TAG, "NO PGP SECRETS AVAILABLE! See README.md to set them");
         return;
     }
 

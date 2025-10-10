@@ -15,8 +15,7 @@ typedef int esp_err_t;
 #define ESP_LOGW(tag, fmt, ...) printf("W [%s] " fmt "\n", tag, ##__VA_ARGS__)
 #define ESP_LOGE(tag, fmt, ...) printf("E [%s] " fmt "\n", tag, ##__VA_ARGS__)
 const char* esp_err_to_name(esp_err_t err) {
-    return err == ESP_OK ? "ESP_OK"
-                         : (err == ESP_ERR_NVS_NOT_FOUND ? "ESP_ERR_NVS_NOT_FOUND" : "ESP_FAIL");
+    return err == ESP_OK ? "ESP_OK" : (err == ESP_ERR_NVS_NOT_FOUND ? "ESP_ERR_NVS_NOT_FOUND" : "ESP_FAIL");
 }
 
 int main() {

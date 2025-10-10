@@ -16,12 +16,12 @@ Autocatcher/Gotcha/Pokemon Go Plus device emulator for Pokemon Go, with autospin
 - Tailored for ESP32-C3, draws around 0.05A on average
 - Secrets stored in [ESP32 NVS](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/storage/nvs_flash.html) instead of being compiled in
 - Settings menu using serial port
-- Secrets upload using serial port (see [Upload Secrets](#upload-secrets))
+- Statically loaded secrets (see [Load Secrets](#load-secrets))
 - Toggle autocatch/autospin
 
 ### Pokemon Go Plus
 
-- Connect up to 4 different devices simultaneously, with 1 or many secrets
+- Connect up to 4 different devices simultaneously
 - LED patterns parsing for many use cases:
     - Pokemon caught
     - Pokemon fled
@@ -45,112 +45,31 @@ I'm using the VSCode extension, see the [tools guide](https://docs.espressif.com
 4. Shift+⌘+P > ESP-IDF: Select Flash Method > JTAG
 5. Shift+⌘+P > ESP-IDF: Build, Flash and Monitor
 
-### Upload Pokemon Go Plus secrets
+### Load Pokemon Go Plus secrets
 
-> You must have Go 1.25.1+ installed
-
-In the [./secrets](https://github.com/shortcuts/pgpemu/tree/main/secrets) directory, rename the `secrets.example.yaml` to `secrets.yaml` and edit it with your dumped Pokemon Go Plus secrets.
-
-Run:
-
-```sh
-go run main.go -port /dev/tty.usbmodem101 -file secrets.yaml -baud 115200 -timeout 2
-```
+> [!WARNING]
+> Other PGP emulator forks allows many secrets to be uploaded using serial ports, I'm not an ESP expert and it seems easier for me to statically load everything from a source file, **this fork only allows one secret per flashed device.**
 
 #### Usage
 
-```console
-reading input secrets file
-- DeviceSecrets(RedPGP)
-- DeviceSecrets(BluePGP)
-- DeviceSecrets(YellowPGP)
-enter secrets mode
-> D (13911) uart_events: uart[0] event:
-> D (13911) uart_events: [UART DATA]: 1 bytes
-> 
-> !
-listing current secrets:
-I (13921) config_secrets: - pgpsecret_0: (none)
-I (13921) config_secrets: - pgpsecret_1: (none)
-I (13921) config_secrets: - pgpsecret_2: (none)
-I (13931) config_secrets: - pgpsecret_3: (none)
-I (13931) config_secrets: - pgpsecret_4: (none)
-I (13941) config_secrets: - pgpsecret_5: (none)
-I (13941) config_secrets: - pgpsecret_6: (none)
-I (13951) config_secrets: - pgpsecret_7: (none)
-I (13951) config_secrets: - pgpsecret_8: (none)
-I (13961) config_secrets: - pgpsecret_9: (none)
+First, rename [secrets.example.csv](./pgpemu-esp32/secrets.example.csv) to **secrets.csv**, then update the values in place following the given schema:
 
-uploading secrets
-> W (15981) uart_events: slot=0
-> W (15991) uart_events: set=N                     
-> W (15991) uart_events: N=[OK]
-> W (16001) uart_events: set=M
-> W (16011) uart_events: M=[OK]
-> W (16011) uart_events: set=K
-> W (16021) uart_events: K=[OK]
-> W (16031) uart_events: set=B
-> W (16061) uart_events: B=[OK]
-> I (16071) uart_events: slot=tmp crc=7f454c46
-> I (16151) config_secrets: [OK] wrote secrets to slot 0
-> W (16081) uart_events: write=1
-writing to nvs slot 0 OK
-> I (16161) uart_events: slot=0 crc=7f454c46
-readback OK
-
-> W (16171) uart_events: slot=1
-> W (16181) uart_events: set=N
-> W (16181) uart_events: N=[OK]
-> W (16191) uart_events: set=M
-> W (16201) uart_events: M=[OK]
-> W (16201) uart_events: set=K
-> W (16211) uart_events: K=[OK]
-> W (16221) uart_events: set=B
-> W (16251) uart_events: B=[OK]
-> I (16261) uart_events: slot=tmp crc=c8350200
-> I (16281) config_secrets: [OK] wrote secrets to slot 1
-> W (16271) uart_events: write=1
-writing to nvs slot 1 OK
-> I (16291) uart_events: slot=1 crc=c8350200
-readback OK
-
-> W (16301) uart_events: slot=2
-> W (16311) uart_events: set=N
-> W (16311) uart_events: N=[OK]
-> W (16321) uart_events: set=M
-> W (16331) uart_events: M=[OK]
-> W (16331) uart_events: set=K
-> W (16341) uart_events: K=[OK]
-> W (16351) uart_events: set=B
-> W (16381) uart_events: B=[OK]
-> I (16391) uart_events: slot=tmp crc=72616d65
-> I (16411) config_secrets: [OK] wrote secrets to slot 2
-> W (16401) uart_events: write=1
-writing to nvs slot 2 OK
-> I (16421) uart_events: slot=2 crc=72616d65
-readback OK
-
-listing new secrets:
-I (16431) config_secrets: - pgpsecret_0: device=RedPGP mac=7c:bb:8a:...
-I (16431) config_secrets: - pgpsecret_1: device=BluePGP mac=7c:bb:8a:...
-I (16441) config_secrets: - pgpsecret_2: device=YellowPGP mac=7c:bb:8a:...
-I (16441) config_secrets: - pgpsecret_3: (none)
-I (16451) config_secrets: - pgpsecret_4: (none)
-I (16451) config_secrets: - pgpsecret_5: (none)
-I (16461) config_secrets: - pgpsecret_6: (none)
-I (16461) config_secrets: - pgpsecret_7: (none)
-I (16471) config_secrets: - pgpsecret_8: (none)
-I (16481) config_secrets: - pgpsecret_9: (none)
-leaving secrets mode
-> 
-> X
-OK!
+```csv
+# Secrets options               # this section is for secrets only
+key,type,encoding,value         # /!\ do not edit this line
+pgpsecret,namespace,,           # /!\ do not edit this line
+name,data,string,"PKLMGOPLUS"   # <- the name of your device
+mac,data,hex2bin,7c..........   # <- the mac address you've extracted - should be 12 char long
+dkey,data,hex2bin,9b.........   # <- the device key you've extracted - should be 32 char long
+blob,data,hex2bin,16.........   # <- the blob data you've extracted - should be 512 char long
+# Settings options              # this section is for flash-time settings, it can be overridden later from the uart menu
+user_settings,namespace,,       # /!\ do not edit this line
+catch,data,i8,1                 # enable autocatch - 1 = yes, 0 = no
+spin,data,i8,1                  # enable autospin - 1 = yes, 0 = no
+button,data,i8,1                # enable input button on pokemon encounter - 1 = yes, 0 = no
+llevel,data,i8,2                # esp monitor log level - 1 = debug, 2 = info, 3 = verbose
+maxcon,data,u8,2                # max allowed bluetooth connection to the device, up to 4
 ```
-
-#### Troubleshooting
-
-If you get `busy device` or `serial.serialutil.SerialException: device reports readiness to read but returned no data (device disconnected or multiple access on port?)`
-make doubly sure that your previously opened serial terminal (e.g. ESP-IDF Monitor) is stopped.
 
 ## Usage
 
@@ -159,7 +78,8 @@ make doubly sure that your previously opened serial terminal (e.g. ESP-IDF Monit
 Press `?`:
 
 ```
-Secrets: XXXX
+I (313277) uart_events: ---HELP---
+Secrets: PKLMGOPLUS
 User Settings:
 - s - toggle autospin
 - c - toggle autocatch
@@ -167,7 +87,6 @@ User Settings:
 - S - save user settings permanently
 Commands:
 - ? - help
-- x - select secrets slot (e.g. slot 2 with 'X2')
 - r - show runtime counter
 - t - show FreeRTOS task list
 - f - show all configuration values
@@ -175,18 +94,27 @@ Commands:
 Hardware:
 - B - toggle input button
 Secrets:
-- x? - help
-- xq - leave secrets mode
-- x... - select secrets slot
-- ! - activate selected slot and restart
-- l - list slots
-- C - clear slot
+- xs - show loaded secrets
+- xr - reset loaded secrets
 Bluetooth:
 - bA - start advertising
 - ba - stop advertising
 - bs - show client states
-- br - reset connections
-- b... - set maximum client connections (e.g. 3 clients max. with 'b3', up to 4)
+- br - clear connections
+- b[1,4] - set maximum client connections (e.g. 3 clients max. with 'b3', up to 4, currently 2)
+```
+
+### Current settings
+
+Press `f`:
+
+```
+I (26297) uart_events: ---SETTINGS---
+- Autospin: on
+- Autocatch: on
+- Input button: on
+- Log level: 2
+- Connections: 1 / 2
 ```
 
 ### Runtime stats
@@ -194,10 +122,16 @@ Bluetooth:
 Press `r`:
 
 ```
-I (1670781) stats: ---STATS 0---
-Caught: 11
-Fled: 12
-Spin: 14
+I (118157) stats: ---STATS---
+Connection 0:
+- Caught: 7
+- Fled: 4
+- Spin: 0
+---STATS---
+Connection 1:
+- Caught: 35
+- Fled: 24
+- Spin: 60
 ```
 
 ### Bluetooth client states
@@ -252,17 +186,6 @@ I (1716681) pgp_handshake: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
 I (1716681) pgp_handshake: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
 I (1716691) pgp_handshake: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
 I (1716691) pgp_handshake: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-```
-
-### Change secret slot
-
-Press `x2` for the secret in the second slot:
-
-```text
-W (438551) uart_events: slot=2
-W (439841) uart_events: SETTING SLOT=2 AND RESTARTING
-I (439851) uart_events: closing nvs
-I (439851) uart_events: restarting
 ```
 
 ## References

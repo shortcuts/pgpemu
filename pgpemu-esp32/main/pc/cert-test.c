@@ -142,22 +142,9 @@ int main(int argc, char* argv[]) {
     assert(sizeof(struct main_challenge_data) == 80);
     assert(sizeof(struct challenge_data) == 378);
 
-    const char expected[] = { 0x1b,
-        0x77,
-        0xbc,
-        0x98,
-        0xad,
-        0x03,
-        0x54,
-        0x7e,
-        0x00,
-        0x49,
-        0xfa,
-        0x67,
-        0x5a,
-        0x10,
-        0x47,
-        0xd0 };
+    const char expected[] = {
+        0x1b, 0x77, 0xbc, 0x98, 0xad, 0x03, 0x54, 0x7e, 0x00, 0x49, 0xfa, 0x67, 0x5a, 0x10, 0x47, 0xd0
+    };
     uint8_t main_key[16];
     memset(main_key, 0x43, 16);
     uint8_t reconnect_challenge[32];

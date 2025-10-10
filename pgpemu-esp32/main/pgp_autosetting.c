@@ -40,11 +40,8 @@ static void autosetting_task(void* pvParameters) {
 
     while (1) {
         if (xQueueReceive(setting_queue, &item, portMAX_DELAY)) {
-            ESP_LOGD(SETTING_TASK_TAG,
-                "[%d] toggling setting %c after delay=%d ms",
-                item.conn_id,
-                item.setting,
-                item.delay);
+            ESP_LOGD(
+                SETTING_TASK_TAG, "[%d] toggling setting %c after delay=%d ms", item.conn_id, item.setting, item.delay);
             vTaskDelay(item.delay / portTICK_PERIOD_MS);
 
             switch (item.setting) {
@@ -59,8 +56,7 @@ static void autosetting_task(void* pvParameters) {
                 }
                 break;
             default:
-                ESP_LOGW(
-                    SETTING_TASK_TAG, "[%d] unhandled toggle case: %c", item.conn_id, item.setting);
+                ESP_LOGW(SETTING_TASK_TAG, "[%d] unhandled toggle case: %c", item.conn_id, item.setting);
             }
         }
     }
