@@ -1,6 +1,6 @@
 ---
 name: Feature request
-about: Suggest anything that would make your life easier, or the plugin better.
+about: Suggest anything that would make your life easier, or the emulator better.
 ---
 
 ## Describe the problem
