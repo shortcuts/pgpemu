@@ -28,6 +28,9 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: setup secrets.csv
+      run: mv pgpemu-esp32/secrets.example.csv pgpemu-esp32/secrets.csv
+
     - name: esp-idf build
       uses: espressif/esp-idf-ci-action@v1
       with:
