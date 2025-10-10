@@ -12,6 +12,7 @@
 
 static const char KEY_AUTOCATCH[] = "catch";
 static const char KEY_AUTOSPIN[] = "spin";
+static const char KEY_AUTOSPIN_PROBABILITY[] = "spinp";
 static const char KEY_CONNECTION_COUNT[] = "maxcon";
 static const char KEY_USE_BUTTON[] = "button";
 static const char KEY_LOG_LEVEL[] = "llevel";
@@ -35,7 +36,7 @@ void init_config_storage() {
 void read_stored_settings(bool use_mutex) {
     esp_err_t err;
     int8_t autocatch = 0, autospin = 0, use_button = 0, log_level = 0;
-    uint8_t connection_count = 0;
+    uint8_t autoautospin_probability = 0, connection_count = 0;
 
     if (use_mutex) {
         if (!xSemaphoreTake(settings.mutex, portMAX_DELAY)) {
@@ -77,6 +78,14 @@ void read_stored_settings(bool use_mutex) {
     }
 
     // read uint8_t settings
+    err = nvs_get_u8(user_settings_handle, KEY_AUTOSPIN_PROBABILITY, &autoautospin_probability);
+    if (nvs_read_check(CONFIG_STORAGE_TAG, err, KEY_AUTOSPIN_PROBABILITY)) {
+        if (autoautospin_probability > 9) {
+            ESP_LOGE(CONFIG_STORAGE_TAG, "invalid autospin sprobability: %d (0-9 allowed)", autoautospin_probability);
+        } else {
+            settings.autospin_probability = autoautospin_probability;
+        }
+    }
     err = nvs_get_u8(user_settings_handle, KEY_CONNECTION_COUNT, &connection_count);
     if (nvs_read_check(CONFIG_STORAGE_TAG, err, KEY_CONNECTION_COUNT)) {
         if (connection_count <= CONFIG_BT_ACL_CONNECTIONS && connection_count > 0) {

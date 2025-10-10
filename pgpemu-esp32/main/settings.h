@@ -7,6 +7,7 @@
 #include "freertos/semphr.h"
 
 #include <stdbool.h>
+#include <stdint.h>
 
 typedef struct {
     // any read/write must lock this
@@ -17,6 +18,9 @@ typedef struct {
 
     // gotcha functions
     bool autocatch, autospin;
+
+    // 0 = spin everything, 1 to 9 = N/10
+    uint8_t autospin_probability;
 
     // do you have an input button? only checked on boot
     bool use_button;

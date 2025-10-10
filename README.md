@@ -14,10 +14,10 @@ Autocatcher/Gotcha/Pokemon Go Plus device emulator for Pokemon Go, with autospin
 
 - ESP-IDF with BLE support
 - Tailored for ESP32-C3, draws around 0.05A on average
-- Secrets stored in [ESP32 NVS](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/storage/nvs_flash.html) instead of being compiled in
 - Settings menu using serial port
-- Statically loaded secrets (see [Load Secrets](#load-secrets))
+- Statically loaded secrets (see [Load Secrets](#load-secrets)) in [NVS](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/storage/nvs_flash.html)
 - Toggle autocatch/autospin
+- Android 15+ support (see [Passkey requirements](#passkey-requirements))
 
 ### Pokemon Go Plus
 
@@ -31,6 +31,12 @@ Autocatcher/Gotcha/Pokemon Go Plus device emulator for Pokemon Go, with autospin
     - Pokeballs empty
 - Randomized delay for button press and duration
 - Settings saved on reboot
+
+#### Passkey requirements
+
+In order to comply with Android 15+ support, a contract must be defined between the emulator and the device. The passkey is the only thing I found to make it work reliably.
+
+The passkey is: **0000**
 
 ## Installation
 
@@ -66,6 +72,7 @@ blob,data,hex2bin,16.........   # <- the blob data you've extracted - should be 
 user_settings,namespace,,       # /!\ do not edit this line
 catch,data,i8,1                 # enable autocatch - 1 = yes, 0 = no
 spin,data,i8,1                  # enable autospin - 1 = yes, 0 = no
+spinp,data,u8,0                 # spin probability out of 10, low storage capacity can lead to full bag issues, this allows spinning to be enabled while aiming to reduce chances of full bags - 0 = spin everything, 1 to 9 = N/10
 button,data,i8,1                # enable input button on pokemon encounter - 1 = yes, 0 = no
 llevel,data,i8,2                # esp monitor log level - 1 = debug, 2 = info, 3 = verbose
 maxcon,data,u8,2                # max allowed bluetooth connection to the device, up to 4
@@ -81,15 +88,16 @@ Press `?`:
 I (313277) uart_events: ---HELP---
 Secrets: PKLMGOPLUS
 User Settings:
-- s - toggle autospin
-- c - toggle autocatch
+- as - toggle autospin
+- a[0,9] - autospin probability
+- ac - toggle autocatch
 - l - cycle through log levels
 - S - save user settings permanently
 Commands:
 - ? - help
 - r - show runtime counter
 - t - show FreeRTOS task list
-- f - show all configuration values
+- s - show all configuration values
 - R - restart
 Hardware:
 - B - toggle input button
@@ -111,6 +119,7 @@ Press `f`:
 ```
 I (26297) uart_events: ---SETTINGS---
 - Autospin: on
+- Autospin probability: 4
 - Autocatch: on
 - Input button: on
 - Log level: 2

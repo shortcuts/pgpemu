@@ -12,6 +12,7 @@ Settings settings = {
     .target_active_connections = 1,
     .autocatch = true,
     .autospin = true,
+    .autospin_probability = 0,
     .use_button = false,
     .log_level = 1,
 };
