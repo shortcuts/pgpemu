@@ -9,4 +9,4 @@ ls /dev/cu.*
     --toolchain-prefix riscv32-esp-elf- \
     --make "$HOME/.espressif/python_env/idf5.4_py3.8_env/bin/python $HOME/esp/v5.4.1/esp-idf/tools/idf.py" \
     --target esp32c3 \
-    "$HOME/Documents/rpi/esp32/pgpemu/pgpemu-esp32/build/pgpemu.elf"
+    "$HOME/Documents/pgpemu/pgpemu-esp32/build/pgpemu.elf"

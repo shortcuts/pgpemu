@@ -136,7 +136,7 @@ void handle_led_notify_from_app(esp_gatt_if_t gatts_if, uint16_t conn_id, const 
         // blinking blue
         if (get_setting(&settings.autospin)) {
             uint8_t rnd = (esp_random() % (9 + 1));
-            if (rnd > get_setting_uint8(&settings.autospin_probability)) {
+            if (get_setting_uint8(&settings.autospin_probability) >= rnd) {
                 ESP_LOGW(LEDHANDLER_TAG,
                     "[%d] Pokestop in range but skipped due to %d > %d probability",
                     conn_id,
