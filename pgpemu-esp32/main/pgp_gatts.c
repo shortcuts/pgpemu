@@ -598,11 +598,14 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
             char_name_from_handle(param->write.handle));
         if (!param->write.is_prep) {
             // the data length of gattc write  must be less than MAX_VALUE_LENGTH.
-            ESP_LOGD(BT_GATTS_TAG, "GATT_WRITE_EVT handle=%d, value len=%d", param->write.handle, param->write.len);
+            ESP_LOGD(BT_GATTS_TAG, "GATT_WRITE_EVT handle %d, value len %d", param->write.handle, param->write.len);
             if (esp_log_level_get(BT_GATTS_TAG) >= ESP_LOG_VERBOSE) {
                 ESP_LOGV(BT_GATTS_TAG, "DATA FROM APP");
                 ESP_LOG_BUFFER_HEX(BT_GATTS_TAG, param->write.value, param->write.len);
             }
+
+            ESP_LOGD(BT_GATTS_TAG, "idx %d tabl %d", IDX_CHAR_SFIDA_COMMANDS_CFG, certificate_handle_table[IDX_CHAR_SFIDA_COMMANDS_CFG]);
+            ESP_LOGD(BT_GATTS_TAG, "idx %d tabl %d", IDX_CHAR_CENTRAL_TO_SFIDA_VAL, certificate_handle_table[IDX_CHAR_SFIDA_COMMANDS_CFG]);
 
             if (certificate_handle_table[IDX_CHAR_SFIDA_COMMANDS_CFG] == param->write.handle) {
                 uint16_t descr_value = param->write.value[1] << 8 | param->write.value[0];
@@ -767,6 +770,8 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
         }
         break;
     }
+    case ESP_GATTS_SET_ATTR_VAL_EVT:
+        break;
     default:
         ESP_LOGW(BT_GATTS_TAG, "%s: unhandled event %d", __func__, event);
         break;

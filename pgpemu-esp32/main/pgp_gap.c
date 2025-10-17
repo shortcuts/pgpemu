@@ -69,20 +69,20 @@ void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t* par
         }
         break;
     case ESP_GAP_BLE_AUTH_CMPL_EVT:
-        ESP_LOGI(BT_GAP_TAG, "New bonding done with device %d", esp_ble_get_bond_device_num());
+        ESP_LOGI(BT_GAP_TAG, "new bonding done with device %d", esp_ble_get_bond_device_num());
 
         read_stored_settings(true);
 
         break;
     // PASSKEY
     case ESP_GAP_BLE_PASSKEY_REQ_EVT:
-        ESP_LOGI(BT_GAP_TAG, "Passkey requested");
+        ESP_LOGI(BT_GAP_TAG, "passkey requested");
         break;
     case ESP_GAP_BLE_PASSKEY_NOTIF_EVT:
-        ESP_LOGI(BT_GAP_TAG, "Passkey notify with code %06" PRIu32, param->ble_security.key_notif.passkey);
+        ESP_LOGI(BT_GAP_TAG, "passkey notify with code %06" PRIu32, param->ble_security.key_notif.passkey);
         break;
     case ESP_GAP_BLE_SEC_REQ_EVT:
-        ESP_LOGI(BT_GAP_TAG, "Security request received, accepting");
+        ESP_LOGI(BT_GAP_TAG, "security request received, accepting");
         esp_ble_gap_security_rsp(param->ble_security.ble_req.bd_addr, true);
         break;
     // CONNECTION STATUS
