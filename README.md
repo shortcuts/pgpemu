@@ -42,7 +42,7 @@ The passkey is: **000000**
 
 ### Flash and Monitor your ESP32-C3
 
-You need ESP-IDF v4.5.1, see the [get started with ESP-IDF for ESP32-C3 guide](https://docs.espressif.com/projects/esp-idf/en/stable/esp32c3/get-started/index.html)
+You need ESP-IDF v5.4.1, see the [get started with ESP-IDF for ESP32-C3 guide](https://docs.espressif.com/projects/esp-idf/en/stable/esp32c3/get-started/index.html)
 
 I'm using the VSCode extension, see the [tools guide](https://docs.espressif.com/projects/vscode-esp-idf-extension/en/latest/installation.html), which requires you to configure the extension in the following way:
 1. Open the folder [./pgpemu-esp32](https://github.com/shortcuts/pgpemu/tree/main/pgpemu-esp32) as a new project in VSCode.
