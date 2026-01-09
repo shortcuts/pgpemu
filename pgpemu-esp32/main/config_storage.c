@@ -159,12 +159,14 @@ bool read_stored_device_settings(esp_bd_addr_t bda, DeviceSettings* out_settings
     char key_out[NVS_KEY_MAX_LEN + 1];
 
     make_device_key_for_option(KEY_AUTOCATCH, bda, key_out);
+    ESP_LOGD(CONFIG_STORAGE_TAG, "reading autocatch from key: %s", key_out);
     esp_err_t err = nvs_get_i8(device_settings_handle, key_out, &autocatch);
     if (nvs_read_check(CONFIG_STORAGE_TAG, err, KEY_AUTOCATCH)) {
         out_settings->autocatch = (bool)autocatch;
     }
 
     make_device_key_for_option(KEY_AUTOSPIN, bda, key_out);
+    ESP_LOGD(CONFIG_STORAGE_TAG, "reading autospin from key: %s", key_out);
     err = nvs_get_i8(device_settings_handle, key_out, &autospin);
     if (nvs_read_check(CONFIG_STORAGE_TAG, err, KEY_AUTOSPIN)) {
         out_settings->autospin = (bool)autospin;
@@ -172,6 +174,7 @@ bool read_stored_device_settings(esp_bd_addr_t bda, DeviceSettings* out_settings
 
     // read uint8_t settings
     make_device_key_for_option(KEY_AUTOSPIN_PROBABILITY, bda, key_out);
+    ESP_LOGD(CONFIG_STORAGE_TAG, "reading autospin_probability from key: %s", key_out);
     err = nvs_get_u8(device_settings_handle, key_out, &autospin_probability);
     if (nvs_read_check(CONFIG_STORAGE_TAG, err, KEY_AUTOSPIN_PROBABILITY)) {
         if (autospin_probability > 9) {
@@ -238,8 +241,8 @@ char* make_device_key_for_option(const char* key, const esp_bd_addr_t bda, char*
     // Use lower 60 bits to fit 15 hex characters exactly  
     uint64_t hash_masked = hash & 0x0FFFFFFFFFFFFFFFUL;  // 60 bits = 15 hex digits
     snprintf(out, NVS_KEY_MAX_LEN + 1, 
-             "%03x%08lx",
-             (unsigned int)((hash_masked >> 32) & 0xFFF),
+             "%07x%08lx",
+             (unsigned int)((hash_masked >> 32) & 0xFFFFFFF),
              (unsigned long)(hash_masked & 0xFFFFFFFFUL));
     out[15] = '\0';  // Ensure null termination
 
@@ -271,6 +274,7 @@ bool write_devices_settings_to_nvs() {
         char key_out[NVS_KEY_MAX_LEN + 1];
 
         make_device_key_for_option(KEY_AUTOSPIN, entry->remote_bda, key_out);
+        ESP_LOGD(CONFIG_STORAGE_TAG, "[%d] writing autospin to key: %s", entry->conn_id, key_out);
         esp_err_t err = nvs_set_i8(device_settings_handle, key_out, entry->settings->autospin);
         if (err != ESP_OK) {
             ESP_LOGW(CONFIG_STORAGE_TAG, "[%d] failed to set autospin: %d", entry->conn_id, err);
@@ -278,6 +282,7 @@ bool write_devices_settings_to_nvs() {
         }
 
         make_device_key_for_option(KEY_AUTOCATCH, entry->remote_bda, key_out);
+        ESP_LOGD(CONFIG_STORAGE_TAG, "[%d] writing autocatch to key: %s", entry->conn_id, key_out);
         err = nvs_set_i8(device_settings_handle, key_out, entry->settings->autocatch);
         if (err != ESP_OK) {
             ESP_LOGW(CONFIG_STORAGE_TAG, "[%d] failed to set autocatch: %d", entry->conn_id, err);
@@ -285,6 +290,7 @@ bool write_devices_settings_to_nvs() {
         }
 
         make_device_key_for_option(KEY_AUTOSPIN_PROBABILITY, entry->remote_bda, key_out);
+        ESP_LOGD(CONFIG_STORAGE_TAG, "[%d] writing autospin_probability to key: %s", entry->conn_id, key_out);
         err = nvs_set_u8(device_settings_handle, key_out, entry->settings->autospin_probability);
         if (err != ESP_OK) {
             ESP_LOGW(CONFIG_STORAGE_TAG, "[%d] failed to set autospin_probability: %d", entry->conn_id, err);
@@ -299,6 +305,8 @@ bool write_devices_settings_to_nvs() {
             all_ok = false;
             continue;
         }
+        
+        ESP_LOGI(CONFIG_STORAGE_TAG, "[%d] device settings persisted successfully", entry->conn_id);
     }
 
     return all_ok;
