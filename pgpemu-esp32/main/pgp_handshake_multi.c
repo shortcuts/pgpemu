@@ -5,9 +5,11 @@
 #include "esp_log.h"
 #include "log_tags.h"
 
+#include <stdlib.h>
 #include <string.h>
 
 static int active_connections = 0;
+static SemaphoreHandle_t active_connections_mutex = NULL;
 
 #define MAX_CONNECTIONS CONFIG_BT_ACL_CONNECTIONS
 
@@ -19,10 +21,22 @@ static client_state_t client_states[MAX_CONNECTIONS] = { 0 };
 
 void init_handshake_multi() {
     memset(conn_id_map, 0xff, sizeof(conn_id_map));
+    if (active_connections_mutex == NULL) {
+        active_connections_mutex = xSemaphoreCreateMutex();
+    }
 }
 
 int get_active_connections() {
-    return active_connections;
+    int count = 0;
+    if (active_connections_mutex && xSemaphoreTake(active_connections_mutex, 100 / portTICK_PERIOD_MS)) {
+        count = active_connections;
+        xSemaphoreGive(active_connections_mutex);
+    }
+    return count;
+}
+
+int get_max_connections() {
+    return MAX_CONNECTIONS;
 }
 
 client_state_t* get_client_state_entry(uint16_t conn_id) {
@@ -30,6 +44,14 @@ client_state_t* get_client_state_entry(uint16_t conn_id) {
         if (conn_id_map[i] == conn_id) {
             return &client_states[i];
         }
+    }
+
+    return NULL;
+}
+
+client_state_t* get_client_state_entry_by_idx(int i) {
+    if (conn_id_map[i] != 0xffff) {
+        return &client_states[i];
     }
 
     return NULL;
@@ -61,6 +83,16 @@ client_state_t* get_or_create_client_state_entry(uint16_t conn_id) {
 }
 
 static void delete_client_state_entry(client_state_t* entry) {
+    if (!entry) {
+        return;
+    }
+
+    // Free allocated device settings
+    if (entry->settings) {
+        free(entry->settings);
+        entry->settings = NULL;
+    }
+
     // delete mapping
     for (int i = 0; i < MAX_CONNECTIONS; i++) {
         if (conn_id_map[i] == entry->conn_id) {
@@ -91,7 +123,11 @@ void set_remote_bda(uint16_t conn_id, esp_bd_addr_t remote_bda) {
 }
 
 void connection_start(uint16_t conn_id) {
-    active_connections++;
+    // Safely increment active connections count
+    if (active_connections_mutex && xSemaphoreTake(active_connections_mutex, portMAX_DELAY)) {
+        active_connections++;
+        xSemaphoreGive(active_connections_mutex);
+    }
 
     client_state_t* entry = get_client_state_entry(conn_id);
     if (!entry) {
@@ -105,7 +141,7 @@ void connection_start(uint16_t conn_id) {
     ESP_LOGI(HANDSHAKE_TAG,
         "[%d] connected, active_connections=%d, handshake_duration=%lu ms",
         conn_id,
-        active_connections,
+        get_active_connections(),
         pdTICKS_TO_MS(entry->connection_start - entry->handshake_start));
 }
 
@@ -119,12 +155,16 @@ void connection_update(uint16_t conn_id) {
 }
 
 void connection_stop(uint16_t conn_id) {
-    active_connections--;
-    if (active_connections < 0) {
-        // I'm not entirely sure that we covered all paths so try to save something in case of
-        // mistakes
-        ESP_LOGE(HANDSHAKE_TAG, "we counted connections wrong!");
-        active_connections = 0;
+    // Safely decrement active connections count
+    if (active_connections_mutex && xSemaphoreTake(active_connections_mutex, portMAX_DELAY)) {
+        active_connections--;
+        if (active_connections < 0) {
+            // I'm not entirely sure that we covered all paths so try to save something in case of
+            // mistakes
+            ESP_LOGE(HANDSHAKE_TAG, "we counted connections wrong!");
+            active_connections = 0;
+        }
+        xSemaphoreGive(active_connections_mutex);
     }
 
     client_state_t* entry = get_client_state_entry(conn_id);
@@ -146,18 +186,30 @@ void connection_stop(uint16_t conn_id) {
 
 static void dump_client_state(int idx, client_state_t* entry) {
     ESP_LOGI(HANDSHAKE_TAG,
-        "[%d] %d cert_state=%d, recon_key=%d, notify=%d",
+        "connection %d:\n"
+        "- cert state: %d\n"
+        "- reconn key: %d\n"
+        "- notify: %d\n"
+        "timestamps:\n"
+        "- handshake: %lu\n"
+        "- reconnection: %lu\n"
+        "- conn start: %lu\n"
+        "- conn end: %lu\n"
+        "settings:\n"
+        "- Autospin: %s\n"
+        "- Spin probability: %d\n"
+        "- Autocatch: %s\n",
         entry->conn_id,
-        idx,
         entry->cert_state,
         entry->has_reconnect_key,
-        entry->notify);
-    ESP_LOGI(HANDSHAKE_TAG,
-        "timestamps: hs=%lu, rc=%lu, cs=%lu, ce=%lu",
+        entry->notify,
         entry->handshake_start,
         entry->reconnection_at,
         entry->connection_start,
-        entry->connection_end);
+        entry->connection_end,
+        get_setting_log_value(&entry->settings->autospin),
+        get_setting_uint8(&entry->settings->autospin_probability),
+        get_setting_log_value(&entry->settings->autocatch));
 
     ESP_LOGI(HANDSHAKE_TAG, "keys:");
     ESP_LOG_BUFFER_HEX(HANDSHAKE_TAG, entry->state_0_nonce, sizeof(entry->state_0_nonce));

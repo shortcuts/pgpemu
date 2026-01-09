@@ -8,6 +8,7 @@
 #include "log_tags.h"
 #include "pgp_autobutton.h"
 #include "pgp_autosetting.h"
+#include "pgp_handshake_multi.h"
 #include "settings.h"
 #include "stats.h"
 #include "uart.h"
@@ -16,6 +17,13 @@
 #include <stdlib.h>
 
 const int retoggle_delay = 300000;
+
+// Helper macro to get device settings safely
+#define GET_DEVICE_SETTINGS(conn_id) \
+    ({ \
+        client_state_t* state = get_client_state_entry(conn_id); \
+        (state && state->settings) ? state->settings : NULL; \
+    })
 
 void handle_led_notify_from_app(esp_gatt_if_t gatts_if, uint16_t conn_id, const uint8_t* buffer) {
     int number_of_patterns = buffer[3] & 0x1f;
@@ -89,64 +97,59 @@ void handle_led_notify_from_app(esp_gatt_if_t gatts_if, uint16_t conn_id, const 
     ESP_LOGD(LEDHANDLER_TAG, "[%d] LED pattern total duration: %d ms", conn_id, pattern_duration * 50);
 
     bool press_button = false;
-    // TODO: re-enable when setting[conn_id] available
-    // char retoggle_setting = 0;
+    char retoggle_setting = 0;
+
+    // Get device settings for this connection
+    DeviceSettings* device_settings = GET_DEVICE_SETTINGS(conn_id);
 
     if (count_off && !count_notoff) {
         ESP_LOGD(LEDHANDLER_TAG, "[%d] Turn LEDs off.", conn_id);
     } else if (count_white && count_white == count_notoff) {
-        // only white
-        // uart_auto_handler('s');
-        // retoggle_setting = 's';
-        ESP_LOGW(
-            LEDHANDLER_TAG, "[%d] Bag is full: press button %s", conn_id, get_setting_log_value(&settings.autospin));
+        // only white - bag is full
+        if (device_settings) {
+            ESP_LOGW(LEDHANDLER_TAG, "[%d] Bag is full: retoggling autospin", conn_id);
+            retoggle_setting = 's';
+        }
     } else if (count_red && count_off && count_red == count_notoff) {
-        // blinking just red
-        // uart_auto_handler('c');
-        // retoggle_setting = 'c';
-        ESP_LOGW(LEDHANDLER_TAG,
-            "[%d] Pokeballs are empty or Pokestop went out of range: press button %s",
-            conn_id,
-            get_setting_log_value(&settings.autocatch));
+        // blinking just red - pokeballs empty or stop out of range
+        if (device_settings) {
+            ESP_LOGW(LEDHANDLER_TAG, "[%d] Pokeballs are empty or Pokestop went out of range: retoggling autocatch", conn_id);
+            retoggle_setting = 'c';
+        }
     } else if (count_red && !count_off && count_red == count_notoff) {
-        // only red
-        // uart_auto_handler('c');
-        // retoggle_setting = 'c';
-        ESP_LOGW(
-            LEDHANDLER_TAG, "[%d] Box is full: press button %s", conn_id, get_setting_log_value(&settings.autocatch));
+        // only red - box is full
+        if (device_settings) {
+            ESP_LOGW(LEDHANDLER_TAG, "[%d] Box is full: retoggling autocatch", conn_id);
+            retoggle_setting = 'c';
+        }
     } else if (count_green && count_green == count_notoff) {
         // blinking green
-        ESP_LOGI(LEDHANDLER_TAG,
-            "[%d] Pokemon in range: press button %s",
-            conn_id,
-            get_setting_log_value(&settings.autocatch));
-        if (get_setting(&settings.autocatch)) {
-            press_button = true;
+        if (device_settings) {
+            ESP_LOGI(LEDHANDLER_TAG, "[%d] Pokemon in range", conn_id);
+            if (device_settings->autocatch) {
+                press_button = true;
+            }
         }
     } else if (count_yellow && count_yellow == count_notoff) {
         // blinking yellow
-        ESP_LOGI(LEDHANDLER_TAG,
-            "[%d] New pokemon in range: press button %s",
-            conn_id,
-            get_setting_log_value(&settings.autocatch));
-        if (get_setting(&settings.autocatch)) {
-            press_button = true;
+        if (device_settings) {
+            ESP_LOGI(LEDHANDLER_TAG, "[%d] New pokemon in range", conn_id);
+            if (device_settings->autocatch) {
+                press_button = true;
+            }
         }
     } else if (count_blue && count_blue == count_notoff) {
         // blinking blue
-        if (get_setting(&settings.autospin)) {
+        if (device_settings && device_settings->autospin) {
             uint8_t rnd = (esp_random() % (9 + 1));
-            if (get_setting_uint8(&settings.autospin_probability) > 0 && get_setting_uint8(&settings.autospin_probability) >= rnd) {
+            if (device_settings->autospin_probability > 0 && device_settings->autospin_probability >= rnd) {
                 ESP_LOGW(LEDHANDLER_TAG,
                     "[%d] Pokestop in range but skipped due to %d > %d probability",
                     conn_id,
                     rnd,
-                    get_setting_uint8(&settings.autospin_probability));
+                    device_settings->autospin_probability);
             } else {
-                ESP_LOGI(LEDHANDLER_TAG,
-                    "[%d] Pokestop in range: press button %s",
-                    conn_id,
-                    get_setting_log_value(&settings.autospin));
+                ESP_LOGI(LEDHANDLER_TAG, "[%d] Pokestop in range: pressing button", conn_id);
                 press_button = true;
             }
         }
@@ -168,7 +171,7 @@ void handle_led_notify_from_app(esp_gatt_if_t gatts_if, uint16_t conn_id, const 
         increment_spin(conn_id);
         ESP_LOGI(LEDHANDLER_TAG, "[%d] Got items from Pokestop.", conn_id);
     } else {
-        if (get_setting(&settings.autospin) || get_setting(&settings.autocatch)) {
+        if (device_settings && (device_settings->autospin || device_settings->autocatch)) {
             ESP_LOGE(LEDHANDLER_TAG, "[%d] Unhandled Color pattern, pushing button in any case", conn_id);
             press_button = true;
         } else {
@@ -192,18 +195,18 @@ void handle_led_notify_from_app(esp_gatt_if_t gatts_if, uint16_t conn_id, const 
         }
     }
 
-    // if (retoggle_setting != 0) {
-    //     ESP_LOGD(LEDHANDLER_TAG,
-    //         "[%d] queueing setting toggle for %c after %d ms",
-    //         conn_id,
-    //         retoggle_setting,
-    //         retoggle_delay);
-    //     setting_queue_item_t item = {
-    //         .gatts_if = gatts_if,
-    //         .conn_id = conn_id,
-    //         .delay = retoggle_delay,
-    //         .setting = retoggle_setting,
-    //     };
-    //     xQueueSend(setting_queue, &item, portMAX_DELAY);
-    // }
+    if (retoggle_setting != 0) {
+        ESP_LOGD(LEDHANDLER_TAG,
+            "[%d] queueing setting toggle for %c after %d ms",
+            conn_id,
+            retoggle_setting,
+            retoggle_delay);
+        setting_queue_item_t item = {
+            .conn_id = conn_id,
+            .setting = retoggle_setting,
+            .delay = retoggle_delay,
+        };
+        xQueueSend(setting_queue, &item, portMAX_DELAY);
+    }
 }
+

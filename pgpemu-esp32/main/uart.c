@@ -31,7 +31,7 @@ static int console_read(uint8_t* dst, size_t len, TickType_t to) {
 
 static void usb_console_task(void*);
 static void uart_secrets_handler();
-static void uart_auto_handler();
+static void uart_auto_handler(uint8_t c);
 static void uart_bluetooth_handler();
 static void uart_restart_command();
 
@@ -54,20 +54,14 @@ void process_char(uint8_t c) {
         ESP_LOGI(UART_TAG,
             "---HELP---\n"
             "Secrets: %s\n"
-            "User Settings:\n"
-            "- as - toggle autospin\n"
-            "- a[0,9] - autospin probability\n"
-            "- ac - toggle autocatch\n"
-            "- l - cycle through log levels\n"
-            "- S - save user settings permanently\n"
             "Commands:\n"
             "- ? - help\n"
+            "- l - cycle through log levels\n"
             "- r - show runtime counter\n"
             "- t - show FreeRTOS task list\n"
-            "- s - show settings values\n"
+            "- s - show global settings values\n"
+            "- S - save settings permanently\n"
             "- R - restart\n"
-            "Hardware:\n"
-            "- B - toggle input button\n"
             "Secrets:\n"
             "- xs - show loaded secrets\n"
             "- xr - reset loaded secrets\n"
@@ -76,31 +70,31 @@ void process_char(uint8_t c) {
             "- ba - stop advertising\n"
             "- bs - show client states\n"
             "- br - clear connections\n"
-            "- b[1,4] - set maximum client connections (e.g. 3 clients max. with 'b3', up to %d, currently %d)\n",
+            "- b[1,4] - set maximum client connections (e.g. 3 clients max. with 'b3', up to %d, currently %d)\n"
+            "Device Settings:\n"
+            "- [1,4]s - toggle autospin\n"
+            "- [1,4][0,9] - autospin probability\n"
+            "- [1,4]c - toggle autocatch\n",
             PGP_CLONE_NAME,
             CONFIG_BT_ACL_CONNECTIONS,
-            get_setting_uint8(&settings.target_active_connections));
+            get_setting_uint8(&global_settings.target_active_connections));
         break;
     case 's':
         ESP_LOGI(UART_TAG,
-            "---SETTINGS---\n"
-            "- Autospin: %s\n"
-            "- Spin probability: %d\n"
-            "- Autocatch: %s\n"
-            "- Input button: %s\n"
+            "---GLOBAL SETTINGS---\n"
             "- Log level: %d\n"
             "- Connections: %d / %d",
-            get_setting_log_value(&settings.autospin),
-            get_setting_uint8(&settings.autospin_probability),
-            get_setting_log_value(&settings.autocatch),
-            get_setting_log_value(&settings.use_button),
-            get_setting_uint8(&settings.log_level),
+            get_setting_uint8(&global_settings.log_level),
             get_active_connections(),
-            get_setting_uint8(&settings.target_active_connections));
+            get_setting_uint8(&global_settings.target_active_connections));
         break;
     case 'S':
-        ESP_LOGI(UART_TAG, "saving configuration to nvs");
-        if (write_config_storage()) {
+        ESP_LOGI(UART_TAG, "saving global configuration to nvs");
+        if (write_global_settings_to_nvs()) {
+            ESP_LOGI(UART_TAG, "success!");
+        }
+        ESP_LOGI(UART_TAG, "saving devices configuration to nvs");
+        if (write_devices_settings_to_nvs()) {
             ESP_LOGI(UART_TAG, "success!");
         }
         break;
@@ -110,20 +104,11 @@ void process_char(uint8_t c) {
     case 'b':
         uart_bluetooth_handler();
         break;
-    case 'a':
-        uart_auto_handler();
-        break;
-    case 'B':
-        if (!toggle_setting(&settings.use_button)) {
-            ESP_LOGE(UART_TAG, "failed!");
-        }
-        ESP_LOGI(UART_TAG, "input button: %s", get_setting_log_value(&settings.use_button));
-        break;
     case 'l':
-        if (!cycle_setting(&settings.log_level, 1, 3)) {
+        if (!cycle_log_level(&global_settings.log_level)) {
             ESP_LOGE(UART_TAG, "failed!");
         }
-        uint8_t log_level = get_setting_uint8(&settings.log_level);
+        uint8_t log_level = get_setting_uint8(&global_settings.log_level);
         if (log_level == 3) {
             ESP_LOGI(UART_TAG, "log level 3: verbose");
             log_levels_verbose();
@@ -148,6 +133,12 @@ void process_char(uint8_t c) {
         ESP_LOGI(UART_TAG, "Task List:\nTask Name\tStatus\tPrio\tHWM\tTask\tAffinity\n%s", buf);
         ESP_LOGI(UART_TAG, "Heap free: %lu bytes", esp_get_free_heap_size());
         break;
+    case '0':
+    case '1':
+    case '2':
+    case '3':
+        uart_auto_handler(c - '0');
+        break;
     default:
         ESP_LOGE(UART_TAG, "unhandled input: %c", c);
     }
@@ -163,7 +154,7 @@ static void usb_console_task(void* pv) {
     }
 }
 
-static void uart_auto_handler() {
+static void uart_auto_handler(uint8_t c) {
     uint8_t buf;
 
     int size = console_read(&buf, 1, 10000 / portTICK_PERIOD_MS);
@@ -174,16 +165,10 @@ static void uart_auto_handler() {
 
     switch (buf) {
     case 's':
-        if (!toggle_setting(&settings.autospin)) {
-            ESP_LOGE(UART_TAG, "failed!");
-        }
-        ESP_LOGI(UART_TAG, "autospin: %s", get_setting_log_value(&settings.autospin));
+        ESP_LOGI(UART_TAG, "autospin: %d", toggle_device_autospin(c));
         break;
     case 'c':
-        if (!toggle_setting(&settings.autocatch)) {
-            ESP_LOGE(UART_TAG, "failed!");
-        }
-        ESP_LOGI(UART_TAG, "autocatch: %s", get_setting_log_value(&settings.autocatch));
+        ESP_LOGI(UART_TAG, "autocatch: %d", toggle_device_autocatch(c));
         break;
     case '0':
     case '1':
@@ -195,11 +180,7 @@ static void uart_auto_handler() {
     case '7':
     case '8':
     case '9':
-        if (set_setting_uint8(&settings.autospin_probability, buf - '0')) {
-            ESP_LOGI(UART_TAG, "autospin_probability now %c (press 'S' to save permanently)", buf);
-        } else {
-            ESP_LOGE(UART_TAG, "failed editing setting");
-        }
+        ESP_LOGI(UART_TAG, "autospin_probability: %d", set_device_autospin_probability(c, buf - '0'));
         break;
     default:
         ESP_LOGE(UART_TAG, "unknown auto handler case: a%c", buf);

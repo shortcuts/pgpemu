@@ -1,5 +1,6 @@
 #include "pgp_gatts.h"
 
+#include "config_storage.h"
 #include "esp_bt.h"
 #include "esp_bt_main.h"
 #include "esp_gap_ble_api.h"
@@ -17,6 +18,7 @@
 #include "secrets.h"
 #include "settings.h"
 
+#include <stdlib.h>
 #include <string.h>
 
 #define PROFILE_NUM 1
@@ -604,8 +606,14 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
                 ESP_LOG_BUFFER_HEX(BT_GATTS_TAG, param->write.value, param->write.len);
             }
 
-            ESP_LOGD(BT_GATTS_TAG, "idx %d tabl %d", IDX_CHAR_SFIDA_COMMANDS_CFG, certificate_handle_table[IDX_CHAR_SFIDA_COMMANDS_CFG]);
-            ESP_LOGD(BT_GATTS_TAG, "idx %d tabl %d", IDX_CHAR_CENTRAL_TO_SFIDA_VAL, certificate_handle_table[IDX_CHAR_SFIDA_COMMANDS_CFG]);
+            ESP_LOGD(BT_GATTS_TAG,
+                "idx %d tabl %d",
+                IDX_CHAR_SFIDA_COMMANDS_CFG,
+                certificate_handle_table[IDX_CHAR_SFIDA_COMMANDS_CFG]);
+            ESP_LOGD(BT_GATTS_TAG,
+                "idx %d tabl %d",
+                IDX_CHAR_CENTRAL_TO_SFIDA_VAL,
+                certificate_handle_table[IDX_CHAR_SFIDA_COMMANDS_CFG]);
 
             if (certificate_handle_table[IDX_CHAR_SFIDA_COMMANDS_CFG] == param->write.handle) {
                 uint16_t descr_value = param->write.value[1] << 8 | param->write.value[0];
@@ -696,8 +704,23 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
         // start sent the update connection parameters to the peer device.
         esp_ble_gap_update_conn_params(&conn_params);
 
-        set_remote_bda(param->connect.conn_id, conn_params.bda);
-        esp_ble_set_encryption(param->connect.remote_bda, ESP_BLE_SEC_ENCRYPT_MITM);
+         set_remote_bda(param->connect.conn_id, conn_params.bda);
+         
+         // Load device settings for this connection
+         client_state_t* client_entry = get_client_state_entry(param->connect.conn_id);
+         if (client_entry) {
+             // Allocate memory for device settings
+             client_entry->settings = (DeviceSettings*)malloc(sizeof(DeviceSettings));
+             if (client_entry->settings) {
+                 memset(client_entry->settings, 0, sizeof(DeviceSettings));
+                 read_stored_device_settings(conn_params.bda, client_entry->settings);
+                 ESP_LOGI(BT_GATTS_TAG, "[%d] device settings loaded", param->connect.conn_id);
+             } else {
+                 ESP_LOGE(BT_GATTS_TAG, "[%d] failed to allocate device settings", param->connect.conn_id);
+             }
+         }
+         
+         esp_ble_set_encryption(param->connect.remote_bda, ESP_BLE_SEC_ENCRYPT_MITM);
         break;
     case ESP_GATTS_DISCONNECT_EVT:
         pgp_handshake_disconnect(param->disconnect.conn_id);
