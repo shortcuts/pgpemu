@@ -37,7 +37,7 @@ Autocatcher/Gotcha/Pokemon Go Plus device emulator for Pokemon Go, with autospin
 - Settings menu using serial port
 - Statically loaded secrets (see [Load Pokemon Go Plus Secrets](#load-pokemon-go-plus-secrets)) in [NVS](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/storage/nvs_flash.html)
 - Toggle autocatch/autospin
-- Android 15+ support (see [Passkey requirements](#passkey-requirements))
+- Android 15+ support
 
 ### Pokemon Go Plus Features
 
@@ -54,12 +54,7 @@ Autocatcher/Gotcha/Pokemon Go Plus device emulator for Pokemon Go, with autospin
 - **Retoggle feature** - automatically disable/enable autocatch or autospin when certain conditions occur (bag full, box full, etc.)
 - **Randomized delays** for button press and duration
 - **Settings persistence** - all settings saved to NVS across reboots
-
-#### Passkey requirements
-
-In order to comply with Android 15+ support, a contract must be defined between the emulator and the device. The passkey is the only thing found to make it work reliably.
-
-The passkey is: **000000**
+- **[pogoplusle](https://github.com/Mygod/pogoplusle)** - compatible, benefits from auto reconnect and seamless handshake
 
 ---
 
@@ -622,8 +617,7 @@ Keep this running during all test procedures to observe device behavior.
 **Procedure:**
 1. **Initial Connection:**
    - Scan for PGPemu in Pokemon Go Bluetooth settings
-   - Select PGPemu device
-   - Enter passphrase (000000) when prompted
+   - Select PGPemu device (should be named Pokemon Go Plus)
    - Observe serial logs showing successful handshake (approx 3-5 seconds)
    - Connection should establish and device should show "connected" status
 
