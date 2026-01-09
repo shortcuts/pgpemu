@@ -28,3 +28,6 @@ monitor: ## Monitors the flash
 
 format:
 	cd ./pgpemu-esp32 && make -f Makefile.format format
+
+test:
+	./run_tests.sh
