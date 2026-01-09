@@ -306,7 +306,7 @@ bool write_devices_settings_to_nvs() {
             all_ok = false;
             continue;
         }
-        
+
         ESP_LOGI(CONFIG_STORAGE_TAG, "[%d] device settings persisted successfully", entry->conn_id);
     }
 
