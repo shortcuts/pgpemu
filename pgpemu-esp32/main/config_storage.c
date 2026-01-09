@@ -237,14 +237,15 @@ char* make_device_key_for_option(const char* key, const esp_bd_addr_t bda, char*
         hash = (hash ^ (unsigned char)*p) * FNV1A_PRIME;
 
     // 3. Convert to hex string, 15 chars max
-    // Manually format to avoid %llx compatibility issues on ESP32
-    // Use lower 60 bits to fit 15 hex characters exactly  
-    uint64_t hash_masked = hash & 0x0FFFFFFFFFFFFFFFUL;  // 60 bits = 15 hex digits
-    snprintf(out, NVS_KEY_MAX_LEN + 1, 
-             "%07x%08lx",
-             (unsigned int)((hash_masked >> 32) & 0xFFFFFFF),
-             (unsigned long)(hash_masked & 0xFFFFFFFFUL));
-    out[15] = '\0';  // Ensure null termination
+    // Manually convert hash to hex to avoid platform-specific issues with %llx
+    // Use only 60 bits (15 hex digits) to fit in NVS key limit
+    uint64_t hash_trunc = hash & 0x0FFFFFFFFFFFFFFFUL;
+    const char hex_chars[] = "0123456789abcdef";
+    for (int i = 14; i >= 0; i--) {
+        out[i] = hex_chars[hash_trunc & 0xF];
+        hash_trunc >>= 4;
+    }
+    out[15] = '\0';
 
     return out;
 }
