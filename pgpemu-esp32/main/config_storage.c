@@ -23,6 +23,12 @@ static const char KEY_AUTOCATCH[] = "catch";
 static const char KEY_AUTOSPIN[] = "spin";
 static const char KEY_AUTOSPIN_PROBABILITY[] = "spinp";
 
+// FNV-1a hash constants
+static const uint64_t FNV1A_OFFSET_BASIS = 1469598103934665603ULL;  // FNV-1a 64-bit offset basis
+static const uint64_t FNV1A_PRIME = 1099511628211ULL;                // FNV-1a 64-bit prime
+static const int NVS_KEY_MAX_LEN = 15;                               // NVS key max length (15 chars + null)
+static const int DEVICE_KEY_BUFFER_SIZE = 64;                        // Buffer for concatenated key + BDA
+
 // Forward declaration
 char* make_device_key_for_option(const char* key, const esp_bd_addr_t bda, char* out);
 
@@ -163,7 +169,7 @@ bool read_stored_device_settings(esp_bd_addr_t bda, DeviceSettings* out_settings
     }
 
     // read bool settings
-    char key_out[16];
+    char key_out[NVS_KEY_MAX_LEN + 1];
 
     make_device_key_for_option(KEY_AUTOCATCH, bda, key_out);
     err = nvs_get_i8(device_settings_handle, key_out, &autocatch);
@@ -231,22 +237,22 @@ bool write_global_settings_to_nvs() {
 // concatenates the given two strings and hash them so it fits in the nvs key space (15 char).
 char* make_device_key_for_option(const char* key, const esp_bd_addr_t bda, char* out) {
     // 1. Concatenate safely into a temp buffer
-    char buf[64];
+    char buf[DEVICE_KEY_BUFFER_SIZE];
     int len =
         snprintf(buf, sizeof(buf), "%s_%02x%02x%02x%02x%02x%02x", key, bda[0], bda[1], bda[2], bda[3], bda[4], bda[5]);
-    if (len == 0) {
+    if (len < 0 || len >= DEVICE_KEY_BUFFER_SIZE) {
         ESP_LOGE(CONFIG_STORAGE_TAG, "unable to concatenate key and bda for %s", key);
         return out;
     }
 
     // 2. FNV-1a hash
-    uint64_t hash = 1469598103934665603ULL;
+    uint64_t hash = FNV1A_OFFSET_BASIS;
     for (const char* p = buf; *p; p++)
-        hash = (hash ^ (unsigned char)*p) * 1099511628211ULL;
+        hash = (hash ^ (unsigned char)*p) * FNV1A_PRIME;
 
     // 3. Convert to hex string, 15 chars max (truncate if needed)
-    len = snprintf(out, 16, "%015llx", (unsigned long long)hash);
-    if (len == 0) {
+    len = snprintf(out, NVS_KEY_MAX_LEN + 1, "%015llx", (unsigned long long)hash);
+    if (len < 0 || len >= NVS_KEY_MAX_LEN + 1) {
         ESP_LOGE(CONFIG_STORAGE_TAG, "unable to hash final key for %s", key);
         return out;
     }
@@ -277,7 +283,7 @@ bool write_devices_settings_to_nvs() {
             continue;
         }
 
-        char key_out[16];
+        char key_out[NVS_KEY_MAX_LEN + 1];
 
         make_device_key_for_option(KEY_AUTOSPIN, entry->remote_bda, key_out);
         err = nvs_set_i8(device_settings_handle, key_out, entry->settings->autospin);
@@ -322,7 +328,7 @@ bool persist_device_session_keys(esp_bd_addr_t bda, const uint8_t* session_key, 
     }
 
     bool all_ok = true;
-    char key_out[16];
+    char key_out[NVS_KEY_MAX_LEN + 1];
 
     // Store session key
     make_device_key_for_option("sesskey", bda, key_out);
@@ -370,7 +376,7 @@ bool retrieve_device_session_keys(esp_bd_addr_t bda, uint8_t* session_key_out, u
     }
 
     bool all_ok = true;
-    char key_out[16];
+    char key_out[NVS_KEY_MAX_LEN + 1];
     size_t required_size = 0;
 
     // Retrieve session key
@@ -416,7 +422,7 @@ bool has_cached_session(esp_bd_addr_t bda) {
         return false;
     }
 
-    char key_out[16];
+    char key_out[NVS_KEY_MAX_LEN + 1];
     size_t required_size = 0;
 
     // Check if session key exists with correct size
@@ -437,7 +443,7 @@ bool clear_device_session(esp_bd_addr_t bda) {
     }
 
     bool all_ok = true;
-    char key_out[16];
+    char key_out[NVS_KEY_MAX_LEN + 1];
 
     // Clear session key
     make_device_key_for_option("sesskey", bda, key_out);
