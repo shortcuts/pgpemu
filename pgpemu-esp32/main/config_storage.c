@@ -60,21 +60,14 @@ void read_stored_global_settings(bool use_mutex) {
     }
 
     nvs_handle_t global_settings_handle = {};
-    esp_err_t err = nvs_open("global_settings", NVS_READONLY, &global_settings_handle);
-    if (err != ESP_OK) {
-        if (err == ESP_ERR_NVS_NOT_FOUND) {
-            ESP_LOGW(CONFIG_STORAGE_TAG, "global settings partition doesn't exist, using default settings");
-        } else {
-            ESP_ERROR_CHECK(err);  // panic
-        }
-
+    if (!nvs_open_readonly(CONFIG_STORAGE_TAG, "global_settings", &global_settings_handle)) {
         if (use_mutex) {
             mutex_release(global_settings.mutex);
         }
         return;
     }
 
-    err = nvs_get_u8(global_settings_handle, KEY_LOG_LEVEL, &log_level);
+    esp_err_t err = nvs_get_u8(global_settings_handle, KEY_LOG_LEVEL, &log_level);
     if (nvs_read_check(CONFIG_STORAGE_TAG, err, KEY_LOG_LEVEL)) {
         global_settings.log_level = log_level;
     }
@@ -90,7 +83,7 @@ void read_stored_global_settings(bool use_mutex) {
         }
     }
 
-    nvs_close(global_settings_handle);
+    nvs_safe_close(global_settings_handle);
 
     if (use_mutex) {
         mutex_release(global_settings.mutex);
@@ -157,14 +150,7 @@ bool read_stored_device_settings(esp_bd_addr_t bda, DeviceSettings* out_settings
 
     // open config partition
     nvs_handle_t device_settings_handle = {};
-    esp_err_t err = nvs_open("device_settings", NVS_READONLY, &device_settings_handle);
-    if (err != ESP_OK) {
-        if (err == ESP_ERR_NVS_NOT_FOUND) {
-            ESP_LOGW(CONFIG_STORAGE_TAG, "device_settings partition doesn't exist, using default settings");
-        } else {
-            ESP_LOGE(CONFIG_STORAGE_TAG, "failed to open device_settings partition: %s", esp_err_to_name(err));
-        }
-
+    if (!nvs_open_readonly(CONFIG_STORAGE_TAG, "device_settings", &device_settings_handle)) {
         mutex_release(out_settings->mutex);
         return false;  // Return false on error, but settings still has defaults
     }
@@ -173,7 +159,7 @@ bool read_stored_device_settings(esp_bd_addr_t bda, DeviceSettings* out_settings
     char key_out[NVS_KEY_MAX_LEN + 1];
 
     make_device_key_for_option(KEY_AUTOCATCH, bda, key_out);
-    err = nvs_get_i8(device_settings_handle, key_out, &autocatch);
+    esp_err_t err = nvs_get_i8(device_settings_handle, key_out, &autocatch);
     if (nvs_read_check(CONFIG_STORAGE_TAG, err, KEY_AUTOCATCH)) {
         out_settings->autocatch = (bool)autocatch;
     }
@@ -198,7 +184,7 @@ bool read_stored_device_settings(esp_bd_addr_t bda, DeviceSettings* out_settings
         }
     }
 
-    nvs_close(device_settings_handle);
+    nvs_safe_close(device_settings_handle);
 
     mutex_release(out_settings->mutex);
 
@@ -213,12 +199,14 @@ bool write_global_settings_to_nvs() {
     }
 
     nvs_handle_t global_settings_handle = {};
-    esp_err_t err = nvs_open("global_settings", NVS_READWRITE, &global_settings_handle);
-    ESP_ERROR_CHECK(err);
+    if (!nvs_open_readwrite(CONFIG_STORAGE_TAG, "global_settings", &global_settings_handle)) {
+        mutex_release(global_settings.mutex);
+        return false;
+    }
 
     bool all_ok = true;
 
-    err = nvs_set_u8(global_settings_handle, KEY_LOG_LEVEL, global_settings.log_level);
+    esp_err_t err = nvs_set_u8(global_settings_handle, KEY_LOG_LEVEL, global_settings.log_level);
     all_ok = all_ok && nvs_write_check(CONFIG_STORAGE_TAG, err, KEY_LOG_LEVEL);
     err = nvs_set_u8(global_settings_handle, KEY_CONNECTION_COUNT, global_settings.target_active_connections);
     all_ok = all_ok && nvs_write_check(CONFIG_STORAGE_TAG, err, KEY_CONNECTION_COUNT);
@@ -226,15 +214,7 @@ bool write_global_settings_to_nvs() {
     // give it back in any of the following cases
     mutex_release(global_settings.mutex);
 
-    err = nvs_commit(global_settings_handle);
-    if (err != ESP_OK) {
-        ESP_LOGE(CONFIG_STORAGE_TAG, "commit failed");
-        nvs_close(global_settings_handle);
-        return false;
-    }
-
-    nvs_close(global_settings_handle);
-    return all_ok;
+    return nvs_commit_and_close(CONFIG_STORAGE_TAG, global_settings_handle, "global_settings") && all_ok;
 }
 
 // concatenates the given two strings and hash them so it fits in the nvs key space (15 char).
@@ -278,9 +258,8 @@ bool write_devices_settings_to_nvs() {
          }
 
          nvs_handle_t device_settings_handle = {};
-         esp_err_t err = nvs_open("device_settings", NVS_READWRITE, &device_settings_handle);
-         if (err != ESP_OK) {
-             ESP_LOGE(CONFIG_STORAGE_TAG, "[%d] failed to open NVS: %s", entry->conn_id, esp_err_to_name(err));
+         if (!nvs_open_readwrite(CONFIG_STORAGE_TAG, "device_settings", &device_settings_handle)) {
+             ESP_LOGE(CONFIG_STORAGE_TAG, "[%d] failed to open NVS", entry->conn_id);
              mutex_release(entry->settings->mutex);
              all_ok = false;
              continue;
@@ -289,7 +268,7 @@ bool write_devices_settings_to_nvs() {
          char key_out[NVS_KEY_MAX_LEN + 1];
 
          make_device_key_for_option(KEY_AUTOSPIN, entry->remote_bda, key_out);
-         err = nvs_set_i8(device_settings_handle, key_out, entry->settings->autospin);
+         esp_err_t err = nvs_set_i8(device_settings_handle, key_out, entry->settings->autospin);
 
          make_device_key_for_option(KEY_AUTOCATCH, entry->remote_bda, key_out);
          err = nvs_set_i8(device_settings_handle, key_out, entry->settings->autocatch);
@@ -300,15 +279,11 @@ bool write_devices_settings_to_nvs() {
          // give it back in any of the following cases
          mutex_release(entry->settings->mutex);
 
-        err = nvs_commit(device_settings_handle);
-        if (err != ESP_OK) {
-            ESP_LOGE(CONFIG_STORAGE_TAG, "[%d] commit failed: %s", entry->conn_id, esp_err_to_name(err));
-            nvs_close(device_settings_handle);
-            all_ok = false;
-            continue;
-        }
-
-        nvs_close(device_settings_handle);
+         if (!nvs_commit_and_close(CONFIG_STORAGE_TAG, device_settings_handle, "device_settings")) {
+             ESP_LOGE(CONFIG_STORAGE_TAG, "[%d] commit failed", entry->conn_id);
+             all_ok = false;
+             continue;
+         }
     }
 
     return all_ok;
@@ -324,9 +299,7 @@ bool persist_device_session_keys(esp_bd_addr_t bda, const uint8_t* session_key, 
     }
 
     nvs_handle_t device_settings_handle = {};
-    esp_err_t err = nvs_open("device_settings", NVS_READWRITE, &device_settings_handle);
-    if (err != ESP_OK) {
-        ESP_LOGE(CONFIG_STORAGE_TAG, "persist_device_session_keys: cannot open device_settings partition");
+    if (!nvs_open_readwrite(CONFIG_STORAGE_TAG, "device_settings", &device_settings_handle)) {
         return false;
     }
 
@@ -335,7 +308,7 @@ bool persist_device_session_keys(esp_bd_addr_t bda, const uint8_t* session_key, 
 
     // Store session key
     make_device_key_for_option("sesskey", bda, key_out);
-    err = nvs_set_blob(device_settings_handle, key_out, (const void*)session_key, 16);
+    esp_err_t err = nvs_set_blob(device_settings_handle, key_out, (const void*)session_key, 16);
     if (!nvs_write_check(CONFIG_STORAGE_TAG, err, "session_key")) {
         all_ok = false;
     }
@@ -347,14 +320,10 @@ bool persist_device_session_keys(esp_bd_addr_t bda, const uint8_t* session_key, 
         all_ok = false;
     }
 
-    err = nvs_commit(device_settings_handle);
-    if (err != ESP_OK) {
-        ESP_LOGE(CONFIG_STORAGE_TAG, "persist_device_session_keys: commit failed");
-        nvs_close(device_settings_handle);
+    if (!nvs_commit_and_close(CONFIG_STORAGE_TAG, device_settings_handle, "device_session_keys")) {
         return false;
     }
 
-    nvs_close(device_settings_handle);
     if (all_ok) {
         ESP_LOGI(CONFIG_STORAGE_TAG, "device session keys persisted");
     }
@@ -368,50 +337,26 @@ bool retrieve_device_session_keys(esp_bd_addr_t bda, uint8_t* session_key_out, u
     }
 
     nvs_handle_t device_settings_handle = {};
-    esp_err_t err = nvs_open("device_settings", NVS_READONLY, &device_settings_handle);
-    if (err != ESP_OK) {
-        if (err == ESP_ERR_NVS_NOT_FOUND) {
-            ESP_LOGD(CONFIG_STORAGE_TAG, "retrieve_device_session_keys: device_settings partition doesn't exist");
-        } else {
-            ESP_LOGE(CONFIG_STORAGE_TAG, "retrieve_device_session_keys: cannot open device_settings partition");
-        }
+    if (!nvs_open_readonly(CONFIG_STORAGE_TAG, "device_settings", &device_settings_handle)) {
         return false;
     }
 
     bool all_ok = true;
     char key_out[NVS_KEY_MAX_LEN + 1];
-    size_t required_size = 0;
 
     // Retrieve session key
     make_device_key_for_option("sesskey", bda, key_out);
-    err = nvs_get_blob(device_settings_handle, key_out, NULL, &required_size);
-    if (err == ESP_OK && required_size == 16) {
-        err = nvs_get_blob(device_settings_handle, key_out, session_key_out, &required_size);
-        if (err != ESP_OK) {
-            ESP_LOGW(CONFIG_STORAGE_TAG, "retrieve_device_session_keys: failed to read session_key");
-            all_ok = false;
-        }
-    } else {
-        ESP_LOGD(CONFIG_STORAGE_TAG, "retrieve_device_session_keys: session_key not found or invalid size");
+    if (!nvs_read_blob_checked(CONFIG_STORAGE_TAG, device_settings_handle, key_out, session_key_out, 16)) {
         all_ok = false;
     }
 
     // Retrieve reconnect challenge
     make_device_key_for_option("rechall", bda, key_out);
-    required_size = 0;
-    err = nvs_get_blob(device_settings_handle, key_out, NULL, &required_size);
-    if (err == ESP_OK && required_size == 32) {
-        err = nvs_get_blob(device_settings_handle, key_out, reconnect_challenge_out, &required_size);
-        if (err != ESP_OK) {
-            ESP_LOGW(CONFIG_STORAGE_TAG, "retrieve_device_session_keys: failed to read reconnect_challenge");
-            all_ok = false;
-        }
-    } else {
-        ESP_LOGD(CONFIG_STORAGE_TAG, "retrieve_device_session_keys: reconnect_challenge not found or invalid size");
+    if (!nvs_read_blob_checked(CONFIG_STORAGE_TAG, device_settings_handle, key_out, reconnect_challenge_out, 32)) {
         all_ok = false;
     }
 
-    nvs_close(device_settings_handle);
+    nvs_safe_close(device_settings_handle);
     if (all_ok) {
         ESP_LOGI(CONFIG_STORAGE_TAG, "device session keys retrieved");
     }
@@ -420,8 +365,7 @@ bool retrieve_device_session_keys(esp_bd_addr_t bda, uint8_t* session_key_out, u
 
 bool has_cached_session(esp_bd_addr_t bda) {
     nvs_handle_t device_settings_handle = {};
-    esp_err_t err = nvs_open("device_settings", NVS_READONLY, &device_settings_handle);
-    if (err != ESP_OK) {
+    if (!nvs_open_readonly(CONFIG_STORAGE_TAG, "device_settings", &device_settings_handle)) {
         return false;
     }
 
@@ -430,18 +374,16 @@ bool has_cached_session(esp_bd_addr_t bda) {
 
     // Check if session key exists with correct size
     make_device_key_for_option("sesskey", bda, key_out);
-    err = nvs_get_blob(device_settings_handle, key_out, NULL, &required_size);
+    esp_err_t err = nvs_get_blob(device_settings_handle, key_out, NULL, &required_size);
 
-    nvs_close(device_settings_handle);
+    nvs_safe_close(device_settings_handle);
 
     return (err == ESP_OK && required_size == 16);
 }
 
 bool clear_device_session(esp_bd_addr_t bda) {
     nvs_handle_t device_settings_handle = {};
-    esp_err_t err = nvs_open("device_settings", NVS_READWRITE, &device_settings_handle);
-    if (err != ESP_OK) {
-        ESP_LOGE(CONFIG_STORAGE_TAG, "clear_device_session: cannot open device_settings partition");
+    if (!nvs_open_readwrite(CONFIG_STORAGE_TAG, "device_settings", &device_settings_handle)) {
         return false;
     }
 
@@ -450,7 +392,7 @@ bool clear_device_session(esp_bd_addr_t bda) {
 
     // Clear session key
     make_device_key_for_option("sesskey", bda, key_out);
-    err = nvs_erase_key(device_settings_handle, key_out);
+    esp_err_t err = nvs_erase_key(device_settings_handle, key_out);
     if (err != ESP_OK && err != ESP_ERR_NVS_NOT_FOUND) {
         ESP_LOGW(CONFIG_STORAGE_TAG, "clear_device_session: failed to erase session_key");
         all_ok = false;
@@ -464,14 +406,10 @@ bool clear_device_session(esp_bd_addr_t bda) {
         all_ok = false;
     }
 
-    err = nvs_commit(device_settings_handle);
-    if (err != ESP_OK) {
-        ESP_LOGE(CONFIG_STORAGE_TAG, "clear_device_session: commit failed");
-        nvs_close(device_settings_handle);
+    if (!nvs_commit_and_close(CONFIG_STORAGE_TAG, device_settings_handle, "device_session")) {
         return false;
     }
 
-    nvs_close(device_settings_handle);
     if (all_ok) {
         ESP_LOGI(CONFIG_STORAGE_TAG, "device session cleared");
     }

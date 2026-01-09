@@ -6,7 +6,8 @@
  * and timeout handling. This reduces code duplication and improves safety.
  */
 
-#pragma once
+#ifndef MUTEX_HELPERS_H
+#define MUTEX_HELPERS_H
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
