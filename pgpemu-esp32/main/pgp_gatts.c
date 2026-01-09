@@ -720,12 +720,17 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
             }
         }
 
-        // Do NOT request encryption here. The BLE stack will handle it automatically:
-        // - For bonded devices: encryption is restored silently without passkey prompts
-        // - For new devices: Android will initiate pairing when it tries to access secure characteristics
-        // This avoids unnecessary passkey prompts on reconnect while still maintaining security.
-        // The application-level PGP handshake provides additional authentication.
-        esp_ble_set_encryption(param->connect.remote_bda, ESP_BLE_SEC_ENCRYPT_MITM);
+        // Only request encryption for new devices. For reconnections with cached session,
+        // let the BLE stack handle encryption silently using the existing bond.
+        // Check if we have cached session keys (reconnection)
+        if (!has_cached_session(conn_params.bda)) {
+            // New device: request encryption which will trigger pairing on Android
+            ESP_LOGD(BT_GATTS_TAG, "[%d] new device, requesting encryption", param->connect.conn_id);
+            esp_ble_set_encryption(param->connect.remote_bda, ESP_BLE_SEC_ENCRYPT_MITM);
+        } else {
+            // Reconnection: let BLE stack handle encryption silently using existing bond
+            ESP_LOGD(BT_GATTS_TAG, "[%d] cached session found, skipping encryption request", param->connect.conn_id);
+        }
         break;
     case ESP_GATTS_DISCONNECT_EVT:
         pgp_handshake_disconnect(param->disconnect.conn_id);
