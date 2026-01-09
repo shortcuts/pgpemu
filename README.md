@@ -66,7 +66,7 @@ The passkey is: **000000**
 ## Hardware Requirements
 
 - **Microcontroller**: ESP32-C3
-- **ESP-IDF Version**: v4.5.1 (⚠️ CRITICAL: Not compatible with v5.x)
+- **ESP-IDF Version**: v5.4.1
 - **Average Power Draw**: ~0.05A
 - **Communication Protocol**: BLE (Bluetooth Low Energy)
 - **Storage**: NVS (Non-Volatile Storage) for settings persistence
@@ -78,7 +78,7 @@ The passkey is: **000000**
 
 ### Prerequisites
 
-You need ESP-IDF v4.5.1 installed. See the [get started with ESP-IDF for ESP32-C3 guide](https://docs.espressif.com/projects/esp-idf/en/stable/esp32c3/get-started/index.html).
+You need ESP-IDF v5.4.1 installed. See the [get started with ESP-IDF for ESP32-C3 guide](https://docs.espressif.com/projects/esp-idf/en/stable/esp32c3/get-started/index.html).
 
 ### Option 1: VSCode with ESP-IDF Extension
 
@@ -374,7 +374,7 @@ pgpemu/
 │   │       └── run_tests.sh                 # Test runner script
 │   │
 │   ├── CMakeLists.txt                       # Build configuration
-│   ├── sdkconfig                            # ESP-IDF configuration (v4.5.1)
+│   ├── sdkconfig                            # ESP-IDF configuration (v5.4.1)
 │   ├── secrets.example.csv                  # Template for device secrets
 │   ├── .clang-format                        # Code style configuration
 │   ├── .clang-tidy                          # Static analysis rules
@@ -1085,7 +1085,7 @@ Use this checklist to track manual testing progress:
 ### Build Issues
 
 **ESP-IDF not found**
-- Ensure ESP-IDF v4.5.1 is installed (NOT v5.x)
+- Ensure ESP-IDF v5.4.1 is installed
 - Run: `. ~/esp/esp-idf/export.sh` to set up environment
 - Check: `echo $IDF_PATH` should point to esp-idf directory
 
@@ -1347,10 +1347,10 @@ All tests pass on PC without hardware.
 
 ### ESP-IDF Documentation
 
-- [ESP-IDF v4.5.1 Documentation](https://docs.espressif.com/projects/esp-idf/en/stable/esp32c3/)
-- [ESP32-C3 Getting Started Guide](https://docs.espressif.com/projects/esp-idf/en/stable/esp32c3/get-started/index.html)
-- [NVS (Non-Volatile Storage) API](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/storage/nvs_flash.html)
-- [BLE API Reference](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/bluetooth/esp_gatt_defs.html)
+- [ESP-IDF v5.4.1 Documentation](https://docs.espressif.com/projects/esp-idf/en/v5.4.1/esp32c3/)
+- [ESP32-C3 Getting Started Guide](https://docs.espressif.com/projects/esp-idf/en/v5.4.1/esp32c3/get-started/index.html)
+- [NVS (Non-Volatile Storage) API](https://docs.espressif.com/projects/esp-idf/en/v5.4.1/esp32/api-reference/storage/nvs_flash.html)
+- [BLE API Reference](https://docs.espressif.com/projects/esp-idf/en/v5.4.1/esp32/api-reference/bluetooth/esp_gatt_defs.html)
 
 ### Bluetooth Low Energy
 
@@ -1374,7 +1374,7 @@ This project is licensed under [LICENSE](./LICENSE).
 **Last Updated**: January 9, 2026  
 **Total Test Coverage**: 226 assertions, 100% pass rate  
 **Critical Bugs Prevented**: 5 major issues with regression tests  
-**Supported Devices**: ESP32-C3 with ESP-IDF v4.5.1  
+**Supported Devices**: ESP32-C3 with ESP-IDF v5.4.1  
 **Simultaneous Connections**: Up to 4 devices  
 **NVS Persistence**: Settings survive power cycles  
 
