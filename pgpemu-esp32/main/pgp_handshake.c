@@ -230,7 +230,7 @@ void handle_pgp_handshake_second(esp_gatt_if_t gatts_if, const uint8_t* prepare_
     {
         if (datalen == 20) {
             // just assume server responds correctly
-            ESP_LOGD(HANDSHAKE_TAG, "OK");
+            ESP_LOGI(HANDSHAKE_TAG, "[%d] reconnection challenge received (state 3->4)", conn_id);
             if (esp_log_level_get(HANDSHAKE_TAG) >= ESP_LOG_DEBUG) {
                 ESP_LOG_BUFFER_HEX(HANDSHAKE_TAG, prepare_buf, datalen);
             }
@@ -244,12 +244,14 @@ void handle_pgp_handshake_second(esp_gatt_if_t gatts_if, const uint8_t* prepare_
                 false);
 
             client_state->cert_state = 4;
+        } else {
+            ESP_LOGW(HANDSHAKE_TAG, "[%d] reconnection #1 unexpected datalen=%d", conn_id, datalen);
         }
         break;
     }
     case 4:  // reconnection #2
     {
-        ESP_LOGD(HANDSHAKE_TAG, "OK");
+        ESP_LOGI(HANDSHAKE_TAG, "[%d] reconnection response received (state 4->5)", conn_id);
 
         memset(client_state->cert_buffer, 0, 4);
         generate_reconnect_response(client_state->session_key, prepare_buf + 4, client_state->cert_buffer + 4);
@@ -279,7 +281,7 @@ void handle_pgp_handshake_second(esp_gatt_if_t gatts_if, const uint8_t* prepare_
     {
         if (datalen == 5) {
             // just assume server responds correctly
-            ESP_LOGD(HANDSHAKE_TAG, "OK");
+            ESP_LOGI(HANDSHAKE_TAG, "[%d] reconnection complete (state 5->6), calling connection_start", conn_id);
 
             uint8_t notify_data[4] = { 0x04, 0x00, 0x02, 0x00 };
             esp_ble_gatts_send_indicate(gatts_if,
@@ -290,7 +292,9 @@ void handle_pgp_handshake_second(esp_gatt_if_t gatts_if, const uint8_t* prepare_
                 false);
 
             client_state->cert_state = 6;
-            connection_update(conn_id);
+            connection_start(conn_id);
+        } else {
+            ESP_LOGW(HANDSHAKE_TAG, "[%d] reconnection #3 unexpected datalen=%d", conn_id, datalen);
         }
         break;
     }
