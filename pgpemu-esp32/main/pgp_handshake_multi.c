@@ -4,6 +4,7 @@
 #include "esp_gap_ble_api.h"
 #include "esp_log.h"
 #include "log_tags.h"
+#include "mutex_helpers.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -28,9 +29,9 @@ void init_handshake_multi() {
 
 int get_active_connections() {
     int count = 0;
-    if (active_connections_mutex && xSemaphoreTake(active_connections_mutex, 100 / portTICK_PERIOD_MS)) {
+    if (mutex_acquire_timeout(active_connections_mutex, 100)) {
         count = active_connections;
-        xSemaphoreGive(active_connections_mutex);
+        mutex_release(active_connections_mutex);
     }
     return count;
 }
@@ -124,9 +125,9 @@ void set_remote_bda(uint16_t conn_id, esp_bd_addr_t remote_bda) {
 
 void connection_start(uint16_t conn_id) {
     // Safely increment active connections count
-    if (active_connections_mutex && xSemaphoreTake(active_connections_mutex, portMAX_DELAY)) {
+    if (mutex_acquire_blocking(active_connections_mutex)) {
         active_connections++;
-        xSemaphoreGive(active_connections_mutex);
+        mutex_release(active_connections_mutex);
     }
 
     client_state_t* entry = get_client_state_entry(conn_id);
@@ -156,7 +157,7 @@ void connection_update(uint16_t conn_id) {
 
 void connection_stop(uint16_t conn_id) {
     // Safely decrement active connections count
-    if (active_connections_mutex && xSemaphoreTake(active_connections_mutex, portMAX_DELAY)) {
+    if (mutex_acquire_blocking(active_connections_mutex)) {
         active_connections--;
         if (active_connections < 0) {
             // I'm not entirely sure that we covered all paths so try to save something in case of
@@ -164,7 +165,7 @@ void connection_stop(uint16_t conn_id) {
             ESP_LOGE(HANDSHAKE_TAG, "we counted connections wrong!");
             active_connections = 0;
         }
-        xSemaphoreGive(active_connections_mutex);
+        mutex_release(active_connections_mutex);
     }
 
     client_state_t* entry = get_client_state_entry(conn_id);

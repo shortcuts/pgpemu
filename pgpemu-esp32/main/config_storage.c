@@ -5,6 +5,7 @@
 #include "esp_system.h"
 #include "freertos/FreeRTOS.h"
 #include "log_tags.h"
+#include "mutex_helpers.h"
 #include "nvs.h"
 #include "nvs_flash.h"
 #include "nvs_helper.h"
@@ -52,7 +53,7 @@ void read_stored_global_settings(bool use_mutex) {
     uint8_t connection_count = 0;
 
     if (use_mutex) {
-        if (!xSemaphoreTake(global_settings.mutex, portMAX_DELAY)) {
+        if (!mutex_acquire_blocking(global_settings.mutex)) {
             ESP_LOGE(CONFIG_STORAGE_TAG, "cannot get global settings mutex");
             return;
         }
@@ -68,7 +69,7 @@ void read_stored_global_settings(bool use_mutex) {
         }
 
         if (use_mutex) {
-            xSemaphoreGive(global_settings.mutex);
+            mutex_release(global_settings.mutex);
         }
         return;
     }
@@ -92,7 +93,7 @@ void read_stored_global_settings(bool use_mutex) {
     nvs_close(global_settings_handle);
 
     if (use_mutex) {
-        xSemaphoreGive(global_settings.mutex);
+        mutex_release(global_settings.mutex);
     }
 
     ESP_LOGI(CONFIG_STORAGE_TAG, "global settings read from nvs");
@@ -149,7 +150,7 @@ bool read_stored_device_settings(esp_bd_addr_t bda, DeviceSettings* out_settings
     }
 
     // Take mutex to protect read
-    if (!xSemaphoreTake(out_settings->mutex, portMAX_DELAY)) {
+    if (!mutex_acquire_blocking(out_settings->mutex)) {
         ESP_LOGE(CONFIG_STORAGE_TAG, "cannot get device_settings mutex");
         return false;
     }
@@ -164,7 +165,7 @@ bool read_stored_device_settings(esp_bd_addr_t bda, DeviceSettings* out_settings
             ESP_LOGE(CONFIG_STORAGE_TAG, "failed to open device_settings partition: %s", esp_err_to_name(err));
         }
 
-        xSemaphoreGive(out_settings->mutex);
+        mutex_release(out_settings->mutex);
         return false;  // Return false on error, but settings still has defaults
     }
 
@@ -199,14 +200,14 @@ bool read_stored_device_settings(esp_bd_addr_t bda, DeviceSettings* out_settings
 
     nvs_close(device_settings_handle);
 
-    xSemaphoreGive(out_settings->mutex);
+    mutex_release(out_settings->mutex);
 
     ESP_LOGI(CONFIG_STORAGE_TAG, "device_settings read from nvs");
     return true;
 }
 
 bool write_global_settings_to_nvs() {
-    if (!xSemaphoreTake(global_settings.mutex, portMAX_DELAY)) {
+    if (!mutex_acquire_blocking(global_settings.mutex)) {
         ESP_LOGE(CONFIG_STORAGE_TAG, "cannot get global_settings mutex");
         return false;
     }
@@ -223,7 +224,7 @@ bool write_global_settings_to_nvs() {
     all_ok = all_ok && nvs_write_check(CONFIG_STORAGE_TAG, err, KEY_CONNECTION_COUNT);
 
     // give it back in any of the following cases
-    xSemaphoreGive(global_settings.mutex);
+    mutex_release(global_settings.mutex);
 
     err = nvs_commit(global_settings_handle);
     if (err != ESP_OK) {
@@ -271,33 +272,33 @@ bool write_devices_settings_to_nvs() {
             continue;
         }
 
-        if (!xSemaphoreTake(entry->settings->mutex, portMAX_DELAY)) {
-            ESP_LOGE(CONFIG_STORAGE_TAG, "[%d] cannot get device settings mutex", entry->conn_id);
-            continue;
-        }
+         if (!mutex_acquire_blocking(entry->settings->mutex)) {
+             ESP_LOGE(CONFIG_STORAGE_TAG, "[%d] cannot get device settings mutex", entry->conn_id);
+             continue;
+         }
 
-        nvs_handle_t device_settings_handle = {};
-        esp_err_t err = nvs_open("device_settings", NVS_READWRITE, &device_settings_handle);
-        if (err != ESP_OK) {
-            ESP_LOGE(CONFIG_STORAGE_TAG, "[%d] failed to open NVS: %s", entry->conn_id, esp_err_to_name(err));
-            xSemaphoreGive(entry->settings->mutex);
-            all_ok = false;
-            continue;
-        }
+         nvs_handle_t device_settings_handle = {};
+         esp_err_t err = nvs_open("device_settings", NVS_READWRITE, &device_settings_handle);
+         if (err != ESP_OK) {
+             ESP_LOGE(CONFIG_STORAGE_TAG, "[%d] failed to open NVS: %s", entry->conn_id, esp_err_to_name(err));
+             mutex_release(entry->settings->mutex);
+             all_ok = false;
+             continue;
+         }
 
-        char key_out[NVS_KEY_MAX_LEN + 1];
+         char key_out[NVS_KEY_MAX_LEN + 1];
 
-        make_device_key_for_option(KEY_AUTOSPIN, entry->remote_bda, key_out);
-        err = nvs_set_i8(device_settings_handle, key_out, entry->settings->autospin);
+         make_device_key_for_option(KEY_AUTOSPIN, entry->remote_bda, key_out);
+         err = nvs_set_i8(device_settings_handle, key_out, entry->settings->autospin);
 
-        make_device_key_for_option(KEY_AUTOCATCH, entry->remote_bda, key_out);
-        err = nvs_set_i8(device_settings_handle, key_out, entry->settings->autocatch);
+         make_device_key_for_option(KEY_AUTOCATCH, entry->remote_bda, key_out);
+         err = nvs_set_i8(device_settings_handle, key_out, entry->settings->autocatch);
 
-        make_device_key_for_option(KEY_AUTOSPIN_PROBABILITY, entry->remote_bda, key_out);
-        err = nvs_set_u8(device_settings_handle, key_out, entry->settings->autospin_probability);
+         make_device_key_for_option(KEY_AUTOSPIN_PROBABILITY, entry->remote_bda, key_out);
+         err = nvs_set_u8(device_settings_handle, key_out, entry->settings->autospin_probability);
 
-        // give it back in any of the following cases
-        xSemaphoreGive(entry->settings->mutex);
+         // give it back in any of the following cases
+         mutex_release(entry->settings->mutex);
 
         err = nvs_commit(device_settings_handle);
         if (err != ESP_OK) {

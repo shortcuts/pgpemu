@@ -3,6 +3,7 @@
 #include "config_secrets.h"
 #include "esp_log.h"
 #include "log_tags.h"
+#include "mutex_helpers.h"
 #include "pgp_handshake_multi.h"
 
 #include <stdint.h>
@@ -24,7 +25,7 @@ void global_settings_ready() {
 }
 
 bool cycle_log_level(uint8_t* var) {
-    if (!var || !xSemaphoreTake(global_settings.mutex, 10000 / portTICK_PERIOD_MS)) {
+    if (!var || !mutex_acquire_timeout(global_settings.mutex, 10000)) {
         return false;
     }
 
@@ -34,18 +35,18 @@ bool cycle_log_level(uint8_t* var) {
         *var = 1;
     }
 
-    xSemaphoreGive(global_settings.mutex);
+    mutex_release(global_settings.mutex);
     return true;
 }
 
 bool toggle_setting(bool* var) {
-    if (!var || !xSemaphoreTake(global_settings.mutex, 10000 / portTICK_PERIOD_MS)) {
+    if (!var || !mutex_acquire_timeout(global_settings.mutex, 10000)) {
         return false;
     }
 
     *var = !*var;
 
-    xSemaphoreGive(global_settings.mutex);
+    mutex_release(global_settings.mutex);
 
     return true;
 }
