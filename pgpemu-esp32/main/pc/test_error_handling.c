@@ -1,11 +1,11 @@
 // Error handling and recovery tests
 // Tests for malloc failures, NVS errors, and mutex error conditions
 #include <assert.h>
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdbool.h>
-#include <stdint.h>
 
 // Mock error codes
 #define ESP_OK 0
@@ -49,23 +49,23 @@ esp_err_t error_read_device_setting(ErrorDeviceSettings* out, esp_err_t nvs_resu
     }
 
     switch (nvs_result) {
-        case ESP_OK:
-            out->autospin = true;
-            out->probability = 5;
-            return ESP_OK;
+    case ESP_OK:
+        out->autospin = true;
+        out->probability = 5;
+        return ESP_OK;
 
-        case ESP_ERR_NVS_NOT_FOUND:
-            // Key not found - use defaults
-            out->autospin = false;
-            out->probability = 0;
-            return ESP_OK;  // Not an error, just use defaults
+    case ESP_ERR_NVS_NOT_FOUND:
+        // Key not found - use defaults
+        out->autospin = false;
+        out->probability = 0;
+        return ESP_OK;  // Not an error, just use defaults
 
-        case ESP_ERR_NVS_READ_ONLY:
-        case ESP_ERR_NVS_INVALID_NAME:
-        case ESP_FAIL:
-        default:
-            // Real error - fail
-            return ESP_FAIL;
+    case ESP_ERR_NVS_READ_ONLY:
+    case ESP_ERR_NVS_INVALID_NAME:
+    case ESP_FAIL:
+    default:
+        // Real error - fail
+        return ESP_FAIL;
     }
 }
 
@@ -326,17 +326,17 @@ void test_data_validation_and_sanitization(void) {
     printf("=== Test: Data Validation and Sanitization ===\n");
 
     // Test 1: Valid MAC addresses
-    uint8_t valid_mac1[] = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66};
+    uint8_t valid_mac1[] = { 0x11, 0x22, 0x33, 0x44, 0x55, 0x66 };
     test_assert(error_validate_mac_address(valid_mac1), "Valid MAC address accepted");
 
-    uint8_t valid_mac2[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x01};
+    uint8_t valid_mac2[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x01 };
     test_assert(error_validate_mac_address(valid_mac2), "MAC with single byte set accepted");
 
     // Test 2: Invalid MAC addresses
-    uint8_t all_zeros[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+    uint8_t all_zeros[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
     test_assert(!error_validate_mac_address(all_zeros), "All-zeros MAC rejected");
 
-    uint8_t all_ones[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+    uint8_t all_ones[] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
     test_assert(!error_validate_mac_address(all_ones), "Broadcast MAC rejected");
 
     test_assert(!error_validate_mac_address(NULL), "NULL MAC rejected");

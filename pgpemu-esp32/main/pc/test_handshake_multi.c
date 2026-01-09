@@ -3,11 +3,11 @@
 #ifndef ESP_PLATFORM
 
 #include <assert.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include <stdint.h>
-#include <stddef.h>
-#include <stdbool.h>
 
 // Mock ESP/FreeRTOS types and functions
 #define ESP_OK 0
@@ -140,7 +140,7 @@ client_state_t* get_or_create_client_state_entry(uint16_t conn_id) {
             return &client_states[i];
         }
     }
-    
+
     // Look for empty slot
     for (int i = 0; i < MAX_CONNECTIONS; i++) {
         if (conn_id_map[i] == 0xffff) {
@@ -151,7 +151,7 @@ client_state_t* get_or_create_client_state_entry(uint16_t conn_id) {
             return &client_states[i];
         }
     }
-    
+
     return NULL;
 }
 
@@ -174,8 +174,9 @@ void connection_start(uint16_t conn_id) {
 
 void connection_stop(uint16_t conn_id) {
     active_connections--;
-    if (active_connections < 0) active_connections = 0;
-    
+    if (active_connections < 0)
+        active_connections = 0;
+
     client_state_t* entry = get_client_state_entry(conn_id);
     if (entry) {
         entry->connection_end = xTaskGetTickCount();
@@ -187,15 +188,15 @@ void connection_stop(uint16_t conn_id) {
 // Test initialization
 void test_init_handshake_multi() {
     printf("\n=== Test: Initialize Handshake Multi ===\n");
-    
+
     init_handshake_multi();
-    
+
     assert(get_active_connections() == 0);
     printf("✓ Active connections initialized to 0\n");
-    
+
     assert(get_max_connections() == 4);
     printf("✓ Max connections is 4\n");
-    
+
     // All slots should be empty
     for (int i = 0; i < MAX_CONNECTIONS; i++) {
         assert(get_client_state_entry_by_idx(i) == NULL);
@@ -206,33 +207,33 @@ void test_init_handshake_multi() {
 // Test single connection
 void test_single_connection() {
     printf("\n=== Test: Single Connection Management ===\n");
-    
+
     init_handshake_multi();
     uint16_t conn_id = 0x0001;
-    
+
     // Create connection
     client_state_t* entry = get_or_create_client_state_entry(conn_id);
     assert(entry != NULL);
     printf("✓ Connection created for conn_id 0x%04x\n", conn_id);
-    
+
     assert(entry->conn_id == conn_id);
     printf("✓ Connection ID stored correctly\n");
-    
+
     // Lookup by conn_id
     client_state_t* found = get_client_state_entry(conn_id);
     assert(found == entry);
     printf("✓ Connection found by conn_id\n");
-    
+
     // Start connection
     connection_start(conn_id);
     assert(get_active_connections() == 1);
     printf("✓ Active connection count incremented\n");
-    
+
     // Stop connection
     connection_stop(conn_id);
     assert(get_active_connections() == 0);
     printf("✓ Active connection count decremented\n");
-    
+
     // Lookup should return NULL after stop
     found = get_client_state_entry(conn_id);
     assert(found == NULL);
@@ -242,12 +243,12 @@ void test_single_connection() {
 // Test multiple connections
 void test_multiple_connections() {
     printf("\n=== Test: Multiple Simultaneous Connections ===\n");
-    
+
     init_handshake_multi();
-    
-    uint16_t conn_ids[] = {0x0001, 0x0002, 0x0003, 0x0004};
+
+    uint16_t conn_ids[] = { 0x0001, 0x0002, 0x0003, 0x0004 };
     client_state_t* entries[4];
-    
+
     // Create 4 connections
     for (int i = 0; i < 4; i++) {
         entries[i] = get_or_create_client_state_entry(conn_ids[i]);
@@ -255,14 +256,14 @@ void test_multiple_connections() {
         assert(entries[i]->conn_id == conn_ids[i]);
     }
     printf("✓ Created 4 simultaneous connections\n");
-    
+
     // Start all connections
     for (int i = 0; i < 4; i++) {
         connection_start(conn_ids[i]);
     }
     assert(get_active_connections() == 4);
     printf("✓ All 4 connections are active\n");
-    
+
     // Verify lookup by index
     for (int i = 0; i < 4; i++) {
         client_state_t* entry = get_client_state_entry_by_idx(i);
@@ -270,12 +271,12 @@ void test_multiple_connections() {
         assert(entry->conn_id == conn_ids[i]);
     }
     printf("✓ All connections accessible by index\n");
-    
+
     // Stop one connection
     connection_stop(conn_ids[2]);
     assert(get_active_connections() == 3);
     printf("✓ Stopping one connection decrements count\n");
-    
+
     // That slot should be empty now
     client_state_t* entry = get_client_state_entry_by_idx(2);
     assert(entry == NULL);
@@ -285,25 +286,25 @@ void test_multiple_connections() {
 // Test remote MAC address handling
 void test_remote_bda_handling() {
     printf("\n=== Test: Remote BDA (MAC Address) Handling ===\n");
-    
+
     init_handshake_multi();
     uint16_t conn_id = 0x0001;
-    
-    esp_bd_addr_t bda = {0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff};
-    
+
+    esp_bd_addr_t bda = { 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff };
+
     client_state_t* entry = get_or_create_client_state_entry(conn_id);
     memcpy(entry->remote_bda, bda, sizeof(esp_bd_addr_t));
-    
+
     // Verify MAC is stored
     for (int i = 0; i < 6; i++) {
         assert(entry->remote_bda[i] == bda[i]);
     }
     printf("✓ Remote MAC address stored correctly\n");
-    
+
     // Test different MAC
-    esp_bd_addr_t bda2 = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66};
+    esp_bd_addr_t bda2 = { 0x11, 0x22, 0x33, 0x44, 0x55, 0x66 };
     memcpy(entry->remote_bda, bda2, sizeof(esp_bd_addr_t));
-    
+
     for (int i = 0; i < 6; i++) {
         assert(entry->remote_bda[i] == bda2[i]);
     }
@@ -313,13 +314,13 @@ void test_remote_bda_handling() {
 // Test max connections limit
 void test_max_connections_limit() {
     printf("\n=== Test: Max Connections Limit ===\n");
-    
+
     init_handshake_multi();
-    
+
     // Try to create 5 connections (max is 4)
     for (int i = 0; i < 5; i++) {
         client_state_t* entry = get_or_create_client_state_entry(0x0001 + i);
-        
+
         if (i < 4) {
             assert(entry != NULL);
             printf("✓ Connection %d created successfully\n", i + 1);
@@ -333,28 +334,28 @@ void test_max_connections_limit() {
 // Test connection state transitions
 void test_connection_state_transitions() {
     printf("\n=== Test: Connection State Transitions ===\n");
-    
+
     init_handshake_multi();
     uint16_t conn_id = 0x0001;
-    
+
     // Create
     client_state_t* entry = get_or_create_client_state_entry(conn_id);
     assert(entry->cert_state == 0);
     printf("✓ New connection has cert_state = 0\n");
-    
+
     // Update cert state
     entry->cert_state = 5;
     assert(entry->cert_state == 5);
     printf("✓ Cert state can be updated\n");
-    
+
     // Start connection
     connection_start(conn_id);
     assert(entry->connection_start > 0);
     printf("✓ Connection start time recorded\n");
-    
+
     // Stop connection clears cert state
     connection_stop(conn_id);
-    
+
     // After stop, lookup should fail
     client_state_t* found = get_client_state_entry(conn_id);
     assert(found == NULL);
@@ -364,25 +365,25 @@ void test_connection_state_transitions() {
 // Test device settings linkage
 void test_device_settings_linkage() {
     printf("\n=== Test: Device Settings Linkage ===\n");
-    
+
     init_handshake_multi();
     uint16_t conn_id = 0x0001;
-    
+
     // Create device settings
-    DeviceSettings device_settings = {0};
+    DeviceSettings device_settings = { 0 };
     device_settings.autospin = true;
     device_settings.autocatch = false;
     device_settings.autospin_probability = 5;
-    
+
     // Link to connection
     client_state_t* entry = get_or_create_client_state_entry(conn_id);
     entry->settings = &device_settings;
-    
+
     assert(entry->settings != NULL);
     assert(entry->settings->autospin == true);
     assert(entry->settings->autocatch == false);
     printf("✓ Device settings linked to connection\n");
-    
+
     // Modify settings through connection
     entry->settings->autospin = false;
     assert(device_settings.autospin == false);
@@ -392,20 +393,20 @@ void test_device_settings_linkage() {
 // Test lookup consistency
 void test_lookup_consistency() {
     printf("\n=== Test: Lookup Consistency ===\n");
-    
+
     init_handshake_multi();
-    
-    uint16_t conn_ids[] = {0x0001, 0x0002, 0x0003};
-    
+
+    uint16_t conn_ids[] = { 0x0001, 0x0002, 0x0003 };
+
     for (int i = 0; i < 3; i++) {
         get_or_create_client_state_entry(conn_ids[i]);
         connection_start(conn_ids[i]);
     }
-    
+
     // Lookup by conn_id and by index should return same results
     for (int i = 0; i < 3; i++) {
         client_state_t* by_id = get_client_state_entry(conn_ids[i]);
-        
+
         // Find by index
         client_state_t* by_idx = NULL;
         for (int j = 0; j < MAX_CONNECTIONS; j++) {
@@ -414,7 +415,7 @@ void test_lookup_consistency() {
                 break;
             }
         }
-        
+
         assert(by_id == by_idx);
     }
     printf("✓ Lookup by conn_id and by index are consistent\n");
@@ -425,7 +426,7 @@ int main() {
     printf("========================================\n");
     printf("Handshake Multi Connection Tests\n");
     printf("========================================\n");
-    
+
     test_init_handshake_multi();
     test_single_connection();
     test_multiple_connections();
@@ -434,11 +435,11 @@ int main() {
     test_connection_state_transitions();
     test_device_settings_linkage();
     test_lookup_consistency();
-    
+
     printf("\n========================================\n");
     printf("✓ All handshake_multi tests passed!\n");
     printf("========================================\n");
-    
+
     return 0;
 }
 

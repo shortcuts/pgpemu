@@ -98,7 +98,10 @@ uint8_t set_device_autospin_probability(uint8_t c, uint8_t autospin_probability)
     }
 
     if (autospin_probability > 9) {
-        ESP_LOGW(SETTING_TASK_TAG, "[%d] invalid autospin probability: %d (0-9 allowed)", entry->conn_id, autospin_probability);
+        ESP_LOGW(SETTING_TASK_TAG,
+            "[%d] invalid autospin probability: %d (0-9 allowed)",
+            entry->conn_id,
+            autospin_probability);
         xSemaphoreGive(entry->settings->mutex);
         return entry->settings->autospin_probability;
     }

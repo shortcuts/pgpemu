@@ -37,8 +37,8 @@ typedef struct {
     // Retoggle state tracking (for bag full/box full scenarios)
     bool autospin_retoggle_pending;
     bool autocatch_retoggle_pending;
-    TickType_t autospin_retoggle_time;    // when to restore autospin
-    TickType_t autocatch_retoggle_time;   // when to restore autocatch
+    TickType_t autospin_retoggle_time;   // when to restore autospin
+    TickType_t autocatch_retoggle_time;  // when to restore autocatch
 } DeviceSettings;
 
 void init_global_settings();

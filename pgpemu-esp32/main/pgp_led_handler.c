@@ -19,10 +19,10 @@
 const int retoggle_delay = 300000;
 
 // Helper macro to get device settings safely
-#define GET_DEVICE_SETTINGS(conn_id) \
-    ({ \
+#define GET_DEVICE_SETTINGS(conn_id)                             \
+    ({                                                           \
         client_state_t* state = get_client_state_entry(conn_id); \
-        (state && state->settings) ? state->settings : NULL; \
+        (state && state->settings) ? state->settings : NULL;     \
     })
 
 void handle_led_notify_from_app(esp_gatt_if_t gatts_if, uint16_t conn_id, const uint8_t* buffer) {
@@ -113,7 +113,9 @@ void handle_led_notify_from_app(esp_gatt_if_t gatts_if, uint16_t conn_id, const 
     } else if (count_red && count_off && count_red == count_notoff) {
         // blinking just red - pokeballs empty or stop out of range
         if (device_settings) {
-            ESP_LOGW(LEDHANDLER_TAG, "[%d] Pokeballs are empty or Pokestop went out of range: retoggling autocatch", conn_id);
+            ESP_LOGW(LEDHANDLER_TAG,
+                "[%d] Pokeballs are empty or Pokestop went out of range: retoggling autocatch",
+                conn_id);
             retoggle_setting = 'c';
         }
     } else if (count_red && !count_off && count_red == count_notoff) {
@@ -209,4 +211,3 @@ void handle_led_notify_from_app(esp_gatt_if_t gatts_if, uint16_t conn_id, const 
         xQueueSend(setting_queue, &item, portMAX_DELAY);
     }
 }
-

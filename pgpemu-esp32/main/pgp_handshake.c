@@ -43,12 +43,11 @@ void handle_pgp_handshake_first(esp_gatt_if_t gatts_if, uint16_t descr_value, ui
             client_state->cert_state = 3;
         } else if (has_cached_session(client_state->remote_bda)) {
             // Try to use cached session keys for faster reconnection
-            if (retrieve_device_session_keys(client_state->remote_bda, 
-                                             client_state->session_key,
-                                             client_state->reconnect_challenge)) {
+            if (retrieve_device_session_keys(
+                    client_state->remote_bda, client_state->session_key, client_state->reconnect_challenge)) {
                 client_state->has_reconnect_key = true;
                 ESP_LOGI(HANDSHAKE_TAG, "[%d] Using cached session keys for reconnection", conn_id);
-                
+
                 // Send reconnect challenge
                 notify_data[0] = 3;
                 memset(client_state->cert_buffer, 0, 36);
@@ -61,11 +60,12 @@ void handle_pgp_handshake_first(esp_gatt_if_t gatts_if, uint16_t descr_value, ui
                 client_state->cert_state = 3;
             } else {
                 // Cache retrieval failed, fall through to full handshake
-                ESP_LOGW(HANDSHAKE_TAG, "[%d] Failed to retrieve cached session keys, starting full handshake", conn_id);
+                ESP_LOGW(
+                    HANDSHAKE_TAG, "[%d] Failed to retrieve cached session keys, starting full handshake", conn_id);
                 goto do_full_handshake;
             }
         } else {
-do_full_handshake:
+        do_full_handshake:
             if (use_debug_buffer_values) {
                 // use fixed key for easier debugging
                 memset(client_state->the_challenge, 0x41, 16);
@@ -210,7 +210,8 @@ void handle_pgp_handshake_second(esp_gatt_if_t gatts_if, const uint8_t* prepare_
         }
 
         // Persist session keys for reconnection
-        persist_device_session_keys(client_state->remote_bda, client_state->session_key, client_state->reconnect_challenge);
+        persist_device_session_keys(
+            client_state->remote_bda, client_state->session_key, client_state->reconnect_challenge);
 
         uint8_t notify_data[4] = { 0x04, 0x00, 0x23, 0x00 };
         esp_ble_gatts_send_indicate(gatts_if,

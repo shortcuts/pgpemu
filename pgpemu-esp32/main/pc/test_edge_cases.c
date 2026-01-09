@@ -1,12 +1,12 @@
 // Edge case and boundary value tests
 // Tests for maximum connections, boundary values, and invalid inputs
 #include <assert.h>
+#include <limits.h>
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdbool.h>
-#include <stdint.h>
-#include <limits.h>
 
 // Test counter
 static int tests_passed = 0;
@@ -42,7 +42,7 @@ typedef struct {
 } EdgeConnectionManager;
 
 EdgeConnectionManager edge_init_connection_manager(void) {
-    EdgeConnectionManager manager = {0};
+    EdgeConnectionManager manager = { 0 };
     for (int i = 0; i < MAX_CONNECTIONS; i++) {
         manager.connections[i].conn_id = -1;
         manager.connections[i].active = false;
@@ -183,7 +183,7 @@ bool edge_should_retoggle(EdgeRetoggleTimer* timer, uint32_t current_time) {
 void test_timing_boundary_values(void) {
     printf("=== Test: Timing Boundary Values (Retoggle) ===\n");
 
-    EdgeRetoggleTimer timer = {0};
+    EdgeRetoggleTimer timer = { 0 };
 
     // Test at time 0
     timer.last_time = 0;
@@ -280,13 +280,11 @@ void test_array_index_boundary_cases(void) {
     // Test valid boundaries
     test_assert(edge_get_device_settings(devices, 0) != NULL, "Index 0 (min) is valid");
     test_assert(edge_get_device_settings(devices, 1) != NULL, "Index 1 is valid");
-    test_assert(edge_get_device_settings(devices, EDGE_MAX_DEVICES - 1) != NULL,
-                "Index 3 (max) is valid");
+    test_assert(edge_get_device_settings(devices, EDGE_MAX_DEVICES - 1) != NULL, "Index 3 (max) is valid");
 
     // Test invalid boundaries
     test_assert(edge_get_device_settings(devices, -1) == NULL, "Index -1 (negative) is invalid");
-    test_assert(edge_get_device_settings(devices, EDGE_MAX_DEVICES) == NULL,
-                "Index 4 (just beyond max) is invalid");
+    test_assert(edge_get_device_settings(devices, EDGE_MAX_DEVICES) == NULL, "Index 4 (just beyond max) is invalid");
     test_assert(edge_get_device_settings(devices, 100) == NULL, "Index 100 (far beyond) is invalid");
 
     // Test NULL array

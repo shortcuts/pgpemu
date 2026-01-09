@@ -1,11 +1,11 @@
 // Regression tests for previously fixed critical bugs
 // These tests verify that bugs do not resurface in future changes
 #include <assert.h>
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdbool.h>
-#include <stdint.h>
 
 // Mock types and constants
 typedef int esp_err_t;
@@ -18,13 +18,13 @@ typedef void* SemaphoreHandle_t;
 static int tests_passed = 0;
 static int tests_failed = 0;
 
-#define test_assert(condition, message)                                                                            \
-    if (condition) {                                                                                               \
-        printf("  ✓ %s\n", message);                                                                              \
-        tests_passed++;                                                                                            \
-    } else {                                                                                                       \
-        printf("  ✗ %s\n", message);                                                                              \
-        tests_failed++;                                                                                            \
+#define test_assert(condition, message) \
+    if (condition) {                    \
+        printf("  ✓ %s\n", message);    \
+        tests_passed++;                 \
+    } else {                            \
+        printf("  ✗ %s\n", message);    \
+        tests_failed++;                 \
     }
 
 // =============================================================================
@@ -59,7 +59,7 @@ bool reg_new_fixed_settings_init(RegDeviceSettings* settings) {
 void test_device_settings_pointer_initialization(void) {
     printf("=== Test: Device Settings Pointer Initialization (Bug #1) ===\n");
 
-    RegDeviceSettings settings = {0};
+    RegDeviceSettings settings = { 0 };
     bool result = reg_new_fixed_settings_init(&settings);
     test_assert(result, "Settings initialization returns true on success");
     test_assert(settings.autospin == false, "Autospin initialized to false");
@@ -266,12 +266,12 @@ bool reg_is_valid_bda(const RegBDA* bda) {
     if (bda == NULL) {
         return false;
     }
-    if (bda->addr[0] == 0 && bda->addr[1] == 0 && bda->addr[2] == 0 && bda->addr[3] == 0 &&
-        bda->addr[4] == 0 && bda->addr[5] == 0) {
+    if (bda->addr[0] == 0 && bda->addr[1] == 0 && bda->addr[2] == 0 && bda->addr[3] == 0 && bda->addr[4] == 0
+        && bda->addr[5] == 0) {
         return false;
     }
-    if (bda->addr[0] == 0xFF && bda->addr[1] == 0xFF && bda->addr[2] == 0xFF && bda->addr[3] == 0xFF &&
-        bda->addr[4] == 0xFF && bda->addr[5] == 0xFF) {
+    if (bda->addr[0] == 0xFF && bda->addr[1] == 0xFF && bda->addr[2] == 0xFF && bda->addr[3] == 0xFF
+        && bda->addr[4] == 0xFF && bda->addr[5] == 0xFF) {
         return false;
     }
     return true;
@@ -282,22 +282,22 @@ void test_invalid_bda_handling(void) {
 
     test_assert(!reg_is_valid_bda(NULL), "NULL BDA is invalid");
 
-    RegBDA zero_bda = {{0, 0, 0, 0, 0, 0}};
+    RegBDA zero_bda = { { 0, 0, 0, 0, 0, 0 } };
     test_assert(!reg_is_valid_bda(&zero_bda), "All-zeros BDA is invalid");
 
-    RegBDA ones_bda = {{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}};
+    RegBDA ones_bda = { { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF } };
     test_assert(!reg_is_valid_bda(&ones_bda), "All-ones BDA is invalid");
 
-    RegBDA valid_bda1 = {{0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF}};
+    RegBDA valid_bda1 = { { 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF } };
     test_assert(reg_is_valid_bda(&valid_bda1), "Valid BDA #1 is accepted");
 
-    RegBDA valid_bda2 = {{0x00, 0x00, 0x00, 0x00, 0x00, 0x01}};
+    RegBDA valid_bda2 = { { 0x00, 0x00, 0x00, 0x00, 0x00, 0x01 } };
     test_assert(reg_is_valid_bda(&valid_bda2), "Valid BDA #2 (single byte set) is accepted");
 
-    RegBDA valid_bda3 = {{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE}};
+    RegBDA valid_bda3 = { { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE } };
     test_assert(reg_is_valid_bda(&valid_bda3), "Valid BDA #3 (almost all ones) is accepted");
 
-    RegBDA valid_bda4 = {{0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC}};
+    RegBDA valid_bda4 = { { 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC } };
     test_assert(reg_is_valid_bda(&valid_bda4), "Valid BDA #4 (random) is accepted");
 }
 

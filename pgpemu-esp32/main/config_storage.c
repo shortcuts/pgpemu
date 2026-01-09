@@ -25,9 +25,9 @@ static const char KEY_AUTOSPIN_PROBABILITY[] = "spinp";
 
 // FNV-1a hash constants
 static const uint64_t FNV1A_OFFSET_BASIS = 1469598103934665603ULL;  // FNV-1a 64-bit offset basis
-static const uint64_t FNV1A_PRIME = 1099511628211ULL;                // FNV-1a 64-bit prime
-static const int NVS_KEY_MAX_LEN = 15;                               // NVS key max length (15 chars + null)
-static const int DEVICE_KEY_BUFFER_SIZE = 64;                        // Buffer for concatenated key + BDA
+static const uint64_t FNV1A_PRIME = 1099511628211ULL;               // FNV-1a 64-bit prime
+static const int NVS_KEY_MAX_LEN = 15;                              // NVS key max length (15 chars + null)
+static const int DEVICE_KEY_BUFFER_SIZE = 64;                       // Buffer for concatenated key + BDA
 
 // Forward declaration
 char* make_device_key_for_option(const char* key, const esp_bd_addr_t bda, char* out);
@@ -188,7 +188,9 @@ bool read_stored_device_settings(esp_bd_addr_t bda, DeviceSettings* out_settings
     err = nvs_get_u8(device_settings_handle, key_out, &autospin_probability);
     if (nvs_read_check(CONFIG_STORAGE_TAG, err, KEY_AUTOSPIN_PROBABILITY)) {
         if (autospin_probability > 9) {
-            ESP_LOGE(CONFIG_STORAGE_TAG, "invalid autospin probability: %d (0-9 allowed), using default 0", autospin_probability);
+            ESP_LOGE(CONFIG_STORAGE_TAG,
+                "invalid autospin probability: %d (0-9 allowed), using default 0",
+                autospin_probability);
             out_settings->autospin_probability = 0;  // Set valid default instead of leaving uninitialized
         } else {
             out_settings->autospin_probability = autospin_probability;
@@ -428,9 +430,9 @@ bool has_cached_session(esp_bd_addr_t bda) {
     // Check if session key exists with correct size
     make_device_key_for_option("sesskey", bda, key_out);
     err = nvs_get_blob(device_settings_handle, key_out, NULL, &required_size);
-    
+
     nvs_close(device_settings_handle);
-    
+
     return (err == ESP_OK && required_size == 16);
 }
 
