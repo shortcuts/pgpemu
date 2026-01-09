@@ -67,7 +67,7 @@ static void button_input_task(void* pvParameters) {
 
             ESP_LOGD(BUTTON_INPUT_TAG, "button0 pressed");
 
-            int target_active_connections = get_setting_uint8(&settings.target_active_connections);
+            int target_active_connections = get_setting_uint8(&global_settings.target_active_connections);
             int active_connections = get_active_connections();
             if (active_connections < target_active_connections) {
                 // target connections not reached, so we should be advertising currently

@@ -26,7 +26,7 @@ StatsForConn* get_conn_entry(uint16_t conn_id) {
 
         ESP_LOGI(STATS_TAG, "new entry for conn_id %d added, current len %d", conn_id, stats_len);
 
-        return &stats[stats_len];
+        return &stats[stats_len - 1];
     }
 
     ESP_LOGE(STATS_TAG, "no stat found for conn_id %d or impossible to store a new entry", conn_id);

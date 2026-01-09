@@ -233,12 +233,15 @@ char* make_device_key_for_option(const char* key, const esp_bd_addr_t bda, char*
     for (const char* p = buf; *p; p++)
         hash = (hash ^ (unsigned char)*p) * FNV1A_PRIME;
 
-    // 3. Convert to hex string, 15 chars max (truncate if needed)
-    len = snprintf(out, NVS_KEY_MAX_LEN + 1, "%015llx", (unsigned long long)hash);
-    if (len < 0 || len >= NVS_KEY_MAX_LEN + 1) {
-        ESP_LOGE(CONFIG_STORAGE_TAG, "unable to hash final key for %s", key);
-        return out;
-    }
+    // 3. Convert to hex string, 15 chars max
+    // Manually format to avoid %llx compatibility issues on ESP32
+    // Use lower 60 bits to fit 15 hex characters exactly  
+    uint64_t hash_masked = hash & 0x0FFFFFFFFFFFFFFFUL;  // 60 bits = 15 hex digits
+    snprintf(out, NVS_KEY_MAX_LEN + 1, 
+             "%03x%08lx",
+             (unsigned int)((hash_masked >> 32) & 0xFFF),
+             (unsigned long)(hash_masked & 0xFFFFFFFFUL));
+    out[15] = '\0';  // Ensure null termination
 
     return out;
 }
@@ -252,38 +255,50 @@ bool write_devices_settings_to_nvs() {
             continue;
         }
 
-         if (!mutex_acquire_blocking(entry->settings->mutex)) {
-             ESP_LOGE(CONFIG_STORAGE_TAG, "[%d] cannot get device settings mutex", entry->conn_id);
-             continue;
-         }
+        if (!mutex_acquire_blocking(entry->settings->mutex)) {
+            ESP_LOGE(CONFIG_STORAGE_TAG, "[%d] cannot get device settings mutex", entry->conn_id);
+            continue;
+        }
 
-         nvs_handle_t device_settings_handle = {};
-         if (!nvs_open_readwrite(CONFIG_STORAGE_TAG, "device_settings", &device_settings_handle)) {
-             ESP_LOGE(CONFIG_STORAGE_TAG, "[%d] failed to open NVS", entry->conn_id);
-             mutex_release(entry->settings->mutex);
-             all_ok = false;
-             continue;
-         }
+        nvs_handle_t device_settings_handle = {};
+        if (!nvs_open_readwrite(CONFIG_STORAGE_TAG, "device_settings", &device_settings_handle)) {
+            ESP_LOGE(CONFIG_STORAGE_TAG, "[%d] failed to open NVS", entry->conn_id);
+            mutex_release(entry->settings->mutex);
+            all_ok = false;
+            continue;
+        }
 
-         char key_out[NVS_KEY_MAX_LEN + 1];
+        char key_out[NVS_KEY_MAX_LEN + 1];
 
-         make_device_key_for_option(KEY_AUTOSPIN, entry->remote_bda, key_out);
-         esp_err_t err = nvs_set_i8(device_settings_handle, key_out, entry->settings->autospin);
+        make_device_key_for_option(KEY_AUTOSPIN, entry->remote_bda, key_out);
+        esp_err_t err = nvs_set_i8(device_settings_handle, key_out, entry->settings->autospin);
+        if (err != ESP_OK) {
+            ESP_LOGW(CONFIG_STORAGE_TAG, "[%d] failed to set autospin: %d", entry->conn_id, err);
+            all_ok = false;
+        }
 
-         make_device_key_for_option(KEY_AUTOCATCH, entry->remote_bda, key_out);
-         err = nvs_set_i8(device_settings_handle, key_out, entry->settings->autocatch);
+        make_device_key_for_option(KEY_AUTOCATCH, entry->remote_bda, key_out);
+        err = nvs_set_i8(device_settings_handle, key_out, entry->settings->autocatch);
+        if (err != ESP_OK) {
+            ESP_LOGW(CONFIG_STORAGE_TAG, "[%d] failed to set autocatch: %d", entry->conn_id, err);
+            all_ok = false;
+        }
 
-         make_device_key_for_option(KEY_AUTOSPIN_PROBABILITY, entry->remote_bda, key_out);
-         err = nvs_set_u8(device_settings_handle, key_out, entry->settings->autospin_probability);
+        make_device_key_for_option(KEY_AUTOSPIN_PROBABILITY, entry->remote_bda, key_out);
+        err = nvs_set_u8(device_settings_handle, key_out, entry->settings->autospin_probability);
+        if (err != ESP_OK) {
+            ESP_LOGW(CONFIG_STORAGE_TAG, "[%d] failed to set autospin_probability: %d", entry->conn_id, err);
+            all_ok = false;
+        }
 
-         // give it back in any of the following cases
-         mutex_release(entry->settings->mutex);
+        // give it back in any of the following cases
+        mutex_release(entry->settings->mutex);
 
-         if (!nvs_commit_and_close(CONFIG_STORAGE_TAG, device_settings_handle, "device_settings")) {
-             ESP_LOGE(CONFIG_STORAGE_TAG, "[%d] commit failed", entry->conn_id);
-             all_ok = false;
-             continue;
-         }
+        if (!nvs_commit_and_close(CONFIG_STORAGE_TAG, device_settings_handle, "device_settings")) {
+            ESP_LOGE(CONFIG_STORAGE_TAG, "[%d] commit failed", entry->conn_id);
+            all_ok = false;
+            continue;
+        }
     }
 
     return all_ok;

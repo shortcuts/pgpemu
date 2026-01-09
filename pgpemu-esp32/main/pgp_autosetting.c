@@ -56,14 +56,24 @@ static void autosetting_task(void* pvParameters) {
             switch (item.setting) {
             case 's':
                 if (!entry->settings->autospin) {
-                    toggle_device_autospin(item.conn_id);
-                    write_devices_settings_to_nvs();
+                    if (!toggle_device_autospin(item.conn_id)) {
+                        ESP_LOGW(SETTING_TASK_TAG, "[%d] failed to toggle autospin", item.conn_id);
+                        break;
+                    }
+                    if (!write_devices_settings_to_nvs()) {
+                        ESP_LOGW(SETTING_TASK_TAG, "[%d] failed to write device settings to NVS", item.conn_id);
+                    }
                 }
                 break;
             case 'c':
                 if (!entry->settings->autocatch) {
-                    toggle_device_autocatch(item.conn_id);
-                    write_devices_settings_to_nvs();
+                    if (!toggle_device_autocatch(item.conn_id)) {
+                        ESP_LOGW(SETTING_TASK_TAG, "[%d] failed to toggle autocatch", item.conn_id);
+                        break;
+                    }
+                    if (!write_devices_settings_to_nvs()) {
+                        ESP_LOGW(SETTING_TASK_TAG, "[%d] failed to write device settings to NVS", item.conn_id);
+                    }
                 }
                 break;
             default:

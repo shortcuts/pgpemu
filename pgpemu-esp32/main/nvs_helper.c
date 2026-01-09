@@ -38,7 +38,7 @@ bool nvs_open_readonly(const char* tag, const char* namespace, nvs_handle_t* out
 
     *out_handle = 0;
     esp_err_t err = nvs_open(namespace, NVS_READONLY, out_handle);
-    
+
     if (err != ESP_OK) {
         if (err == ESP_ERR_NVS_NOT_FOUND) {
             ESP_LOGW(tag, "nvs partition %s doesn't exist, using defaults", namespace);
@@ -47,7 +47,7 @@ bool nvs_open_readonly(const char* tag, const char* namespace, nvs_handle_t* out
         }
         return false;
     }
-    
+
     return true;
 }
 
@@ -59,12 +59,12 @@ bool nvs_open_readwrite(const char* tag, const char* namespace, nvs_handle_t* ou
 
     *out_handle = 0;
     esp_err_t err = nvs_open(namespace, NVS_READWRITE, out_handle);
-    
+
     if (err != ESP_OK) {
         ESP_ERROR_CHECK(err);  // Panic on any error
-        return false;  // Unreachable, but for clarity
+        return false;          // Unreachable, but for clarity
     }
-    
+
     return true;
 }
 
@@ -74,7 +74,11 @@ void nvs_safe_close(nvs_handle_t handle) {
     }
 }
 
-bool nvs_read_blob_checked(const char* tag, nvs_handle_t handle, const char* key, uint8_t* out_buf, size_t expected_size) {
+bool nvs_read_blob_checked(const char* tag,
+    nvs_handle_t handle,
+    const char* key,
+    uint8_t* out_buf,
+    size_t expected_size) {
     if (!out_buf || expected_size == 0) {
         ESP_LOGE(tag, "nvs_read_blob_checked: invalid parameters (buf=%p, size=%zu)", out_buf, expected_size);
         return false;
@@ -83,7 +87,7 @@ bool nvs_read_blob_checked(const char* tag, nvs_handle_t handle, const char* key
     // First query the size
     size_t required_size = 0;
     esp_err_t err = nvs_get_blob(handle, key, NULL, &required_size);
-    
+
     if (err != ESP_OK) {
         if (err == ESP_ERR_NVS_NOT_FOUND) {
             ESP_LOGD(tag, "nvs_read_blob_checked: %s not found", key);
@@ -95,7 +99,11 @@ bool nvs_read_blob_checked(const char* tag, nvs_handle_t handle, const char* key
 
     // Validate size
     if (required_size != expected_size) {
-        ESP_LOGW(tag, "nvs_read_blob_checked: %s has invalid size (expected %zu, got %zu)", key, expected_size, required_size);
+        ESP_LOGW(tag,
+            "nvs_read_blob_checked: %s has invalid size (expected %zu, got %zu)",
+            key,
+            expected_size,
+            required_size);
         return false;
     }
 
@@ -125,4 +133,3 @@ bool nvs_commit_and_close(const char* tag, nvs_handle_t handle, const char* key_
 
     return true;
 }
-

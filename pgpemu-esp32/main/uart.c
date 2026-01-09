@@ -126,13 +126,17 @@ void process_char(uint8_t c) {
     case 'R':
         uart_restart_command();
         break;
-    case 't':
-        char buf[1024];  // "min. 40 bytes per task"
+    case 't': {
+        // vTaskList requires a buffer. With CONFIG_BT_ACL_CONNECTIONS=4,
+        // each task entry takes roughly 40-60 bytes, plus header/footer.
+        // 1024 bytes provides plenty of space for the configured max connections.
+        char buf[1024];
         vTaskList(buf);
 
         ESP_LOGI(UART_TAG, "Task List:\nTask Name\tStatus\tPrio\tHWM\tTask\tAffinity\n%s", buf);
         ESP_LOGI(UART_TAG, "Heap free: %lu bytes", esp_get_free_heap_size());
         break;
+    }
     case '0':
     case '1':
     case '2':
@@ -245,7 +249,7 @@ static void uart_bluetooth_handler() {
     case '2':
     case '3':
     case '4':
-        if (set_setting_uint8(&settings.target_active_connections, buf - '0')) {
+        if (set_setting_uint8(&global_settings.target_active_connections, buf - '0')) {
             ESP_LOGI(UART_TAG, "target_active_connections now %c (press 'S' to save permanently)", buf);
         } else {
             ESP_LOGE(UART_TAG, "failed editing setting");

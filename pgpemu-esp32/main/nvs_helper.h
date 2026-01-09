@@ -66,7 +66,11 @@ void nvs_safe_close(nvs_handle_t handle);
  * First queries the blob size, validates it matches expected_size, then reads.
  * Logs appropriate warnings/errors if read fails or size doesn't match.
  */
-bool nvs_read_blob_checked(const char* tag, nvs_handle_t handle, const char* key, uint8_t* out_buf, size_t expected_size);
+bool nvs_read_blob_checked(const char* tag,
+    nvs_handle_t handle,
+    const char* key,
+    uint8_t* out_buf,
+    size_t expected_size);
 
 /**
  * @brief Commit NVS changes and close handle atomically.

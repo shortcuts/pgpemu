@@ -116,9 +116,8 @@ inline static void mutex_release(SemaphoreHandle_t mutex) {
  *
  * Note: Body does not execute if timeout occurs.
  */
-#define WITH_MUTEX_TIMEOUT(mutex, timeout_ms) \
-    for (bool _acquired = mutex_acquire_timeout(mutex, timeout_ms); \
-         _acquired; \
-         mutex_release(mutex), (_acquired = false))
+#define WITH_MUTEX_TIMEOUT(mutex, timeout_ms)                                  \
+    for (bool _acquired = mutex_acquire_timeout(mutex, timeout_ms); _acquired; \
+        mutex_release(mutex), (_acquired = false))
 
 #endif  // MUTEX_HELPERS_H

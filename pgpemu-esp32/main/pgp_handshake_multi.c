@@ -186,6 +186,10 @@ void connection_stop(uint16_t conn_id) {
 }
 
 static void dump_client_state(int idx, client_state_t* entry) {
+    if (entry == NULL || entry->settings == NULL) {
+        return;
+    }
+
     ESP_LOGI(HANDSHAKE_TAG,
         "connection %d:\n"
         "- cert state: %d\n"
