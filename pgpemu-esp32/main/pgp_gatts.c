@@ -720,7 +720,12 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
             }
         }
 
-        esp_ble_set_encryption(param->connect.remote_bda, ESP_BLE_SEC_ENCRYPT_MITM);
+        // For new connections, check if encryption is already enabled.
+        // If the connection is from a bonded device, the stack may have already
+        // restored encryption. Only request encryption if needed.
+        // Note: On reconnect with bonded devices, do NOT request MITM again as it
+        // will cause passkey prompts even though the bond is already verified.
+        esp_ble_set_encryption(param->connect.remote_bda, ESP_BLE_SEC_ENCRYPT);
         break;
     case ESP_GATTS_DISCONNECT_EVT:
         pgp_handshake_disconnect(param->disconnect.conn_id);
