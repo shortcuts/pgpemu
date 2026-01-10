@@ -851,6 +851,29 @@ void pgp_prepare_write_event_env(esp_gatt_if_t gatts_if,
     /*send response when param->write.need_rsp is true */
     if (param->write.need_rsp) {
         ESP_LOGE(BT_GATTS_TAG, "need_rsp not implemented");
+    }
+    if (status != ESP_GATT_OK) {
+        return;
+    }
+    memcpy(prepare_write_env->prepare_buf + param->write.offset, param->write.value, param->write.len);
+    prepare_write_env->prepare_len += param->write.len;
+}
+
+void pgp_exec_write_event_env(esp_gatt_if_t gatts_if,
+    prepare_type_env_t* prepare_write_env,
+    esp_ble_gatts_cb_param_t* param) {
+    if (param->exec_write.exec_write_flag == ESP_GATT_PREP_WRITE_EXEC && prepare_write_env->prepare_buf) {
+        ESP_LOG_BUFFER_HEX(BT_GATTS_TAG, prepare_write_env->prepare_buf, prepare_write_env->prepare_len);
+
+        // it seems that this will be called only by Android version of the Pokemon Go App
+        ESP_LOGD(BT_GATTS_TAG, "WRITE EVT");
+
+        if (certificate_handle_table[IDX_CHAR_CENTRAL_TO_SFIDA_VAL] == prepare_write_env->handle) {
+            handle_pgp_handshake_second(
+                gatts_if, prepare_write_env->prepare_buf, prepare_write_env->prepare_len, param->write.conn_id);
+        } else if (led_button_handle_table[IDX_CHAR_LED_VAL] == prepare_write_env->handle) {
+            handle_led_notify_from_app(gatts_if, param->write.conn_id, prepare_write_env->prepare_buf);
+        }
     } else {
         ESP_LOGI(BT_GATTS_TAG, "ESP_GATT_PREP_WRITE_CANCEL");
     }

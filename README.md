@@ -463,7 +463,7 @@ pgpemu.c (main)
 # Run all tests
 ./run_tests.sh
 
-# Expected output: All 226 assertions pass in ~2 seconds
+# Expected output: All 267 assertions pass in ~2 seconds
 ```
 
 ### Test Statistics
@@ -476,9 +476,13 @@ pgpemu.c (main)
 | test_config_storage.c | 37 | NVS persistence | ✓ PASS |
 | test_handshake_multi.c | 18 | Multi-device connections | ✓ PASS |
 | test_nvs_helper.c | 23 | NVS utilities | ✓ PASS |
-| **TOTAL** | **226** | **100% coverage** | **100% PASS** |
+| test_error_handling.c | 37 | Error recovery & resilience | ✓ PASS |
+| cert-test.c | 4 | Certificate validation | ✓ PASS |
+| **TOTAL** | **267** | **100% coverage** | **100% PASS** |
 
 ### Test Coverage Overview
+
+This comprehensive test suite contains **267 total assertions** across 8 test modules covering critical functionality, edge cases, error handling, and certificate validation.
 
 #### Regression Tests (46 assertions) - Critical Bug Prevention
 
@@ -532,11 +536,16 @@ pgpemu.c (main)
 # Run specific test module
 ./run_tests.sh test_regression
 ./run_tests.sh test_edge_cases
+./run_tests.sh test_error_handling
 
 # Manual compilation
 cd pgpemu-esp32/main/pc
 gcc -o test_regression test_regression.c && ./test_regression
 gcc -o test_edge_cases test_edge_cases.c && ./test_edge_cases
+gcc -o test_error_handling test_error_handling.c && ./test_error_handling
+
+# Certificate validation test
+gcc -o cert-test cert-test.c aes.c && ./cert-test
 ```
 
 ### Test Maintenance
@@ -550,7 +559,7 @@ gcc -o test_edge_cases test_edge_cases.c && ./test_edge_cases
 **When fixing bugs:**
 1. Create a regression test in test_regression.c
 2. Document what was broken and how the test catches it
-3. Ensure all 226 assertions pass
+3. Ensure all 267 assertions pass
 4. Commit with reference to the bug fix
 
 **When modifying core logic:**
@@ -563,7 +572,7 @@ gcc -o test_edge_cases test_edge_cases.c && ./test_edge_cases
 
 ## Manual Testing Guide
 
-After PC unit tests pass (all 226 assertions), use these procedures to validate features on actual hardware.
+After PC unit tests pass (all 267 assertions), use these procedures to validate features on actual hardware.
 
 ### Prerequisites
 
@@ -1227,7 +1236,7 @@ Use this checklist to track manual testing progress:
 1. **Run all tests** and ensure 100% pass rate:
    ```bash
    ./run_tests.sh
-   # Must show: All 226 assertions passed
+    # Must show: All 267 assertions passed
    ```
 
 2. **Format your code**:
@@ -1291,14 +1300,16 @@ Includes regression test to prevent reoccurrence.
 ```
 
 ```
-test: Add comprehensive test suite with 226 assertions
+test: Add comprehensive test suite with 267 assertions
 
 - test_regression.c: 46 assertions for critical bugs
 - test_edge_cases.c: 76 assertions for boundaries
 - test_settings.c: 26 assertions for settings logic
-- test_config_storage.c: 37 assertions for NVS
-- test_handshake_multi.c: 18 assertions for connections
-- test_nvs_helper.c: 23 assertions for utilities
+- test_config_storage.c: 37 assertions for NVS persistence
+- test_handshake_multi.c: 18 assertions for multi-device connections
+- test_nvs_helper.c: 23 assertions for NVS utilities
+- test_error_handling.c: 37 assertions for error recovery
+- cert-test.c: 4 assertions for certificate validation
 
 All tests pass on PC without hardware.
 ```
@@ -1362,26 +1373,3 @@ All tests pass on PC without hardware.
 ## License
 
 This project is licensed under [LICENSE](./LICENSE).
-
----
-
-**Last Updated**: January 9, 2026  
-**Total Test Coverage**: 226 assertions, 100% pass rate  
-**Critical Bugs Prevented**: 5 major issues with regression tests  
-**Supported Devices**: ESP32-C3 with ESP-IDF v5.4.1  
-**Simultaneous Connections**: Up to 4 devices  
-**NVS Persistence**: Settings survive power cycles  
-
----
-
-## Support & Feedback
-
-For issues, feature requests, or feedback:
-
-1. **Report bugs** with serial logs and steps to reproduce
-2. **Request features** with use case explanation
-3. **Give feedback** at <https://github.com/sst/opencode>
-
----
-
-**PGPemu: Making Pokemon GO Plus emulation simple, reliable, and well-tested.**
