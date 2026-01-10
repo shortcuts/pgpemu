@@ -9,6 +9,7 @@
 #include "esp_log.h"
 #include "esp_system.h"
 #include "log_tags.h"
+#include "mutex_helpers.h"
 #include "nvs_flash.h"
 #include "pgp_gap.h"
 #include "pgp_gatts_debug.h"
@@ -700,13 +701,21 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
         if (client_entry) {
             // Allocate memory for device settings
             client_entry->settings = (DeviceSettings*)malloc(sizeof(DeviceSettings));
-            if (client_entry->settings) {
-                memset(client_entry->settings, 0, sizeof(DeviceSettings));
-                read_stored_device_settings(conn_params.bda, client_entry->settings);
-                ESP_LOGI(BT_GATTS_TAG, "[%d] device settings loaded", param->connect.conn_id);
-            } else {
-                ESP_LOGE(BT_GATTS_TAG, "[%d] failed to allocate device settings", param->connect.conn_id);
-            }
+             if (client_entry->settings) {
+                 memset(client_entry->settings, 0, sizeof(DeviceSettings));
+                 read_stored_device_settings(conn_params.bda, client_entry->settings);
+                 ESP_LOGI(BT_GATTS_TAG, "[%d] device settings loaded", param->connect.conn_id);
+
+                 // Enable autospin and autocatch on every connection/reconnection
+                 if (mutex_acquire_blocking(client_entry->settings->mutex)) {
+                     client_entry->settings->autospin = true;
+                     client_entry->settings->autocatch = true;
+                     mutex_release(client_entry->settings->mutex);
+                     ESP_LOGI(BT_GATTS_TAG, "[%d] autospin and autocatch enabled on connection", param->connect.conn_id);
+                 }
+             } else {
+                 ESP_LOGE(BT_GATTS_TAG, "[%d] failed to allocate device settings", param->connect.conn_id);
+             }
         }
 
         // Only request encryption for new devices. For reconnections with cached session,
