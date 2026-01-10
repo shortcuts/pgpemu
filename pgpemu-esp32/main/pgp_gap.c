@@ -65,25 +65,18 @@ void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t* par
             ESP_LOGE(BT_GAP_TAG, "advertising stop failed");
         } else {
             ESP_LOGI(BT_GAP_TAG, "advertising stop successful");
-        }
-        break;
-    case ESP_GAP_BLE_AUTH_CMPL_EVT:
-        ESP_LOGI(BT_GAP_TAG,
-            "authentication completed: success=%d, device_count=%d",
-            param->ble_security.auth_cmpl.success,
-            esp_ble_get_bond_device_num());
-        break;
-    // PASSKEY
-    case ESP_GAP_BLE_PASSKEY_REQ_EVT:
-        ESP_LOGI(BT_GAP_TAG, "passkey requested");
-        break;
-    case ESP_GAP_BLE_PASSKEY_NOTIF_EVT:
-        ESP_LOGI(BT_GAP_TAG, "passkey notify with code %06" PRIu32, param->ble_security.key_notif.passkey);
-        break;
-    case ESP_GAP_BLE_SEC_REQ_EVT:
-        ESP_LOGI(BT_GAP_TAG, "security request received, accepting");
-        esp_ble_gap_security_rsp(param->ble_security.ble_req.bd_addr, true);
-        break;
+         }
+         break;
+     case ESP_GAP_BLE_AUTH_CMPL_EVT:
+         ESP_LOGI(BT_GAP_TAG,
+             "authentication completed: success=%d, device_count=%d",
+             param->ble_security.auth_cmpl.success,
+             esp_ble_get_bond_device_num());
+         break;
+     case ESP_GAP_BLE_SEC_REQ_EVT:
+         ESP_LOGI(BT_GAP_TAG, "security request received, accepting");
+         esp_ble_gap_security_rsp(param->ble_security.ble_req.bd_addr, true);
+         break;
     // CONNECTION STATUS
     case ESP_GAP_BLE_UPDATE_CONN_PARAMS_EVT:
         ESP_LOGI(BT_GAP_TAG,

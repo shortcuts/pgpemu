@@ -117,9 +117,6 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event,
 static void pgp_prepare_write_event_env(esp_gatt_if_t gatts_if,
     prepare_type_env_t* prepare_write_env,
     esp_ble_gatts_cb_param_t* param);
-static void pgp_exec_write_event_env(esp_gatt_if_t gatts_if,
-    prepare_type_env_t* prepare_write_env,
-    esp_ble_gatts_cb_param_t* param);
 
 /* One gatt-based profile one app_id and one gatts_if, this array will store the gatts_if returned
  * by ESP_GATTS_REG_EVT */
@@ -648,16 +645,15 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
             if (param->write.need_rsp) {
                 esp_ble_gatts_send_response(gatts_if, param->write.conn_id, param->write.trans_id, ESP_GATT_OK, NULL);
             }
-        } else {
-            /* handle prepare write */
-            pgp_prepare_write_event_env(gatts_if, &prepare_write_env, param);
-        }
-        break;
-    case ESP_GATTS_EXEC_WRITE_EVT:
-        // the length of gattc prapare write data must be less than MAX_VALUE_LENGTH.
-        ESP_LOGD(BT_GATTS_TAG, "ESP_GATTS_EXEC_WRITE_EVT");
-        pgp_exec_write_event_env(gatts_if, &prepare_write_env, param);
-        break;
+         } else {
+             /* handle prepare write */
+             pgp_prepare_write_event_env(gatts_if, &prepare_write_env, param);
+         }
+         break;
+     case ESP_GATTS_EXEC_WRITE_EVT:
+         // the length of gattc prapare write data must be less than MAX_VALUE_LENGTH.
+         ESP_LOGD(BT_GATTS_TAG, "ESP_GATTS_EXEC_WRITE_EVT");
+         break;
     case ESP_GATTS_MTU_EVT:
         ESP_LOGD(BT_GATTS_TAG, "ESP_GATTS_MTU_EVT, MTU %d", param->mtu.mtu);
         break;
@@ -832,20 +828,18 @@ void pgp_prepare_write_event_env(esp_gatt_if_t gatts_if,
     prepare_type_env_t* prepare_write_env,
     esp_ble_gatts_cb_param_t* param) {
     ESP_LOGD(BT_GATTS_TAG, "prepare write, handle=%d, value len=%d", param->write.handle, param->write.len);
-    esp_gatt_status_t status = ESP_GATT_OK;
     if (prepare_write_env->prepare_buf == NULL) {
         prepare_write_env->handle = param->write.handle;
         prepare_write_env->prepare_buf = (uint8_t*)malloc(PREPARE_BUF_MAX_SIZE * sizeof(uint8_t));
         prepare_write_env->prepare_len = 0;
         if (prepare_write_env->prepare_buf == NULL) {
             ESP_LOGE(BT_GATTS_TAG, "%s, Gatt_server prep no mem", __func__);
-            status = ESP_GATT_NO_RESOURCES;
         }
     } else {
         if (param->write.offset > PREPARE_BUF_MAX_SIZE) {
-            status = ESP_GATT_INVALID_OFFSET;
+            ESP_LOGD(BT_GATTS_TAG, "write offset invalid");
         } else if ((param->write.offset + param->write.len) > PREPARE_BUF_MAX_SIZE) {
-            status = ESP_GATT_INVALID_ATTR_LEN;
+            ESP_LOGD(BT_GATTS_TAG, "write attribute length invalid");
         }
     }
     /*send response when param->write.need_rsp is true */
