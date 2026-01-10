@@ -278,7 +278,6 @@ void test_mutex_error_handling(void) {
     result = error_lock_resource(&resource);
     test_assert(result, "Lock succeeds with valid mutex");
     error_unlock_resource(&resource);
-    error_give_mutex(resource.mutex);
 
     // Test 5: Lock with NULL resource
     result = error_lock_resource(NULL);
@@ -376,6 +375,8 @@ int main() {
     test_malloc_failure_recovery();
     printf("\n");
     test_mutex_error_handling();
+    printf("\n");
+    test_data_validation_and_sanitization();
     printf("\n");
 
     printf("\n");
