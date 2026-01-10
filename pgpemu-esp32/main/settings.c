@@ -3,63 +3,125 @@
 #include "config_secrets.h"
 #include "esp_log.h"
 #include "log_tags.h"
+#include "mutex_helpers.h"
+#include "pgp_handshake_multi.h"
 
 #include <stdint.h>
 
 // runtime settings
-Settings settings = {
+GlobalSettings global_settings = {
     .mutex = NULL,
     .target_active_connections = 1,
-    .autocatch = true,
-    .autospin = true,
-    .autospin_probability = 0,
-    .use_button = false,
     .log_level = 1,
 };
 
-void init_settings() {
-    settings.mutex = xSemaphoreCreateMutex();
-    xSemaphoreTake(settings.mutex, portMAX_DELAY);  // block until end of this function
+void init_global_settings() {
+    global_settings.mutex = xSemaphoreCreateMutex();
+    xSemaphoreTake(global_settings.mutex, portMAX_DELAY);  // block until end of this function
 }
 
-void settings_ready() {
-    xSemaphoreGive(settings.mutex);
+void global_settings_ready() {
+    xSemaphoreGive(global_settings.mutex);
 }
 
-bool cycle_setting(uint8_t* var, uint8_t min, uint8_t max) {
-    if (!var || !min || !max || !xSemaphoreTake(settings.mutex, 10000 / portTICK_PERIOD_MS)) {
+bool cycle_log_level(uint8_t* var) {
+    if (!var || !mutex_acquire_timeout(global_settings.mutex, 10000)) {
         return false;
     }
 
     (*var)++;
 
-    if (*var > max) {
-        *var = min;
+    if (*var > 3) {
+        *var = 1;
     }
 
-    xSemaphoreGive(settings.mutex);
+    mutex_release(global_settings.mutex);
     return true;
 }
 
 bool toggle_setting(bool* var) {
-    if (!var || !xSemaphoreTake(settings.mutex, 10000 / portTICK_PERIOD_MS)) {
+    if (!var || !mutex_acquire_timeout(global_settings.mutex, 10000)) {
         return false;
     }
 
     *var = !*var;
 
-    xSemaphoreGive(settings.mutex);
+    mutex_release(global_settings.mutex);
+
     return true;
 }
 
+bool toggle_device_autospin(uint8_t c) {
+    client_state_t* entry = get_client_state_entry_by_idx(c);
+
+    if (entry == NULL || entry->settings == NULL) {
+        return false;
+    }
+
+    if (!xSemaphoreTake(entry->settings->mutex, 10000 / portTICK_PERIOD_MS)) {
+        return false;
+    }
+
+    entry->settings->autospin = !entry->settings->autospin;
+
+    xSemaphoreGive(entry->settings->mutex);
+
+    return entry->settings->autospin;
+}
+
+bool toggle_device_autocatch(uint8_t c) {
+    client_state_t* entry = get_client_state_entry_by_idx(c);
+
+    if (entry == NULL || entry->settings == NULL) {
+        return false;
+    }
+
+    if (!xSemaphoreTake(entry->settings->mutex, 10000 / portTICK_PERIOD_MS)) {
+        return false;
+    }
+
+    entry->settings->autocatch = !entry->settings->autocatch;
+
+    xSemaphoreGive(entry->settings->mutex);
+
+    return entry->settings->autocatch;
+}
+
+uint8_t set_device_autospin_probability(uint8_t c, uint8_t autospin_probability) {
+    client_state_t* entry = get_client_state_entry_by_idx(c);
+
+    if (entry == NULL || entry->settings == NULL) {
+        return 0;
+    }
+
+    if (!xSemaphoreTake(entry->settings->mutex, 10000 / portTICK_PERIOD_MS)) {
+        return 0;
+    }
+
+    if (autospin_probability > 9) {
+        ESP_LOGW(SETTING_TASK_TAG,
+            "[%d] invalid autospin probability: %d (0-9 allowed)",
+            entry->conn_id,
+            autospin_probability);
+        xSemaphoreGive(entry->settings->mutex);
+        return entry->settings->autospin_probability;
+    }
+
+    entry->settings->autospin_probability = autospin_probability;
+
+    xSemaphoreGive(entry->settings->mutex);
+
+    return entry->settings->autospin_probability;
+}
+
 bool get_setting(bool* var) {
-    if (!var || !xSemaphoreTake(settings.mutex, portMAX_DELAY)) {
+    if (!var || !xSemaphoreTake(global_settings.mutex, portMAX_DELAY)) {
         return false;
     }
 
     bool result = *var;
 
-    xSemaphoreGive(settings.mutex);
+    xSemaphoreGive(global_settings.mutex);
     return result;
 }
 
@@ -68,23 +130,23 @@ char* get_setting_log_value(bool* var) {
 }
 
 uint8_t get_setting_uint8(uint8_t* var) {
-    if (!var || !xSemaphoreTake(settings.mutex, portMAX_DELAY)) {
+    if (!var || !xSemaphoreTake(global_settings.mutex, portMAX_DELAY)) {
         return 0;
     }
 
     uint8_t result = *var;
 
-    xSemaphoreGive(settings.mutex);
+    xSemaphoreGive(global_settings.mutex);
     return result;
 }
 
 bool set_setting_uint8(uint8_t* var, const uint8_t val) {
-    if (!var || !xSemaphoreTake(settings.mutex, portMAX_DELAY)) {
+    if (!var || !xSemaphoreTake(global_settings.mutex, portMAX_DELAY)) {
         return false;
     }
 
     *var = val;
 
-    xSemaphoreGive(settings.mutex);
+    xSemaphoreGive(global_settings.mutex);
     return true;
 }

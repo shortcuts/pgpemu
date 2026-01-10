@@ -5,6 +5,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/FreeRTOSConfig.h"
 #include "freertos/task.h"
+#include "settings.h"
 
 #include <portmacro.h>
 #include <stdbool.h>
@@ -13,9 +14,12 @@
 static const size_t CERT_BUFFER_LEN = 378;
 
 typedef struct {
-    // esp bt connection id
+    // connection informations
     uint16_t conn_id;
     esp_bd_addr_t remote_bda;
+    DeviceSettings* settings;
+
+    // cert informations
     int cert_state;
     // TODO: we probably need to save the remote mac address so that we associate a reconnecting
     // client with its previous client state
@@ -39,11 +43,14 @@ typedef struct {
 void init_handshake_multi();
 
 int get_active_connections();
+int get_max_connections();
 
 // returns NULL when conn_id unknown
 client_state_t* get_client_state_entry(uint16_t conn_id);
 // returns NULL only if conn_id unknown and max connections reached
 client_state_t* get_or_create_client_state_entry(uint16_t conn_id);
+// returns NULL when idx has no associated connection
+client_state_t* get_client_state_entry_by_idx(int i);
 
 int get_cert_state(uint16_t conn_id);
 void set_remote_bda(uint16_t conn_id, esp_bd_addr_t remote_bda);

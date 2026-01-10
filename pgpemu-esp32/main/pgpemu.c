@@ -28,19 +28,16 @@ void app_main() {
         vTaskDelay(60000 / portTICK_PERIOD_MS);
     }
 
-    // init nvs storage
-    init_config_storage();
+    init_settings_nvs_partition();
 
-    // init settings mutex
-    init_settings();
-    // restore saved settings from nvs
-    read_stored_settings(false);
+    init_global_settings();
+    read_stored_global_settings(false);
 
     // restore log levels
-    if (settings.log_level == 3) {
+    if (global_settings.log_level == 3) {
         ESP_LOGI(PGPEMU_TAG, "log levels verbose");
         log_levels_verbose();
-    } else if (settings.log_level == 2) {
+    } else if (global_settings.log_level == 2) {
         ESP_LOGI(PGPEMU_TAG, "log levels info");
         log_levels_info();
     } else {
@@ -53,22 +50,17 @@ void app_main() {
 
     if (!PGP_VALID()) {
         // release mutex
-        settings_ready();
+        global_settings_ready();
         ESP_LOGE(PGPEMU_TAG, "NO PGP SECRETS AVAILABLE! See README.md to set them");
         return;
     }
 
     if (setup_button_pressed_on_boot()) {
-        settings_ready();  // release mutex
+        global_settings_ready();  // release mutex
         ESP_LOGI(PGPEMU_TAG, "setup button pressed on boot; continuing startup");
     }
 
-    // push button
-    if (settings.use_button) {
-        init_button_input();
-    } else {
-        ESP_LOGI(PGPEMU_TAG, "input button disabled");
-    }
+    init_button_input();
 
     // start autosetting task
     if (!init_autosetting()) {
@@ -101,5 +93,5 @@ void app_main() {
     ESP_LOGI(PGPEMU_TAG, "Ready.");
 
     // make settings available
-    settings_ready();
+    global_settings_ready();
 }

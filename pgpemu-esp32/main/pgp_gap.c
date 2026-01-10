@@ -1,6 +1,5 @@
 #include "pgp_gap.h"
 
-#include "config_storage.h"
 #include "esp_log.h"
 #include "log_tags.h"
 #include "pgp_handshake_multi.h"
@@ -22,7 +21,7 @@ static esp_ble_adv_params_t adv_params = {
 };
 
 void advertise_if_needed() {
-    int target_active_connections = get_setting_uint8(&settings.target_active_connections);
+    int target_active_connections = get_setting_uint8(&global_settings.target_active_connections);
     if (get_active_connections() < target_active_connections) {
         pgp_advertise();
     } else {
@@ -69,10 +68,10 @@ void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t* par
         }
         break;
     case ESP_GAP_BLE_AUTH_CMPL_EVT:
-        ESP_LOGI(BT_GAP_TAG, "new bonding done with device %d", esp_ble_get_bond_device_num());
-
-        read_stored_settings(true);
-
+        ESP_LOGI(BT_GAP_TAG,
+            "authentication completed: success=%d, device_count=%d",
+            param->ble_security.auth_cmpl.success,
+            esp_ble_get_bond_device_num());
         break;
     // PASSKEY
     case ESP_GAP_BLE_PASSKEY_REQ_EVT:
