@@ -198,16 +198,23 @@ void handle_led_notify_from_app(esp_gatt_if_t gatts_if, uint16_t conn_id, const 
     }
 
     if (retoggle_setting != 0) {
-        ESP_LOGD(LEDHANDLER_TAG,
-            "[%d] queueing setting toggle for %c after %d ms",
-            conn_id,
-            retoggle_setting,
-            retoggle_delay);
-        setting_queue_item_t item = {
-            .conn_id = conn_id,
-            .setting = retoggle_setting,
-            .delay = retoggle_delay,
-        };
-        xQueueSend(setting_queue, &item, portMAX_DELAY);
+        if (device_settings) {
+            ESP_LOGI(LEDHANDLER_TAG,
+                "[%d] queueing setting toggle for %c after %d ms (session=%lu)",
+                conn_id,
+                retoggle_setting,
+                retoggle_delay,
+                (unsigned long)device_settings->session_id);
+
+            setting_queue_item_t item = {
+                .gatts_if = gatts_if,
+                .conn_id = conn_id,
+                .session_id = device_settings->session_id,
+                .delay = retoggle_delay,
+                .setting = retoggle_setting,
+            };
+
+            xQueueSend(setting_queue, &item, portMAX_DELAY);
+        }
     }
 }

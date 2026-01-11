@@ -10,6 +10,9 @@ typedef struct {
     esp_gatt_if_t gatts_if;
     uint16_t conn_id;
 
+    // NEW: Session identifier to match device
+    uint32_t session_id;
+
     // delay after which setting is pressed
     int delay;
 

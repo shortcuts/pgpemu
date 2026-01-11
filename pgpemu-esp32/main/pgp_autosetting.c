@@ -42,42 +42,36 @@ static void autosetting_task(void* pvParameters) {
 
     while (1) {
         if (xQueueReceive(setting_queue, &item, portMAX_DELAY)) {
-            ESP_LOGD(
-                SETTING_TASK_TAG, "[%d] toggling setting %c after delay=%d ms", item.conn_id, item.setting, item.delay);
+            ESP_LOGD(SETTING_TASK_TAG,
+                "[%d] toggling setting %c after delay=%d ms (session=%lu)",
+                item.conn_id,
+                item.setting,
+                item.delay,
+                (unsigned long)item.session_id);
             vTaskDelay(item.delay / portTICK_PERIOD_MS);
-
-            // Get device settings for this connection
-            client_state_t* entry = get_client_state_entry(item.conn_id);
-            if (!entry || !entry->settings) {
-                ESP_LOGW(SETTING_TASK_TAG, "[%d] device disconnected before toggle", item.conn_id);
-                continue;
-            }
 
             switch (item.setting) {
             case 's':
-                if (!entry->settings->autospin) {
-                    if (!toggle_device_autospin(item.conn_id)) {
-                        ESP_LOGW(SETTING_TASK_TAG, "[%d] failed to toggle autospin", item.conn_id);
-                        break;
-                    }
-                    if (!write_devices_settings_to_nvs()) {
-                        ESP_LOGW(SETTING_TASK_TAG, "[%d] failed to write device settings to NVS", item.conn_id);
-                    }
+                // Use session_id-based toggle, NO NVS write
+                if (!toggle_device_autospin_by_session(item.session_id)) {
+                    ESP_LOGW(
+                        SETTING_TASK_TAG, "failed to toggle autospin (session=%lu)", (unsigned long)item.session_id);
                 }
                 break;
+
             case 'c':
-                if (!entry->settings->autocatch) {
-                    if (!toggle_device_autocatch(item.conn_id)) {
-                        ESP_LOGW(SETTING_TASK_TAG, "[%d] failed to toggle autocatch", item.conn_id);
-                        break;
-                    }
-                    if (!write_devices_settings_to_nvs()) {
-                        ESP_LOGW(SETTING_TASK_TAG, "[%d] failed to write device settings to NVS", item.conn_id);
-                    }
+                // Use session_id-based toggle, NO NVS write
+                if (!toggle_device_autocatch_by_session(item.session_id)) {
+                    ESP_LOGW(
+                        SETTING_TASK_TAG, "failed to toggle autocatch (session=%lu)", (unsigned long)item.session_id);
                 }
                 break;
+
             default:
-                ESP_LOGW(SETTING_TASK_TAG, "[%d] unhandled toggle case: %c", item.conn_id, item.setting);
+                ESP_LOGW(SETTING_TASK_TAG,
+                    "unhandled toggle case: %c (session=%lu)",
+                    item.setting,
+                    (unsigned long)item.session_id);
             }
         }
     }
