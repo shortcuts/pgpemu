@@ -29,7 +29,16 @@ void handle_pgp_handshake_first(esp_gatt_if_t gatts_if, uint16_t descr_value, ui
         uint8_t notify_data[4];
         memset(notify_data, 0, 4);
 
-        ESP_LOGI(HANDSHAKE_TAG, "[%d] Checking reconnection options: has_reconnect_key=%d, remote_bda=%02x:%02x:%02x:%02x:%02x:%02x", conn_id, client_state->has_reconnect_key, client_state->remote_bda[0], client_state->remote_bda[1], client_state->remote_bda[2], client_state->remote_bda[3], client_state->remote_bda[4], client_state->remote_bda[5]);
+        ESP_LOGI(HANDSHAKE_TAG,
+            "[%d] Checking reconnection options: has_reconnect_key=%d, remote_bda=%02x:%02x:%02x:%02x:%02x:%02x",
+            conn_id,
+            client_state->has_reconnect_key,
+            client_state->remote_bda[0],
+            client_state->remote_bda[1],
+            client_state->remote_bda[2],
+            client_state->remote_bda[3],
+            client_state->remote_bda[4],
+            client_state->remote_bda[5]);
 
         if (client_state->has_reconnect_key) {
             // reconnect challenge
@@ -280,29 +289,29 @@ void handle_pgp_handshake_second(esp_gatt_if_t gatts_if, const uint8_t* prepare_
         client_state->cert_state = 5;
         break;
     }
-     case 5:  // reconnection #3: established
-     {
-         if (datalen == 5) {
-             // just assume server responds correctly
-             ESP_LOGI(HANDSHAKE_TAG, "[%d] reconnection complete (state 5->6)", conn_id);
+    case 5:  // reconnection #3: established
+    {
+        if (datalen == 5) {
+            // just assume server responds correctly
+            ESP_LOGI(HANDSHAKE_TAG, "[%d] reconnection complete (state 5->6)", conn_id);
 
-             uint8_t notify_data[4] = { 0x04, 0x00, 0x02, 0x00 };
-             esp_ble_gatts_send_indicate(gatts_if,
-                 conn_id,
-                 certificate_handle_table[IDX_CHAR_SFIDA_COMMANDS_VAL],
-                 sizeof(notify_data),
-                 notify_data,
-                 false);
+            uint8_t notify_data[4] = { 0x04, 0x00, 0x02, 0x00 };
+            esp_ble_gatts_send_indicate(gatts_if,
+                conn_id,
+                certificate_handle_table[IDX_CHAR_SFIDA_COMMANDS_VAL],
+                sizeof(notify_data),
+                notify_data,
+                false);
 
-             client_state->cert_state = 6;
-             // Do NOT call connection_start() here - reconnection doesn't increment active_connections.
-             // connection_start() is only called during initial handshake (state 2->6).
-             advertise_if_needed();
-         } else {
-             ESP_LOGW(HANDSHAKE_TAG, "[%d] reconnection #3 unexpected datalen=%d", conn_id, datalen);
-         }
-         break;
-     }
+            client_state->cert_state = 6;
+            // Do NOT call connection_start() here - reconnection doesn't increment active_connections.
+            // connection_start() is only called during initial handshake (state 2->6).
+            advertise_if_needed();
+        } else {
+            ESP_LOGW(HANDSHAKE_TAG, "[%d] reconnection #3 unexpected datalen=%d", conn_id, datalen);
+        }
+        break;
+    }
     default:
         ESP_LOGE(HANDSHAKE_TAG, "Unhandled state: %d", client_state->cert_state);
         break;
