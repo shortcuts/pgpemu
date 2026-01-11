@@ -9,7 +9,7 @@ help: ## Prints help.
 ##@ Setup
 
 install-deps: ## Install deps
-	brew install cmake ninja dfu-util ccache
+	brew install cmake ninja dfu-util ccache clang-format
 	git clone -b v5.4.1  --depth 1 --recursive https://github.com/espressif/esp-idf.git $HOME/esp/v5.4.1/esp-idf
 
 setup-esp-idf: ## Setup the current session for esp-idf with target esp32c3

@@ -9,6 +9,7 @@
 #include "esp_log.h"
 #include "esp_system.h"
 #include "log_tags.h"
+#include "mutex_helpers.h"
 #include "nvs_flash.h"
 #include "pgp_gap.h"
 #include "pgp_gatts_debug.h"
@@ -24,17 +25,10 @@
 #define PROFILE_NUM 1
 #define PROFILE_APP_IDX 0
 
-#if 0
-#define PGP_DEVICE_NAME "Pokemon PBP"
-#define SVC_INST_ID 0
-#define BATTERY_INST_ID 1
-#define LED_BUTTON_INST_ID 2
-#else
 static const char* PGP_DEVICE_NAME = "Pokemon GO Plus";
 static const uint8_t BATTERY_INST_ID = 0;
 static const uint8_t LED_BUTTON_INST_ID = 1;
 static const uint8_t CERT_INST_ID = 2;
-#endif
 
 /* The max length of characteristic value. When the gatt client write or prepare write,
  *  the data length must be less than MAX_VALUE_LENGTH.
@@ -122,9 +116,6 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event,
     esp_gatt_if_t gatts_if,
     esp_ble_gatts_cb_param_t* param);
 static void pgp_prepare_write_event_env(esp_gatt_if_t gatts_if,
-    prepare_type_env_t* prepare_write_env,
-    esp_ble_gatts_cb_param_t* param);
-static void pgp_exec_write_event_env(esp_gatt_if_t gatts_if,
     prepare_type_env_t* prepare_write_env,
     esp_ble_gatts_cb_param_t* param);
 
@@ -663,7 +654,6 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
     case ESP_GATTS_EXEC_WRITE_EVT:
         // the length of gattc prapare write data must be less than MAX_VALUE_LENGTH.
         ESP_LOGD(BT_GATTS_TAG, "ESP_GATTS_EXEC_WRITE_EVT");
-        pgp_exec_write_event_env(gatts_if, &prepare_write_env, param);
         break;
     case ESP_GATTS_MTU_EVT:
         ESP_LOGD(BT_GATTS_TAG, "ESP_GATTS_MTU_EVT, MTU %d", param->mtu.mtu);
@@ -678,15 +668,16 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
             param->start.service_handle);
         break;
     case ESP_GATTS_CONNECT_EVT:
-        ESP_LOGD(BT_GATTS_TAG,
-            "[%d] ESP_GATTS_CONNECT_EVT, mac=%02x:%02x:%02x:%02x:%02x:%02x",
+        ESP_LOGI(BT_GATTS_TAG,
+            "[%d] ESP_GATTS_CONNECT_EVT, mac=%02x:%02x:%02x:%02x:%02x:%02x, active_connections=%d",
             param->connect.conn_id,
             param->connect.remote_bda[0],
             param->connect.remote_bda[1],
             param->connect.remote_bda[2],
             param->connect.remote_bda[3],
             param->connect.remote_bda[4],
-            param->connect.remote_bda[5]);
+            param->connect.remote_bda[5],
+            get_active_connections());
 
         esp_ble_conn_update_params_t conn_params = {
             .min_int = 0,
@@ -715,6 +706,14 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
                 memset(client_entry->settings, 0, sizeof(DeviceSettings));
                 read_stored_device_settings(conn_params.bda, client_entry->settings);
                 ESP_LOGI(BT_GATTS_TAG, "[%d] device settings loaded", param->connect.conn_id);
+
+                // Enable autospin and autocatch on every connection/reconnection
+                if (mutex_acquire_blocking(client_entry->settings->mutex)) {
+                    client_entry->settings->autospin = true;
+                    client_entry->settings->autocatch = true;
+                    mutex_release(client_entry->settings->mutex);
+                    ESP_LOGI(BT_GATTS_TAG, "[%d] autospin and autocatch enabled on connection", param->connect.conn_id);
+                }
             } else {
                 ESP_LOGE(BT_GATTS_TAG, "[%d] failed to allocate device settings", param->connect.conn_id);
             }
@@ -839,71 +838,23 @@ void pgp_prepare_write_event_env(esp_gatt_if_t gatts_if,
     prepare_type_env_t* prepare_write_env,
     esp_ble_gatts_cb_param_t* param) {
     ESP_LOGD(BT_GATTS_TAG, "prepare write, handle=%d, value len=%d", param->write.handle, param->write.len);
-    esp_gatt_status_t status = ESP_GATT_OK;
     if (prepare_write_env->prepare_buf == NULL) {
         prepare_write_env->handle = param->write.handle;
         prepare_write_env->prepare_buf = (uint8_t*)malloc(PREPARE_BUF_MAX_SIZE * sizeof(uint8_t));
         prepare_write_env->prepare_len = 0;
         if (prepare_write_env->prepare_buf == NULL) {
             ESP_LOGE(BT_GATTS_TAG, "%s, Gatt_server prep no mem", __func__);
-            status = ESP_GATT_NO_RESOURCES;
         }
     } else {
         if (param->write.offset > PREPARE_BUF_MAX_SIZE) {
-            status = ESP_GATT_INVALID_OFFSET;
+            ESP_LOGD(BT_GATTS_TAG, "write offset invalid");
         } else if ((param->write.offset + param->write.len) > PREPARE_BUF_MAX_SIZE) {
-            status = ESP_GATT_INVALID_ATTR_LEN;
+            ESP_LOGD(BT_GATTS_TAG, "write attribute length invalid");
         }
     }
     /*send response when param->write.need_rsp is true */
     if (param->write.need_rsp) {
         ESP_LOGE(BT_GATTS_TAG, "need_rsp not implemented");
-#if 0
-        esp_gatt_rsp_t *gatt_rsp = (esp_gatt_rsp_t *)malloc(sizeof(esp_gatt_rsp_t));
-        if (gatt_rsp != NULL)
-        {
-
-            /*
-                gatt_rsp->attr_value.len = param->write.len;
-                gatt_rsp->attr_value.handle = param->write.handle;
-                gatt_rsp->attr_value.offset = param->write.offset;
-                gatt_rsp->attr_value.auth_req = ESP_GATT_AUTH_REQ_NONE;
-                memcpy(gatt_rsp->attr_value.value, param->write.value, param->write.len);
-                esp_err_t response_err = esp_ble_gatts_send_response(gatts_if, param->write.conn_id, param->write.trans_id, status, gatt_rsp);
-                if (response_err != ESP_OK){
-                   ESP_LOGE(GATTS_TABLE_TAG, "Send response error");
-                }
-                free(gatt_rsp);
-            */
-        }
-        else
-        {
-            ESP_LOGE(BT_GATTS_TAG, "%s, malloc failed", __func__);
-        }
-#endif
-    }
-    if (status != ESP_GATT_OK) {
-        return;
-    }
-    memcpy(prepare_write_env->prepare_buf + param->write.offset, param->write.value, param->write.len);
-    prepare_write_env->prepare_len += param->write.len;
-}
-
-void pgp_exec_write_event_env(esp_gatt_if_t gatts_if,
-    prepare_type_env_t* prepare_write_env,
-    esp_ble_gatts_cb_param_t* param) {
-    if (param->exec_write.exec_write_flag == ESP_GATT_PREP_WRITE_EXEC && prepare_write_env->prepare_buf) {
-        ESP_LOG_BUFFER_HEX(BT_GATTS_TAG, prepare_write_env->prepare_buf, prepare_write_env->prepare_len);
-
-        // it seems that this will be called only by Android version of the Pokemon Go App
-        ESP_LOGD(BT_GATTS_TAG, "WRITE EVT");
-
-        if (certificate_handle_table[IDX_CHAR_CENTRAL_TO_SFIDA_VAL] == prepare_write_env->handle) {
-            handle_pgp_handshake_second(
-                gatts_if, prepare_write_env->prepare_buf, prepare_write_env->prepare_len, param->write.conn_id);
-        } else if (led_button_handle_table[IDX_CHAR_LED_VAL] == prepare_write_env->handle) {
-            handle_led_notify_from_app(gatts_if, param->write.conn_id, prepare_write_env->prepare_buf);
-        }
     } else {
         ESP_LOGI(BT_GATTS_TAG, "ESP_GATT_PREP_WRITE_CANCEL");
     }

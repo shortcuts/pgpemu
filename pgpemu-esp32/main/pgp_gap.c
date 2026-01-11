@@ -73,13 +73,6 @@ void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t* par
             param->ble_security.auth_cmpl.success,
             esp_ble_get_bond_device_num());
         break;
-    // PASSKEY
-    case ESP_GAP_BLE_PASSKEY_REQ_EVT:
-        ESP_LOGI(BT_GAP_TAG, "passkey requested");
-        break;
-    case ESP_GAP_BLE_PASSKEY_NOTIF_EVT:
-        ESP_LOGI(BT_GAP_TAG, "passkey notify with code %06" PRIu32, param->ble_security.key_notif.passkey);
-        break;
     case ESP_GAP_BLE_SEC_REQ_EVT:
         ESP_LOGI(BT_GAP_TAG, "security request received, accepting");
         esp_ble_gap_security_rsp(param->ble_security.ble_req.bd_addr, true);
