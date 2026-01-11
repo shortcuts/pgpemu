@@ -297,6 +297,7 @@ void handle_pgp_handshake_second(esp_gatt_if_t gatts_if, const uint8_t* prepare_
              client_state->cert_state = 6;
              // Do NOT call connection_start() here - reconnection doesn't increment active_connections.
              // connection_start() is only called during initial handshake (state 2->6).
+             advertise_if_needed();
          } else {
              ESP_LOGW(HANDSHAKE_TAG, "[%d] reconnection #3 unexpected datalen=%d", conn_id, datalen);
          }
