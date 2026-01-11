@@ -303,11 +303,17 @@ void handle_pgp_handshake_second(esp_gatt_if_t gatts_if, const uint8_t* prepare_
                 notify_data,
                 false);
 
-            client_state->cert_state = 6;
-            // Do NOT call connection_start() here - reconnection doesn't increment active_connections.
-            // connection_start() is only called during initial handshake (state 2->6).
-            advertise_if_needed();
-        } else {
+             client_state->cert_state = 6;
+             // For reconnections on a fresh entry (connection_start == 0), increment the counter.
+             // For reconnections on an existing entry (connection_start != 0), just update timestamp.
+             // This handles both scenarios: fresh slots vs reconnections within same slot.
+             if (client_state->connection_start == 0) {
+                 connection_start(conn_id);
+             } else {
+                 connection_update(conn_id);
+             }
+             advertise_if_needed();
+         } else {
             ESP_LOGW(HANDSHAKE_TAG, "[%d] reconnection #3 unexpected datalen=%d", conn_id, datalen);
         }
         break;
