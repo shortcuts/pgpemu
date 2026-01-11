@@ -29,8 +29,11 @@ void handle_pgp_handshake_first(esp_gatt_if_t gatts_if, uint16_t descr_value, ui
         uint8_t notify_data[4];
         memset(notify_data, 0, 4);
 
+        ESP_LOGI(HANDSHAKE_TAG, "[%d] Checking reconnection options: has_reconnect_key=%d, remote_bda=%02x:%02x:%02x:%02x:%02x:%02x", conn_id, client_state->has_reconnect_key, client_state->remote_bda[0], client_state->remote_bda[1], client_state->remote_bda[2], client_state->remote_bda[3], client_state->remote_bda[4], client_state->remote_bda[5]);
+
         if (client_state->has_reconnect_key) {
             // reconnect challenge
+            ESP_LOGI(HANDSHAKE_TAG, "[%d] Using in-memory reconnect key", conn_id);
             notify_data[0] = 3;
 
             memset(client_state->cert_buffer, 0, 36);

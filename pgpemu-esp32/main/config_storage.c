@@ -360,8 +360,11 @@ bool retrieve_device_session_keys(esp_bd_addr_t bda, uint8_t* session_key_out, u
         return false;
     }
 
+    ESP_LOGI(CONFIG_STORAGE_TAG, "retrieve_device_session_keys: attempting to retrieve for mac=%02x:%02x:%02x:%02x:%02x:%02x", bda[0], bda[1], bda[2], bda[3], bda[4], bda[5]);
+
     nvs_handle_t device_settings_handle = {};
     if (!nvs_open_readonly(CONFIG_STORAGE_TAG, "device_settings", &device_settings_handle)) {
+        ESP_LOGE(CONFIG_STORAGE_TAG, "retrieve_device_session_keys: failed to open NVS");
         return false;
     }
 
@@ -371,18 +374,22 @@ bool retrieve_device_session_keys(esp_bd_addr_t bda, uint8_t* session_key_out, u
     // Retrieve session key
     make_device_key_for_option("sesskey", bda, key_out);
     if (!nvs_read_blob_checked(CONFIG_STORAGE_TAG, device_settings_handle, key_out, session_key_out, 16)) {
+        ESP_LOGW(CONFIG_STORAGE_TAG, "retrieve_device_session_keys: failed to retrieve session key");
         all_ok = false;
     }
 
     // Retrieve reconnect challenge
     make_device_key_for_option("rechall", bda, key_out);
     if (!nvs_read_blob_checked(CONFIG_STORAGE_TAG, device_settings_handle, key_out, reconnect_challenge_out, 32)) {
+        ESP_LOGW(CONFIG_STORAGE_TAG, "retrieve_device_session_keys: failed to retrieve reconnect challenge");
         all_ok = false;
     }
 
     nvs_safe_close(device_settings_handle);
     if (all_ok) {
-        ESP_LOGI(CONFIG_STORAGE_TAG, "device session keys retrieved");
+        ESP_LOGI(CONFIG_STORAGE_TAG, "device session keys retrieved successfully");
+    } else {
+        ESP_LOGE(CONFIG_STORAGE_TAG, "retrieve_device_session_keys failed for mac=%02x:%02x:%02x:%02x:%02x:%02x", bda[0], bda[1], bda[2], bda[3], bda[4], bda[5]);
     }
     return all_ok;
 }
@@ -390,6 +397,7 @@ bool retrieve_device_session_keys(esp_bd_addr_t bda, uint8_t* session_key_out, u
 bool has_cached_session(esp_bd_addr_t bda) {
     nvs_handle_t device_settings_handle = {};
     if (!nvs_open_readonly(CONFIG_STORAGE_TAG, "device_settings", &device_settings_handle)) {
+        ESP_LOGD(CONFIG_STORAGE_TAG, "has_cached_session: failed to open NVS (mac=%02x:%02x:%02x:%02x:%02x:%02x)", bda[0], bda[1], bda[2], bda[3], bda[4], bda[5]);
         return false;
     }
 
@@ -402,7 +410,9 @@ bool has_cached_session(esp_bd_addr_t bda) {
 
     nvs_safe_close(device_settings_handle);
 
-    return (err == ESP_OK && required_size == 16);
+    bool found = (err == ESP_OK && required_size == 16);
+    ESP_LOGI(CONFIG_STORAGE_TAG, "has_cached_session: mac=%02x:%02x:%02x:%02x:%02x:%02x, found=%d", bda[0], bda[1], bda[2], bda[3], bda[4], bda[5], found);
+    return found;
 }
 
 bool clear_device_session(esp_bd_addr_t bda) {

@@ -249,7 +249,6 @@ void reset_client_states() {
         if (conn_id_map[i] != 0xffff) {
             ESP_LOGI(HANDSHAKE_TAG, "disconnecting %d", i);
             esp_ble_gap_disconnect(client_states[i].remote_bda);
-            connection_stop(client_states[i].conn_id);
         }
     }
 }

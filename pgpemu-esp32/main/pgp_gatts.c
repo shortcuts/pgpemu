@@ -646,15 +646,15 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
             if (param->write.need_rsp) {
                 esp_ble_gatts_send_response(gatts_if, param->write.conn_id, param->write.trans_id, ESP_GATT_OK, NULL);
             }
-         } else {
-             /* handle prepare write */
-             pgp_prepare_write_event_env(gatts_if, &prepare_write_env, param);
-         }
-         break;
-     case ESP_GATTS_EXEC_WRITE_EVT:
-         // the length of gattc prapare write data must be less than MAX_VALUE_LENGTH.
-         ESP_LOGD(BT_GATTS_TAG, "ESP_GATTS_EXEC_WRITE_EVT");
-         break;
+        } else {
+            /* handle prepare write */
+            pgp_prepare_write_event_env(gatts_if, &prepare_write_env, param);
+        }
+        break;
+    case ESP_GATTS_EXEC_WRITE_EVT:
+        // the length of gattc prapare write data must be less than MAX_VALUE_LENGTH.
+        ESP_LOGD(BT_GATTS_TAG, "ESP_GATTS_EXEC_WRITE_EVT");
+        break;
     case ESP_GATTS_MTU_EVT:
         ESP_LOGD(BT_GATTS_TAG, "ESP_GATTS_MTU_EVT, MTU %d", param->mtu.mtu);
         break;
@@ -668,15 +668,16 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
             param->start.service_handle);
         break;
     case ESP_GATTS_CONNECT_EVT:
-        ESP_LOGD(BT_GATTS_TAG,
-            "[%d] ESP_GATTS_CONNECT_EVT, mac=%02x:%02x:%02x:%02x:%02x:%02x",
+        ESP_LOGI(BT_GATTS_TAG,
+            "[%d] ESP_GATTS_CONNECT_EVT, mac=%02x:%02x:%02x:%02x:%02x:%02x, active_connections=%d",
             param->connect.conn_id,
             param->connect.remote_bda[0],
             param->connect.remote_bda[1],
             param->connect.remote_bda[2],
             param->connect.remote_bda[3],
             param->connect.remote_bda[4],
-            param->connect.remote_bda[5]);
+            param->connect.remote_bda[5],
+            get_active_connections());
 
         esp_ble_conn_update_params_t conn_params = {
             .min_int = 0,
@@ -701,21 +702,21 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
         if (client_entry) {
             // Allocate memory for device settings
             client_entry->settings = (DeviceSettings*)malloc(sizeof(DeviceSettings));
-             if (client_entry->settings) {
-                 memset(client_entry->settings, 0, sizeof(DeviceSettings));
-                 read_stored_device_settings(conn_params.bda, client_entry->settings);
-                 ESP_LOGI(BT_GATTS_TAG, "[%d] device settings loaded", param->connect.conn_id);
+            if (client_entry->settings) {
+                memset(client_entry->settings, 0, sizeof(DeviceSettings));
+                read_stored_device_settings(conn_params.bda, client_entry->settings);
+                ESP_LOGI(BT_GATTS_TAG, "[%d] device settings loaded", param->connect.conn_id);
 
-                 // Enable autospin and autocatch on every connection/reconnection
-                 if (mutex_acquire_blocking(client_entry->settings->mutex)) {
-                     client_entry->settings->autospin = true;
-                     client_entry->settings->autocatch = true;
-                     mutex_release(client_entry->settings->mutex);
-                     ESP_LOGI(BT_GATTS_TAG, "[%d] autospin and autocatch enabled on connection", param->connect.conn_id);
-                 }
-             } else {
-                 ESP_LOGE(BT_GATTS_TAG, "[%d] failed to allocate device settings", param->connect.conn_id);
-             }
+                // Enable autospin and autocatch on every connection/reconnection
+                if (mutex_acquire_blocking(client_entry->settings->mutex)) {
+                    client_entry->settings->autospin = true;
+                    client_entry->settings->autocatch = true;
+                    mutex_release(client_entry->settings->mutex);
+                    ESP_LOGI(BT_GATTS_TAG, "[%d] autospin and autocatch enabled on connection", param->connect.conn_id);
+                }
+            } else {
+                ESP_LOGE(BT_GATTS_TAG, "[%d] failed to allocate device settings", param->connect.conn_id);
+            }
         }
 
         // Only request encryption for new devices. For reconnections with cached session,
