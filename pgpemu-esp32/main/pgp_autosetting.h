@@ -4,6 +4,7 @@
 #include "esp_gatt_defs.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
+#include "freertos/timers.h"
 
 typedef struct {
     // which session does this belong to
@@ -18,6 +19,11 @@ typedef struct {
 
     char setting;
 } setting_queue_item_t;
+
+typedef struct {
+    uint32_t session_id;
+    char setting;
+} retoggle_timer_data_t;
 
 extern QueueHandle_t setting_queue;
 

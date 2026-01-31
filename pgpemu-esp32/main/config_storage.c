@@ -34,7 +34,7 @@ static const int DEVICE_KEY_BUFFER_SIZE = 64;                       // Buffer fo
 char* make_device_key_for_option(const char* key, const esp_bd_addr_t bda, char* out);
 
 void init_settings_nvs_partition() {
-    esp_err_t err;
+    esp_err_t err = ESP_OK;
 
     ESP_LOGD(CONFIG_STORAGE_TAG, "initializing config storage");
 
