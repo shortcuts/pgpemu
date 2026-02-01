@@ -1,7 +1,6 @@
 #include "esp_gatt_defs.h"
 #include "esp_log.h"
 #include "esp_random.h"
-#include "esp_system.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 #include "freertos/task.h"
@@ -41,7 +40,6 @@ void handle_led_notify_from_app(esp_gatt_if_t gatts_if, uint16_t conn_id, const 
     int count_blue = 0;
     int count_yellow = 0;
     int count_white = 0;
-    int count_other = 0;  // colors like pink which aren't used
     int count_off = 0, count_notoff = 0;
 
     // 1 pattern = 3 bytes
@@ -88,8 +86,6 @@ void handle_led_notify_from_app(esp_gatt_if_t gatts_if, uint16_t conn_id, const 
                 count_yellow++;
             } else if (red && green && blue) {
                 count_white++;
-            } else {
-                count_other++;
             }
         }
     }

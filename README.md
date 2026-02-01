@@ -83,6 +83,7 @@ You need ESP-IDF v5.4.1 installed. See the [get started with ESP-IDF for ESP32-C
    - Shift+⌘+P > **ESP-IDF: Select Port to Use** > choose your device (e.g. `/dev/tty.usbmodem101`)
    - Shift+⌘+P > **ESP-IDF: Set Espressif Device Target** > `esp32c3`
    - Shift+⌘+P > **ESP-IDF: Select Flash Method** > `JTAG`
+   - Shift+⌘+P > **ESP-IDF: Select OpenOCD Board Configuration** > `JTAG`
    - Shift+⌘+P > **ESP-IDF: Build, Flash and Monitor**
 
 ### Option 2: Command Line

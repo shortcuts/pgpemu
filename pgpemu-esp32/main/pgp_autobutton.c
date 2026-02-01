@@ -4,7 +4,6 @@
 #include "esp_gatts_api.h"
 #include "esp_log.h"
 #include "esp_random.h"
-#include "esp_system.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 #include "freertos/task.h"
@@ -32,7 +31,7 @@ bool init_autobutton() {
     return true;
 }
 
-static void autobutton_task(void* pvParameters) {
+static void autobutton_task(void* __attribute__((unused)) pvParameters) {
     button_queue_item_t item;
 
     ESP_LOGI(BUTTON_TASK_TAG, "task start");
