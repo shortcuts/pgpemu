@@ -38,6 +38,7 @@ Autocatcher/Gotcha/Pokemon Go Plus device emulator for Pokemon Go, with autospin
 - Statically loaded secrets (see [Load Pokemon Go Plus Secrets](#load-pokemon-go-plus-secrets)) in [NVS](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/storage/nvs_flash.html)
 - Toggle autocatch/autospin
 - Android 15+ support
+- iOS support
 
 ### Pokemon Go Plus Features
 
