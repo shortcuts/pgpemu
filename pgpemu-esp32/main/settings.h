@@ -28,20 +28,11 @@ typedef struct {
 
     esp_bd_addr_t bda;
 
-    // NEW: Random session identifier for retoggle matching
-    uint32_t session_id;  // Range: 1-999999
-
     // gotcha functions
     bool autocatch, autospin;
 
     // 0 = spin everything, 1 to 9 = N/10
     uint8_t autospin_probability;
-
-    // Retoggle state tracking (for bag full/box full scenarios)
-    bool autospin_retoggle_pending;
-    bool autocatch_retoggle_pending;
-    TickType_t autospin_retoggle_time;   // when to restore autospin
-    TickType_t autocatch_retoggle_time;  // when to restore autocatch
 } DeviceSettings;
 
 void init_global_settings();
@@ -55,12 +46,5 @@ bool get_setting(bool* var);
 char* get_setting_log_value(bool* var);
 uint8_t get_setting_uint8(uint8_t* var);
 bool set_setting_uint8(uint8_t* var, const uint8_t val);
-
-// Generate random session ID (1-999999)
-uint32_t generate_session_id(void);
-
-// Toggle functions using session_id
-bool toggle_device_autospin_by_session(uint32_t session_id);
-bool toggle_device_autocatch_by_session(uint32_t session_id);
 
 #endif /* SETTINGS_H */

@@ -707,13 +707,6 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
                 read_stored_device_settings(conn_params.bda, client_entry->settings);
                 ESP_LOGI(BT_GATTS_TAG, "[%d] device settings loaded", param->connect.conn_id);
 
-                // NEW: Generate random session ID for this connection
-                client_entry->settings->session_id = generate_session_id();
-                ESP_LOGI(BT_GATTS_TAG,
-                    "[%d] session_id=%lu assigned",
-                    param->connect.conn_id,
-                    (unsigned long)client_entry->settings->session_id);
-
                 // Enable autospin and autocatch on every connection/reconnection
                 if (mutex_acquire_blocking(client_entry->settings->mutex)) {
                     client_entry->settings->autospin = true;

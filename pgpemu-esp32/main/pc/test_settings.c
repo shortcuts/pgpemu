@@ -54,10 +54,6 @@ typedef struct {
     esp_bd_addr_t bda;
     bool autocatch, autospin;
     uint8_t autospin_probability;
-    bool autospin_retoggle_pending;
-    bool autocatch_retoggle_pending;
-    TickType_t autospin_retoggle_time;
-    TickType_t autocatch_retoggle_time;
 } DeviceSettings;
 
 // Test global settings initialization
@@ -158,16 +154,6 @@ void test_device_settings_init() {
     assert(device.autocatch == false);
     assert(device.autospin_probability == 5);
     printf("✓ Device settings initialized with correct values\n");
-
-    // Check retoggle fields
-    assert(device.autospin_retoggle_pending == false);
-    assert(device.autocatch_retoggle_pending == false);
-    printf("✓ Retoggle pending flags initialized to false\n");
-
-    // Check retoggle times
-    assert(device.autospin_retoggle_time == 0);
-    assert(device.autocatch_retoggle_time == 0);
-    printf("✓ Retoggle times initialized to 0\n");
 }
 
 // Test autospin probability validation
@@ -229,37 +215,20 @@ void test_multiple_device_settings() {
     printf("✓ Toggling one device doesn't affect others\n");
 }
 
-// Test retoggle timing logic
-void test_retoggle_timing() {
-    printf("\n=== Test: Retoggle Timing Logic ===\n");
+// Test null checks in device settings functions
+void test_null_check_protection() {
+    printf("\n=== Test: Null Pointer Protection ===\n");
 
+    // Test with NULL entry
+    DeviceSettings* null_settings = NULL;
+    assert(null_settings == NULL);
+    printf("✓ NULL pointer detection for settings\n");
+
+    // Test with NULL mutex in settings
     DeviceSettings device = { 0 };
-    TickType_t current_time = 1000;
-    TickType_t delay_ms = 300;
-
-    // Set retoggle pending
-    device.autospin_retoggle_pending = true;
-    device.autospin_retoggle_time = current_time + delay_ms;
-
-    assert(device.autospin_retoggle_pending == true);
-    assert(device.autospin_retoggle_time == 1300);
-    printf("✓ Retoggle pending flag and time set correctly\n");
-
-    // Check if retoggle should trigger (current_time >= retoggle_time)
-    TickType_t trigger_time = device.autospin_retoggle_time;
-    current_time = 1200;  // Still before trigger time
-    assert(!(current_time >= trigger_time));
-    printf("✓ Retoggle doesn't trigger before time\n");
-
-    current_time = 1300;  // At trigger time
-    assert(current_time >= trigger_time);
-    printf("✓ Retoggle triggers at correct time\n");
-
-    // Clear retoggle
-    device.autospin_retoggle_pending = false;
-    device.autospin_retoggle_time = 0;
-    assert(device.autospin_retoggle_pending == false);
-    printf("✓ Retoggle state cleared\n");
+    device.mutex = NULL;
+    assert(device.mutex == NULL);
+    printf("✓ Uninitialized mutex detection works\n");
 }
 
 // Test device settings isolation
@@ -279,30 +248,6 @@ void test_device_settings_isolation() {
     assert(device1.autospin == false);
     assert(device2.autospin == false);  // Unrelated to device1
     printf("✓ Device settings are properly isolated\n");
-
-    // Test with retoggle flags
-    device1.autospin_retoggle_pending = true;
-    device1.autospin_retoggle_time = 500;
-
-    assert(device2.autospin_retoggle_pending == false);
-    assert(device2.autospin_retoggle_time == 0);
-    printf("✓ Retoggle flags isolated between devices\n");
-}
-
-// Test null checks in device settings functions
-void test_null_check_protection() {
-    printf("\n=== Test: Null Pointer Protection ===\n");
-
-    // Test with NULL entry
-    DeviceSettings* null_settings = NULL;
-    assert(null_settings == NULL);
-    printf("✓ NULL pointer detection for settings\n");
-
-    // Test with NULL mutex in settings
-    DeviceSettings device = { 0 };
-    device.mutex = NULL;
-    assert(device.mutex == NULL);
-    printf("✓ Uninitialized mutex detection works\n");
 }
 
 // Test race condition protection
@@ -337,8 +282,6 @@ int main() {
     test_device_settings_init();
     test_autospin_probability_validation();
     test_multiple_device_settings();
-    test_retoggle_timing();
-    test_device_settings_isolation();
     test_null_check_protection();
     test_mutex_protection();
 

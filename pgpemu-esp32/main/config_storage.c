@@ -121,12 +121,6 @@ bool read_stored_device_settings(esp_bd_addr_t bda, DeviceSettings* out_settings
     int8_t autospin = 0;
     uint8_t autospin_probability = 0;
 
-    // Initialize retoggle fields
-    out_settings->autospin_retoggle_pending = false;
-    out_settings->autocatch_retoggle_pending = false;
-    out_settings->autospin_retoggle_time = 0;
-    out_settings->autocatch_retoggle_time = 0;
-
     // Set defaults
     out_settings->autocatch = 1;
     out_settings->autospin = 1;

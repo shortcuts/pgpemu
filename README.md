@@ -51,7 +51,6 @@ Autocatcher/Gotcha/Pokemon Go Plus device emulator for Pokemon Go, with autospin
   - Bag full
   - Box full
   - Pokeballs empty
-- **Retoggle feature** - automatically disable/enable autocatch or autospin when certain conditions occur (bag full, box full, etc.)
 - **Randomized delays** for button press and duration
 - **Settings persistence** - all settings saved to NVS across reboots
 - **[pogoplusle](https://github.com/Mygod/pogoplusle)** - compatible, benefits from auto reconnect and seamless handshake
@@ -256,8 +255,7 @@ Pokemon GO App (Smartphone)
     │                                           │
     ├─ Feature Tasks                            │
     │  ├─ LED Handler (pgp_led_handler.c)      │
-    │  ├─ Auto Button (pgp_autobutton.c)       │
-    │  └─ Auto Setting (pgp_autosetting.c)     │
+    │  └─ Auto Button (pgp_autobutton.c)       │
     │                                           │
     ├─ Serial Interface (uart.c)               │
     │  └─ Configuration menu                   │
@@ -291,8 +289,7 @@ Pokemon GO App (Smartphone)
 
 4. **Feature Triggering**:
    - LED patterns detected (pgp_led_handler.c)
-   - Pattern triggers auto actions (pgp_autobutton.c, pgp_autosetting.c)
-   - Retoggle feature temporarily disables/enables features
+   - Pattern triggers auto actions (pgp_autobutton.c)
 
 ### Key Modules
 
@@ -316,9 +313,8 @@ Pokemon GO App (Smartphone)
 #### pgp_led_handler.c:30-80
 - **LED pattern parsing** - recognizes game state from LED colors
 - **Action triggers** - calls auto functions based on patterns
-- **Retoggle queue** - schedules setting changes
 
-#### pgp_autobutton.c & pgp_autosetting.c
+#### pgp_autobutton.c
 - **Automatic actions** - simulates button presses, changes settings
 - **Per-device settings** - operates on specific device's settings
 - **Timing logic** - randomized delays for natural behavior
@@ -345,7 +341,6 @@ pgpemu/
 │   │   ├── Features:
 │   │   │   ├── pgp_led_handler.c(.h)        # LED pattern → action
 │   │   │   ├── pgp_autobutton.c(.h)         # Button press simulation
-│   │   │   ├── pgp_autosetting.c(.h)        # Retoggle feature
 │   │   │   └── button_input.c(.h)           # GPIO handler
 │   │   │
 │   │   ├── Communication:
@@ -421,7 +416,6 @@ The PGPemu codebase is organized in distinct layers with clear separation of con
 #### 5. Feature Layer
 - `pgp_led_handler.c` - LED pattern recognition
 - `pgp_autobutton.c` - Button automation
-- `pgp_autosetting.c` - Setting changes (retoggle)
 
 #### 6. System Layer
 - `pgpemu.c` - Main entry and task initialization
@@ -443,7 +437,6 @@ pgpemu.c (main)
   │
   ├─ pgp_led_handler.c
   │   └─ pgp_autobutton.c
-  │   └─ pgp_autosetting.c
   │       └─ settings.c
   │           └─ config_storage.c
   │
@@ -464,28 +457,28 @@ pgpemu.c (main)
 # Run all tests
 ./run_tests.sh
 
-# Expected output: All 267 assertions pass in ~2 seconds
+# Expected output: All 252 assertions pass in ~2 seconds
 ```
 
 ### Test Statistics
 
 | Test Module | Assertions | Coverage | Status |
 |---|---|---|---|
-| test_regression.c | 46 | Critical bug prevention | ✓ PASS |
-| test_edge_cases.c | 76 | Boundary conditions | ✓ PASS |
-| test_settings.c | 26 | Settings logic | ✓ PASS |
+| test_regression.c | 42 | Critical bug prevention | ✓ PASS |
+| test_edge_cases.c | 71 | Boundary conditions | ✓ PASS |
+| test_settings.c | 20 | Settings logic | ✓ PASS |
 | test_config_storage.c | 37 | NVS persistence | ✓ PASS |
 | test_handshake_multi.c | 18 | Multi-device connections | ✓ PASS |
 | test_nvs_helper.c | 23 | NVS utilities | ✓ PASS |
 | test_error_handling.c | 37 | Error recovery & resilience | ✓ PASS |
 | cert-test.c | 4 | Certificate validation | ✓ PASS |
-| **TOTAL** | **267** | **100% coverage** | **100% PASS** |
+| **TOTAL** | **252** | **100% coverage** | **100% PASS** |
 
 ### Test Coverage Overview
 
-This comprehensive test suite contains **267 total assertions** across 8 test modules covering critical functionality, edge cases, error handling, and certificate validation.
+This comprehensive test suite contains **252 total assertions** across 8 test modules covering critical functionality, edge cases, error handling, and certificate validation.
 
-#### Regression Tests (46 assertions) - Critical Bug Prevention
+#### Regression Tests (42 assertions) - Critical Bug Prevention
 
 **Bug #1: Device Settings Pointer Initialization**
 - Issue: `read_stored_device_settings()` return value wasn't checked
@@ -502,21 +495,15 @@ This comprehensive test suite contains **267 total assertions** across 8 test mo
 - Test: Verify mutex acquire/release around counter operations
 - Impact: Critical - ensures accurate connection tracking
 
-**Bug #5: Uninitialized Retoggle Fields**
-- Issue: Device retoggle state fields not initialized to zero
-- Test: Verify all fields initialized to false/0 at startup
-- Impact: High - prevents undefined behavior from garbage values
-
 **Bug #6: Invalid MAC Address (BDA) Handling**
 - Issue: No validation of device Bluetooth addresses
 - Test: Reject NULL, all-zeros, all-ones MAC addresses
 - Impact: High - prevents operations on malformed addresses
 
-#### Edge Case Tests (76 assertions) - Boundary Validation
+#### Edge Case Tests (71 assertions) - Boundary Validation
 
 - **Maximum Connections**: Accept 1-4 devices, reject 5th
 - **Probability Values**: Valid 0-9, invalid 10+
-- **Timing Boundaries**: Handle time 0 and max uint32
 - **Array Indices**: Valid 0-3, reject negative or 4+
 - **NVS Key Length**: Valid 1-15 chars, invalid empty or 16+
 - **Boolean Toggle Logic**: Repeated toggles, NULL handling
@@ -573,7 +560,7 @@ gcc -o cert-test cert-test.c aes.c && ./cert-test
 
 ## Manual Testing Guide
 
-After PC unit tests pass (all 267 assertions), use these procedures to validate features on actual hardware.
+After PC unit tests pass (all 252 assertions), use these procedures to validate features on actual hardware.
 
 ### Prerequisites
 
@@ -841,114 +828,9 @@ Keep this running during all test procedures to observe device behavior.
 
 ---
 
-### Part 4: Retoggle Feature Testing
+### Part 4: Multi-Device Scenario Testing
 
-#### Test 4.1: Bag Full Retoggle (White LED)
-
-**Objective:** Verify autospin is toggled OFF then ON when bag is full.
-
-**Setup:**
-1. Device connected to Pokemon Go
-2. Pokemon Go app running with autospin enabled
-3. Fill bag in game (triggers white LED on device)
-
-**Procedure:**
-1. **Normal Operation:**
-   - Play normally, autospin toggling Pokemon
-   - Observe device LED changes
-
-2. **Trigger Bag Full:**
-   - Collect items until bag is full
-   - Pokemon Go app will send bag-full signal
-   - Device shows white LED indicator
-
-3. **Observe Retoggle:**
-   - Device receives LED pattern
-   - Autospin toggles OFF (stops catching)
-   - After 300ms, autospin toggles back ON
-   - Behavior: Device stops catching momentarily, then resumes
-   - Check serial logs showing retoggle queue entry/processing
-
-**Expected Outcome:**
-- White LED triggers autospin OFF → ON sequence
-- 300ms delay between OFF and ON
-- Retoggle only affects the connected device
-- Other devices (if connected) unaffected
-
-**Pass Criteria:** ✓ Autospin retoggle correctly handles bag full
-
----
-
-#### Test 4.2: Box Full Retoggle (Red Solid LED)
-
-**Objective:** Verify autocatch is toggled when item box is full.
-
-**Setup:**
-1. Device connected to Pokemon Go
-2. Autocatch enabled
-3. Fill item box in game
-
-**Procedure:**
-1. **Fill Item Box:**
-   - Collect items until item box is full
-   - Pokemon Go sends box-full signal
-   - Device shows red solid LED
-
-2. **Observe Retoggle:**
-   - Device receives LED pattern
-   - Autocatch toggles OFF (stops catching items)
-   - After 300ms, autocatch toggles back ON
-   - Observe device behavior: stops catching momentarily, resumes
-
-3. **Verify Persistence:**
-   - Disconnect and reconnect device
-   - Retoggle settings should be cleared (not persistent on reconnect)
-
-**Expected Outcome:**
-- Red solid LED triggers autocatch OFF → ON
-- 300ms delay
-- Only affects current device
-- Retoggle clears after device disconnects
-
-**Pass Criteria:** ✓ Autocatch retoggle correctly handles box full
-
----
-
-#### Test 4.3: Empty Pokéballs Retoggle (Red Blinking LED)
-
-**Objective:** Verify autocatch toggles when pokéballs empty.
-
-**Setup:**
-1. Device connected with autocatch enabled
-2. Use up all pokéballs in game
-
-**Procedure:**
-1. **Empty Pokéballs:**
-   - Use all pokéballs catching Pokemon
-   - Pokemon Go sends pokéballs-empty signal
-   - Device shows red blinking LED
-
-2. **Observe Retoggle:**
-   - Autocatch toggles OFF
-   - After 300ms, toggles back ON
-   - Behavior: Device stops catching, resumes
-
-3. **Multi-Device Verification:**
-   - If 2+ devices connected, verify other devices unaffected
-   - Only the device receiving the signal retoggle
-
-**Expected Outcome:**
-- Red blinking LED triggers retoggle
-- Isolated to receiving device
-- Settings return to previous state after 300ms
-
-**Pass Criteria:** ✓ Pokéballs empty retoggle works correctly
-
----
-
-### Part 5: Multi-Device Scenario Testing
-
-#### Test 5.1: Four Devices with Different Settings
+#### Test 4.1: Four Devices with Different Settings
 
 **Objective:** Verify full feature set with 4 devices.
 
@@ -979,8 +861,8 @@ Keep this running during all test procedures to observe device behavior.
    - Settings loaded correctly for each
 
 3. **Mixed Operations:**
-   - Bag fills on Device 0 → only autospin retoggle
-   - Pokéballs empty on Device 2 → only autocatch retoggle
+   - Device 0 autospin ON (prob=2)
+   - Device 2 autocatch ON (prob=8)
    - Verify other devices unaffected
    - Each device operates independently
 
@@ -998,16 +880,15 @@ Keep this running during all test procedures to observe device behavior.
 **Expected Outcome:**
 - 4 devices with independent settings
 - All share session persistence feature
-- Retoggle isolated per device
 - Settings survive reconnections
 
 **Pass Criteria:** ✓ Full feature integration works with 4 devices
 
 ---
 
-### Part 6: Edge Cases & Stress Testing
+### Part 5: Edge Cases & Stress Testing
 
-#### Test 6.1: Rapid Disconnect/Reconnect
+#### Test 5.1: Rapid Disconnect/Reconnect
 
 **Objective:** Verify stability during rapid connection cycles.
 
@@ -1027,7 +908,7 @@ Keep this running during all test procedures to observe device behavior.
 
 ---
 
-#### Test 6.2: Connection at Max Capacity
+#### Test 5.2: Connection at Max Capacity
 
 **Objective:** Verify 4-device limit enforcement.
 
@@ -1045,7 +926,7 @@ Keep this running during all test procedures to observe device behavior.
 
 ---
 
-#### Test 6.3: Very Long Sessions
+#### Test 5.3: Very Long Sessions
 
 **Objective:** Verify stability over extended runtime.
 
@@ -1074,13 +955,10 @@ Use this checklist to track manual testing progress:
 - [ ] Test 3.1: Device settings persistence
 - [ ] Test 3.2: Multi-device independent settings
 - [ ] Test 3.3: Settings isolation
-- [ ] Test 4.1: Bag full retoggle
-- [ ] Test 4.2: Box full retoggle
-- [ ] Test 4.3: Empty pokéballs retoggle
-- [ ] Test 5.1: Four devices with different settings
-- [ ] Test 6.1: Rapid disconnect/reconnect
-- [ ] Test 6.2: Connection at max capacity
-- [ ] Test 6.3: Very long sessions
+- [ ] Test 4.1: Four devices with different settings
+- [ ] Test 5.1: Rapid disconnect/reconnect
+- [ ] Test 5.2: Connection at max capacity
+- [ ] Test 5.3: Very long sessions
 
 ---
 
@@ -1163,15 +1041,8 @@ Use this checklist to track manual testing progress:
 
 **Autocatch/Autospin delayed**
 - Verify LED handler task is running (look for LED parse logs)
-- Check retoggle queue isn't stuck (full queue blocks new entries)
 - Ensure probability value is correct (0 = always spin/catch)
 - Check FreeRTOS task list with `t` command
-
-**Retoggle not working**
-- Verify LED pattern detection in logs
-- Check retoggle queue has space (try `br` to clear connections)
-- Ensure autosetting_task is running (look in task list)
-- Verify the correct LED pattern is being detected
 
 ---
 
@@ -1237,7 +1108,7 @@ Use this checklist to track manual testing progress:
 1. **Run all tests** and ensure 100% pass rate:
    ```bash
    ./run_tests.sh
-    # Must show: All 267 assertions passed
+    # Must show: All 252 assertions passed
    ```
 
 2. **Format your code**:

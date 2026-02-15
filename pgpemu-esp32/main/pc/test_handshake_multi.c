@@ -58,10 +58,6 @@ typedef struct {
     esp_bd_addr_t bda;
     bool autocatch, autospin;
     uint8_t autospin_probability;
-    bool autospin_retoggle_pending;
-    bool autocatch_retoggle_pending;
-    TickType_t autospin_retoggle_time;
-    TickType_t autocatch_retoggle_time;
 } DeviceSettings;
 
 // Helper functions for settings module

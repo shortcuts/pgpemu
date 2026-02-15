@@ -5,7 +5,6 @@
 #include "esp_system.h"
 #include "log_tags.h"
 #include "pgp_autobutton.h"
-#include "pgp_autosetting.h"
 #include "pgp_bluetooth.h"
 #include "secrets.h"
 #include "settings.h"
@@ -61,12 +60,6 @@ void app_main() {
     }
 
     init_button_input();
-
-    // start autosetting task
-    if (!init_autosetting()) {
-        ESP_LOGI(PGPEMU_TAG, "creating setting task failed");
-        return;
-    }
 
     // start autobutton task
     if (!init_autobutton()) {
