@@ -124,94 +124,6 @@ void test_max_connections_edge_cases(void) {
 }
 
 // =============================================================================
-// EDGE CASE TEST 2: Probability Boundary Values
-// Issue: Test probability validation at boundaries (0-9 is valid)
-// =============================================================================
-
-bool edge_is_valid_probability(uint8_t probability) {
-    return probability <= 9;
-}
-
-void test_probability_boundary_values(void) {
-    printf("=== Test: Probability Boundary Values ===\n");
-
-    // Valid boundaries
-    test_assert(edge_is_valid_probability(0), "Probability 0 is valid (min)");
-    test_assert(edge_is_valid_probability(1), "Probability 1 is valid");
-    test_assert(edge_is_valid_probability(5), "Probability 5 is valid (middle)");
-    test_assert(edge_is_valid_probability(9), "Probability 9 is valid (max)");
-
-    // Invalid values
-    test_assert(!edge_is_valid_probability(10), "Probability 10 is invalid (1 over max)");
-    test_assert(!edge_is_valid_probability(99), "Probability 99 is invalid");
-    test_assert(!edge_is_valid_probability(255), "Probability 255 is invalid (max uint8)");
-
-    // Ensure all 0-9 are valid
-    for (int i = 0; i <= 9; i++) {
-        test_assert(edge_is_valid_probability((uint8_t)i), "All probabilities 0-9 valid");
-    }
-
-    // Ensure all 10+ are invalid
-    for (int i = 10; i <= 20; i++) {
-        test_assert(!edge_is_valid_probability((uint8_t)i), "All probabilities 10+ invalid");
-    }
-}
-
-// =============================================================================
-// EDGE CASE TEST 3: Timing Boundary Values (Retoggle)
-// Issue: Test retoggle timing with boundary values (0, max uint32)
-// =============================================================================
-
-typedef struct {
-    uint32_t last_time;
-    uint32_t retoggle_delay_ms;
-} EdgeRetoggleTimer;
-
-bool edge_should_retoggle(EdgeRetoggleTimer* timer, uint32_t current_time) {
-    if (timer == NULL) {
-        return false;
-    }
-    if (current_time < timer->last_time) {
-        // Timer wraparound - handle carefully
-        // For this simple case, we'll just do unsigned comparison
-        return false;
-    }
-    uint32_t elapsed = current_time - timer->last_time;
-    return elapsed >= timer->retoggle_delay_ms;
-}
-
-void test_timing_boundary_values(void) {
-    printf("=== Test: Timing Boundary Values (Retoggle) ===\n");
-
-    EdgeRetoggleTimer timer = { 0 };
-
-    // Test at time 0
-    timer.last_time = 0;
-    timer.retoggle_delay_ms = 300;
-    test_assert(!edge_should_retoggle(&timer, 0), "No retoggle at exact start time");
-    test_assert(!edge_should_retoggle(&timer, 299), "No retoggle just before delay");
-    test_assert(edge_should_retoggle(&timer, 300), "Retoggle at exact delay time");
-    test_assert(edge_should_retoggle(&timer, 301), "Retoggle after delay");
-
-    // Test at high time value
-    timer.last_time = UINT32_MAX - 100;
-    timer.retoggle_delay_ms = 50;
-    test_assert(!edge_should_retoggle(&timer, timer.last_time + 49), "No retoggle before delay");
-    test_assert(edge_should_retoggle(&timer, timer.last_time + 50), "Retoggle at delay");
-
-    // Test zero delay
-    timer.last_time = 1000;
-    timer.retoggle_delay_ms = 0;
-    test_assert(edge_should_retoggle(&timer, 1000), "Retoggle immediately with 0 delay");
-
-    // Test large delay
-    timer.last_time = 0;
-    timer.retoggle_delay_ms = UINT32_MAX;
-    test_assert(!edge_should_retoggle(&timer, UINT32_MAX - 1), "No retoggle with max uint32 delay (almost)");
-    test_assert(edge_should_retoggle(&timer, UINT32_MAX), "Retoggle at max uint32");
-}
-
-// =============================================================================
 // EDGE CASE TEST 4: Boolean Toggle Edge Cases
 // Issue: Test toggle behavior with edge cases and repeated toggles
 // =============================================================================
@@ -365,10 +277,6 @@ int main() {
     printf("========================================\n\n");
 
     test_max_connections_edge_cases();
-    printf("\n");
-    test_probability_boundary_values();
-    printf("\n");
-    test_timing_boundary_values();
     printf("\n");
     test_boolean_toggle_edge_cases();
     printf("\n");

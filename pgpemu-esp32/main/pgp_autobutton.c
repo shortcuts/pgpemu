@@ -9,6 +9,7 @@
 #include "freertos/task.h"
 #include "log_tags.h"
 #include "pgp_gatts.h"
+#include "pgp_handshake_multi.h"
 
 QueueHandle_t button_queue;
 
@@ -66,6 +67,11 @@ static void autobutton_task(void* __attribute__((unused)) pvParameters) {
                 press_duration * 50);
             vTaskDelay(item.delay / portTICK_PERIOD_MS);
 
+            if (!is_connection_active(item.conn_id)) {
+                ESP_LOGW(BUTTON_TASK_TAG, "Connection %d no longer active, skipping button press", item.conn_id);
+                continue;
+            }
+
             esp_ble_gatts_send_indicate(item.gatts_if,
                 item.conn_id,
                 led_button_handle_table[IDX_CHAR_BUTTON_VAL],
@@ -76,4 +82,24 @@ static void autobutton_task(void* __attribute__((unused)) pvParameters) {
     }
 
     vTaskDelete(NULL);
+}
+
+void purge_button_queue_for_connection(uint16_t conn_id) {
+    button_queue_item_t temp_item;
+    button_queue_item_t items_to_keep[10];
+    int keep_count = 0;
+
+    while (xQueueReceive(button_queue, &temp_item, 0) == pdTRUE) {
+        if (temp_item.conn_id != conn_id) {
+            if (keep_count < 10) {
+                items_to_keep[keep_count++] = temp_item;
+            }
+        }
+    }
+
+    for (int i = 0; i < keep_count; i++) {
+        xQueueSendToBack(button_queue, &items_to_keep[i], 0);
+    }
+
+    ESP_LOGI(BUTTON_TASK_TAG, "Purged button queue for connection %d", conn_id);
 }

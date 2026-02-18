@@ -88,33 +88,6 @@ bool toggle_device_autocatch(uint8_t c) {
     return entry->settings->autocatch;
 }
 
-uint8_t set_device_autospin_probability(uint8_t c, uint8_t autospin_probability) {
-    client_state_t* entry = get_client_state_entry_by_idx(c);
-
-    if (entry == NULL || entry->settings == NULL) {
-        return 0;
-    }
-
-    if (!xSemaphoreTake(entry->settings->mutex, 10000 / portTICK_PERIOD_MS)) {
-        return 0;
-    }
-
-    if (autospin_probability > 9) {
-        ESP_LOGW(SETTING_TASK_TAG,
-            "[%d] invalid autospin probability: %d (0-9 allowed)",
-            entry->conn_id,
-            autospin_probability);
-        xSemaphoreGive(entry->settings->mutex);
-        return entry->settings->autospin_probability;
-    }
-
-    entry->settings->autospin_probability = autospin_probability;
-
-    xSemaphoreGive(entry->settings->mutex);
-
-    return entry->settings->autospin_probability;
-}
-
 bool get_setting(bool* var) {
     if (!var || !xSemaphoreTake(global_settings.mutex, portMAX_DELAY)) {
         return false;
@@ -150,73 +123,4 @@ bool set_setting_uint8(uint8_t* var, const uint8_t val) {
 
     xSemaphoreGive(global_settings.mutex);
     return true;
-}
-
-uint32_t generate_session_id(void) {
-    // Generate random number from 1 to 999999
-    return (esp_random() % 999999) + 1;
-}
-
-bool toggle_device_autospin_by_session(uint32_t session_id) {
-    // Search all connected devices for matching session_id
-    for (int i = 0; i < get_max_connections(); i++) {
-        client_state_t* entry = get_client_state_entry_by_idx(i);
-        if (entry == NULL || entry->settings == NULL) {
-            continue;
-        }
-
-        // Compare session IDs
-        if (entry->settings->session_id == session_id) {
-            if (!xSemaphoreTake(entry->settings->mutex, 10000 / portTICK_PERIOD_MS)) {
-                return false;
-            }
-
-            entry->settings->autospin = !entry->settings->autospin;
-            xSemaphoreGive(entry->settings->mutex);
-
-            ESP_LOGI(SETTING_TASK_TAG,
-                "[%d] autospin toggled to %d (session=%lu)",
-                entry->conn_id,
-                entry->settings->autospin,
-                (unsigned long)session_id);
-
-            return true;
-        }
-    }
-
-    // No device found with this session_id (likely disconnected)
-    ESP_LOGW(SETTING_TASK_TAG, "session_id=%lu not found, device likely disconnected", (unsigned long)session_id);
-    return false;
-}
-
-bool toggle_device_autocatch_by_session(uint32_t session_id) {
-    // Search all connected devices for matching session_id
-    for (int i = 0; i < get_max_connections(); i++) {
-        client_state_t* entry = get_client_state_entry_by_idx(i);
-        if (entry == NULL || entry->settings == NULL) {
-            continue;
-        }
-
-        // Compare session IDs
-        if (entry->settings->session_id == session_id) {
-            if (!xSemaphoreTake(entry->settings->mutex, 10000 / portTICK_PERIOD_MS)) {
-                return false;
-            }
-
-            entry->settings->autocatch = !entry->settings->autocatch;
-            xSemaphoreGive(entry->settings->mutex);
-
-            ESP_LOGI(SETTING_TASK_TAG,
-                "[%d] autocatch toggled to %d (session=%lu)",
-                entry->conn_id,
-                entry->settings->autocatch,
-                (unsigned long)session_id);
-
-            return true;
-        }
-    }
-
-    // No device found with this session_id (likely disconnected)
-    ESP_LOGW(SETTING_TASK_TAG, "session_id=%lu not found, device likely disconnected", (unsigned long)session_id);
-    return false;
 }

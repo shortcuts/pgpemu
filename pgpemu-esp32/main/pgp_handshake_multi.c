@@ -5,6 +5,7 @@
 #include "esp_log.h"
 #include "log_tags.h"
 #include "mutex_helpers.h"
+#include "pgp_autobutton.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -56,6 +57,10 @@ client_state_t* get_client_state_entry_by_idx(int i) {
     }
 
     return NULL;
+}
+
+bool is_connection_active(uint16_t conn_id) {
+    return get_client_state_entry(conn_id) != NULL;
 }
 
 client_state_t* get_or_create_client_state_entry(uint16_t conn_id) {
@@ -182,6 +187,7 @@ void connection_stop(uint16_t conn_id) {
         conn_id,
         pdTICKS_TO_MS(entry->connection_end - entry->connection_start));
 
+    purge_button_queue_for_connection(conn_id);
     delete_client_state_entry(entry);
 }
 
@@ -191,7 +197,7 @@ static void dump_client_state(int idx, client_state_t* entry) {
     }
 
     ESP_LOGI(HANDSHAKE_TAG,
-        "connection %d (session: %lu):\n"
+        "connection %d:\n"
         "- cert state: %d\n"
         "- reconn key: %d\n"
         "- notify: %d\n"
@@ -202,10 +208,8 @@ static void dump_client_state(int idx, client_state_t* entry) {
         "- conn end: %lu\n"
         "settings:\n"
         "- Autospin: %s\n"
-        "- Spin probability: %d\n"
         "- Autocatch: %s\n",
         entry->conn_id,
-        (unsigned long)entry->settings->session_id,
         entry->cert_state,
         entry->has_reconnect_key,
         entry->notify,
@@ -214,7 +218,6 @@ static void dump_client_state(int idx, client_state_t* entry) {
         entry->connection_start,
         entry->connection_end,
         get_setting_log_value(&entry->settings->autospin),
-        get_setting_uint8(&entry->settings->autospin_probability),
         get_setting_log_value(&entry->settings->autocatch));
 
     ESP_LOGI(HANDSHAKE_TAG, "keys:");

@@ -73,7 +73,6 @@ void process_char(uint8_t c) {
             "- b[1,4] - set maximum client connections (e.g. 3 clients max. with 'b3', up to %d, currently %d)\n"
             "Device Settings:\n"
             "- [1,4]s - toggle autospin\n"
-            "- [1,4][0,9] - autospin probability\n"
             "- [1,4]c - toggle autocatch\n",
             PGP_CLONE_NAME,
             CONFIG_BT_ACL_CONNECTIONS,
@@ -173,18 +172,6 @@ static void uart_auto_handler(uint8_t c) {
         break;
     case 'c':
         ESP_LOGI(UART_TAG, "autocatch: %d", toggle_device_autocatch(c));
-        break;
-    case '0':
-    case '1':
-    case '2':
-    case '3':
-    case '4':
-    case '5':
-    case '6':
-    case '7':
-    case '8':
-    case '9':
-        ESP_LOGI(UART_TAG, "autospin_probability: %d", set_device_autospin_probability(c, buf - '0'));
         break;
     default:
         ESP_LOGE(UART_TAG, "unknown auto handler case: a%c", buf);

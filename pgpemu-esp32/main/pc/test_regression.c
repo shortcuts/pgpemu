@@ -1,5 +1,6 @@
 // Regression tests for previously fixed critical bugs
 // These tests verify that bugs do not resurface in future changes
+// Test count: 42 assertions (Bug #5 retoggle tests removed)
 #include <assert.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -203,56 +204,6 @@ void test_race_condition_active_connections(void) {
 }
 
 // =============================================================================
-// REGRESSION TEST 4: Uninitialized Retoggle Fields
-// Issue: DeviceSettings retoggle fields not initialized before use
-// Result: Undefined behavior with random garbage values
-// =============================================================================
-
-typedef struct {
-    bool autospin_retoggle_pending;
-    uint32_t autospin_retoggle_time;
-    bool autocatch_retoggle_pending;
-    uint32_t autocatch_retoggle_time;
-} RegRetoggleSettings;
-
-RegRetoggleSettings reg_new_fixed_retoggle_init(void) {
-    RegRetoggleSettings s = {
-        .autospin_retoggle_pending = false,
-        .autospin_retoggle_time = 0,
-        .autocatch_retoggle_pending = false,
-        .autocatch_retoggle_time = 0,
-    };
-    return s;
-}
-
-void test_uninitialized_retoggle_fields(void) {
-    printf("=== Test: Uninitialized Retoggle Fields (Bug #5) ===\n");
-
-    RegRetoggleSettings settings = reg_new_fixed_retoggle_init();
-    test_assert(settings.autospin_retoggle_pending == false, "Autospin retoggle pending initialized to false");
-    test_assert(settings.autospin_retoggle_time == 0, "Autospin retoggle time initialized to 0");
-    test_assert(settings.autocatch_retoggle_pending == false, "Autocatch retoggle pending initialized to false");
-    test_assert(settings.autocatch_retoggle_time == 0, "Autocatch retoggle time initialized to 0");
-
-    RegRetoggleSettings devices[4];
-    for (int i = 0; i < 4; i++) {
-        devices[i] = reg_new_fixed_retoggle_init();
-        test_assert(devices[i].autospin_retoggle_pending == false, "Device autospin_retoggle_pending initialized");
-    }
-
-    settings = reg_new_fixed_retoggle_init();
-    settings.autospin_retoggle_pending = true;
-    settings.autospin_retoggle_time = 300000;
-    test_assert(settings.autospin_retoggle_pending == true, "Can set autospin_retoggle_pending");
-    test_assert(settings.autospin_retoggle_time == 300000, "Can set autospin_retoggle_time");
-
-    settings.autospin_retoggle_pending = false;
-    settings.autospin_retoggle_time = 0;
-    test_assert(settings.autospin_retoggle_pending == false, "Can clear autospin_retoggle_pending");
-    test_assert(settings.autospin_retoggle_time == 0, "Can clear autospin_retoggle_time");
-}
-
-// =============================================================================
 // REGRESSION TEST 5: Invalid BDA Handling
 // Issue: BDA validation missing, could cause invalid operations
 // Result: Crashes or undefined behavior with invalid device addresses
@@ -316,8 +267,6 @@ int main() {
     test_settings_mutex_memory_leak();
     printf("\n");
     test_race_condition_active_connections();
-    printf("\n");
-    test_uninitialized_retoggle_fields();
     printf("\n");
     test_invalid_bda_handling();
 

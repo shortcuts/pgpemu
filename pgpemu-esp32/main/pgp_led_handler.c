@@ -6,7 +6,6 @@
 #include "freertos/task.h"
 #include "log_tags.h"
 #include "pgp_autobutton.h"
-#include "pgp_autosetting.h"
 #include "pgp_handshake_multi.h"
 #include "settings.h"
 #include "stats.h"
@@ -14,8 +13,6 @@
 
 #include <stdint.h>
 #include <stdlib.h>
-
-const int retoggle_delay = 300000;
 
 // Helper macro to get device settings safely
 #define GET_DEVICE_SETTINGS(conn_id)                             \
@@ -93,7 +90,6 @@ void handle_led_notify_from_app(esp_gatt_if_t gatts_if, uint16_t conn_id, const 
     ESP_LOGD(LEDHANDLER_TAG, "[%d] LED pattern total duration: %d ms", conn_id, pattern_duration * 50);
 
     bool press_button = false;
-    char retoggle_setting = 0;
 
     // Get device settings for this connection
     DeviceSettings* device_settings = GET_DEVICE_SETTINGS(conn_id);
@@ -103,22 +99,17 @@ void handle_led_notify_from_app(esp_gatt_if_t gatts_if, uint16_t conn_id, const 
     } else if (count_white && count_white == count_notoff) {
         // only white - bag is full
         if (device_settings) {
-            ESP_LOGW(LEDHANDLER_TAG, "[%d] Bag is full: retoggling autospin", conn_id);
-            retoggle_setting = 's';
+            ESP_LOGW(LEDHANDLER_TAG, "[%d] Bag is full", conn_id);
         }
     } else if (count_red && count_off && count_red == count_notoff) {
         // blinking just red - pokeballs empty or stop out of range
         if (device_settings) {
-            ESP_LOGW(LEDHANDLER_TAG,
-                "[%d] Pokeballs are empty or Pokestop went out of range: retoggling autocatch",
-                conn_id);
-            retoggle_setting = 'c';
+            ESP_LOGW(LEDHANDLER_TAG, "[%d] Pokeballs are empty or Pokestop went out of range", conn_id);
         }
     } else if (count_red && !count_off && count_red == count_notoff) {
         // only red - box is full
         if (device_settings) {
-            ESP_LOGW(LEDHANDLER_TAG, "[%d] Box is full: retoggling autocatch", conn_id);
-            retoggle_setting = 'c';
+            ESP_LOGW(LEDHANDLER_TAG, "[%d] Box is full", conn_id);
         }
     } else if (count_green && count_green == count_notoff) {
         // blinking green
@@ -137,19 +128,10 @@ void handle_led_notify_from_app(esp_gatt_if_t gatts_if, uint16_t conn_id, const 
             }
         }
     } else if (count_blue && count_blue == count_notoff) {
-        // blinking blue
+        // blinking blue - pokestop in range
         if (device_settings && device_settings->autospin) {
-            uint8_t rnd = (esp_random() % (9 + 1));
-            if (device_settings->autospin_probability > 0 && device_settings->autospin_probability >= rnd) {
-                ESP_LOGW(LEDHANDLER_TAG,
-                    "[%d] Pokestop in range but skipped due to %d > %d probability",
-                    conn_id,
-                    rnd,
-                    device_settings->autospin_probability);
-            } else {
-                ESP_LOGI(LEDHANDLER_TAG, "[%d] Pokestop in range: pressing button", conn_id);
-                press_button = true;
-            }
+            ESP_LOGI(LEDHANDLER_TAG, "[%d] Pokestop in range: pressing button", conn_id);
+            press_button = true;
         }
     } else if (count_ballshake) {
         if (count_blue && count_green) {
@@ -190,27 +172,6 @@ void handle_led_notify_from_app(esp_gatt_if_t gatts_if, uint16_t conn_id, const 
             item.conn_id = conn_id;
             item.delay = delay;
             xQueueSend(button_queue, &item, portMAX_DELAY);
-        }
-    }
-
-    if (retoggle_setting != 0) {
-        if (device_settings) {
-            ESP_LOGI(LEDHANDLER_TAG,
-                "[%d] queueing setting toggle for %c after %d ms (session=%lu)",
-                conn_id,
-                retoggle_setting,
-                retoggle_delay,
-                (unsigned long)device_settings->session_id);
-
-            setting_queue_item_t item = {
-                .gatts_if = gatts_if,
-                .conn_id = conn_id,
-                .session_id = device_settings->session_id,
-                .delay = retoggle_delay,
-                .setting = retoggle_setting,
-            };
-
-            xQueueSend(setting_queue, &item, portMAX_DELAY);
         }
     }
 }
