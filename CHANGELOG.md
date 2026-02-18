@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.0.1](https://github.com/shortcuts/pgpemu/compare/v1.0.0...v1.0.1) (2026-02-18)
+
+
+### Bug Fixes
+
+* npe ([9fbfffb](https://github.com/shortcuts/pgpemu/commit/9fbfffbab83bf2154517dbe80bdd339f179d2ce5))
+* remove retoggle and probability feature ([#8](https://github.com/shortcuts/pgpemu/issues/8)) ([d9328e1](https://github.com/shortcuts/pgpemu/commit/d9328e1efb79c4e0522e7a2203f6648d8095b8d0))
+* remove retoggle feature ([54ca65a](https://github.com/shortcuts/pgpemu/commit/54ca65a6af464164436e82c00f5b769fb163d04d))
+* stalled queue ([7cb1d07](https://github.com/shortcuts/pgpemu/commit/7cb1d07870cb6fcf745b7a82856f40b3413618a5))
+
 ## 1.0.0 (2026-02-01)
 
 
