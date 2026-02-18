@@ -124,40 +124,6 @@ void test_max_connections_edge_cases(void) {
 }
 
 // =============================================================================
-// EDGE CASE TEST 2: Probability Boundary Values
-// Issue: Test probability validation at boundaries (0-9 is valid)
-// =============================================================================
-
-bool edge_is_valid_probability(uint8_t probability) {
-    return probability <= 9;
-}
-
-void test_probability_boundary_values(void) {
-    printf("=== Test: Probability Boundary Values ===\n");
-
-    // Valid boundaries
-    test_assert(edge_is_valid_probability(0), "Probability 0 is valid (min)");
-    test_assert(edge_is_valid_probability(1), "Probability 1 is valid");
-    test_assert(edge_is_valid_probability(5), "Probability 5 is valid (middle)");
-    test_assert(edge_is_valid_probability(9), "Probability 9 is valid (max)");
-
-    // Invalid values
-    test_assert(!edge_is_valid_probability(10), "Probability 10 is invalid (1 over max)");
-    test_assert(!edge_is_valid_probability(99), "Probability 99 is invalid");
-    test_assert(!edge_is_valid_probability(255), "Probability 255 is invalid (max uint8)");
-
-    // Ensure all 0-9 are valid
-    for (int i = 0; i <= 9; i++) {
-        test_assert(edge_is_valid_probability((uint8_t)i), "All probabilities 0-9 valid");
-    }
-
-    // Ensure all 10+ are invalid
-    for (int i = 10; i <= 20; i++) {
-        test_assert(!edge_is_valid_probability((uint8_t)i), "All probabilities 10+ invalid");
-    }
-}
-
-// =============================================================================
 // EDGE CASE TEST 4: Boolean Toggle Edge Cases
 // Issue: Test toggle behavior with edge cases and repeated toggles
 // =============================================================================
@@ -311,8 +277,6 @@ int main() {
     printf("========================================\n\n");
 
     test_max_connections_edge_cases();
-    printf("\n");
-    test_probability_boundary_values();
     printf("\n");
     test_boolean_toggle_edge_cases();
     printf("\n");

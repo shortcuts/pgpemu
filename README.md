@@ -127,7 +127,6 @@ blob,data,hex2bin,16.........   # <- the blob data you've extracted - should be 
 user_settings,namespace,,       # /!\ do not edit this line
 catch,data,i8,1                 # enable autocatch - 1 = yes, 0 = no
 spin,data,i8,1                  # enable autospin - 1 = yes, 0 = no
-spinp,data,u8,0                 # spin probability out of 10, low storage capacity can lead to full bag issues, this allows spinning to be enabled while aiming to reduce chances of full bags - 0 = spin everything, 1 to 9 = N/10
 button,data,i8,1                # enable input button on pokemon encounter - 1 = yes, 0 = no
 llevel,data,i8,2                # esp monitor log level - 1 = debug, 2 = info, 3 = verbose
 maxcon,data,u8,2                # max allowed bluetooth connection to the device, up to 4
@@ -148,7 +147,6 @@ After updating `secrets.csv`, rebuild and flash your device.
 Secrets: PKLMGOPLUS
 User Settings:
 - as - toggle autospin
-- a[0,9] - autospin probability
 - ac - toggle autocatch
 - l - cycle through log levels
 - S - save user settings permanently
@@ -176,7 +174,6 @@ Bluetooth:
 ```
 ---SETTINGS---
 - Autospin: on
-- Autospin probability: 4
 - Autocatch: on
 - Input button: on
 - Log level: 2
@@ -216,14 +213,12 @@ Format: `<device_idx><command>[<value>]`
 - `<command>`:
   - `s`: Toggle autospin for device
   - `c`: Toggle autocatch for device
-  - `p<value>`: Set autospin probability (0-9)
   - `l`: Cycle log level for device
 
 **Examples:**
 ```
 0s     → Toggle autospin on device 0
 1c     → Toggle autocatch on device 1
-2p5    → Set device 2 probability to 50%
 0l     → Cycle log level for device 0
 ```
 
@@ -720,8 +715,6 @@ Keep this running during all test procedures to observe device behavior.
    - Open serial monitor
    - Send UART command: `0s` (toggle autospin for device 0)
    - Observe logs showing toggle and NVS write
-   - Send UART command: `0p5` (set autospin probability to 50%)
-   - Observe probability set in logs
 
 2. **Disconnect and Reconnect:**
    - Disconnect from Pokemon Go
@@ -1041,7 +1034,6 @@ Use this checklist to track manual testing progress:
 
 **Autocatch/Autospin delayed**
 - Verify LED handler task is running (look for LED parse logs)
-- Ensure probability value is correct (0 = always spin/catch)
 - Check FreeRTOS task list with `t` command
 
 ---
@@ -1152,10 +1144,10 @@ Use the following format for commit messages:
 **Examples:**
 
 ```
-feat: Add per-device autocatch probability setting
+feat: Add per-device connection limit setting
 
-Add ability to set independent autocatch probability (0-9)
-for each connected device. Probabilities are persisted to
+Add ability to set the maximum number of simultaneous Bluetooth
+connections (1-4) from the UART menu. Settings are persisted to
 NVS and survive power cycles.
 
 Fixes: #45

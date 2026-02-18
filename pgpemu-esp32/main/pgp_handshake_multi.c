@@ -208,7 +208,6 @@ static void dump_client_state(int idx, client_state_t* entry) {
         "- conn end: %lu\n"
         "settings:\n"
         "- Autospin: %s\n"
-        "- Spin probability: %d\n"
         "- Autocatch: %s\n",
         entry->conn_id,
         entry->cert_state,
@@ -219,7 +218,6 @@ static void dump_client_state(int idx, client_state_t* entry) {
         entry->connection_start,
         entry->connection_end,
         get_setting_log_value(&entry->settings->autospin),
-        get_setting_uint8(&entry->settings->autospin_probability),
         get_setting_log_value(&entry->settings->autocatch));
 
     ESP_LOGI(HANDSHAKE_TAG, "keys:");

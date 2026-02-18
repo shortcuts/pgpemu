@@ -128,19 +128,10 @@ void handle_led_notify_from_app(esp_gatt_if_t gatts_if, uint16_t conn_id, const 
             }
         }
     } else if (count_blue && count_blue == count_notoff) {
-        // blinking blue
+        // blinking blue - pokestop in range
         if (device_settings && device_settings->autospin) {
-            uint8_t rnd = (esp_random() % (9 + 1));
-            if (device_settings->autospin_probability > 0 && device_settings->autospin_probability >= rnd) {
-                ESP_LOGW(LEDHANDLER_TAG,
-                    "[%d] Pokestop in range but skipped due to %d > %d probability",
-                    conn_id,
-                    rnd,
-                    device_settings->autospin_probability);
-            } else {
-                ESP_LOGI(LEDHANDLER_TAG, "[%d] Pokestop in range: pressing button", conn_id);
-                press_button = true;
-            }
+            ESP_LOGI(LEDHANDLER_TAG, "[%d] Pokestop in range: pressing button", conn_id);
+            press_button = true;
         }
     } else if (count_ballshake) {
         if (count_blue && count_green) {

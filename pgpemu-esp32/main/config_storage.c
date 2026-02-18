@@ -22,7 +22,6 @@ static const char KEY_LOG_LEVEL[] = "llevel";
 // device settings keys
 static const char KEY_AUTOCATCH[] = "catch";
 static const char KEY_AUTOSPIN[] = "spin";
-static const char KEY_AUTOSPIN_PROBABILITY[] = "spinp";
 
 // FNV-1a hash constants
 static const uint64_t FNV1A_OFFSET_BASIS = 1469598103934665603ULL;  // FNV-1a 64-bit offset basis
@@ -119,12 +118,10 @@ bool read_stored_device_settings(esp_bd_addr_t bda, DeviceSettings* out_settings
     // Initialize default values
     int8_t autocatch = 0;
     int8_t autospin = 0;
-    uint8_t autospin_probability = 0;
 
     // Set defaults
     out_settings->autocatch = 1;
     out_settings->autospin = 1;
-    out_settings->autospin_probability = 0;
     memcpy(out_settings->bda, bda, sizeof(esp_bd_addr_t));
 
     // Create mutex if not already created
@@ -164,21 +161,6 @@ bool read_stored_device_settings(esp_bd_addr_t bda, DeviceSettings* out_settings
     err = nvs_get_i8(device_settings_handle, key_out, &autospin);
     if (nvs_read_check(CONFIG_STORAGE_TAG, err, KEY_AUTOSPIN)) {
         out_settings->autospin = (bool)autospin;
-    }
-
-    // read uint8_t settings
-    make_device_key_for_option(KEY_AUTOSPIN_PROBABILITY, bda, key_out);
-    ESP_LOGD(CONFIG_STORAGE_TAG, "reading autospin_probability from key: %s", key_out);
-    err = nvs_get_u8(device_settings_handle, key_out, &autospin_probability);
-    if (nvs_read_check(CONFIG_STORAGE_TAG, err, KEY_AUTOSPIN_PROBABILITY)) {
-        if (autospin_probability > 9) {
-            ESP_LOGE(CONFIG_STORAGE_TAG,
-                "invalid autospin probability: %d (0-9 allowed), using default 0",
-                autospin_probability);
-            out_settings->autospin_probability = 0;  // Set valid default instead of leaving uninitialized
-        } else {
-            out_settings->autospin_probability = autospin_probability;
-        }
     }
 
     nvs_safe_close(device_settings_handle);
@@ -281,14 +263,6 @@ bool write_devices_settings_to_nvs() {
         err = nvs_set_i8(device_settings_handle, key_out, entry->settings->autocatch);
         if (err != ESP_OK) {
             ESP_LOGW(CONFIG_STORAGE_TAG, "[%d] failed to set autocatch: %d", entry->conn_id, err);
-            all_ok = false;
-        }
-
-        make_device_key_for_option(KEY_AUTOSPIN_PROBABILITY, entry->remote_bda, key_out);
-        ESP_LOGD(CONFIG_STORAGE_TAG, "[%d] writing autospin_probability to key: %s", entry->conn_id, key_out);
-        err = nvs_set_u8(device_settings_handle, key_out, entry->settings->autospin_probability);
-        if (err != ESP_OK) {
-            ESP_LOGW(CONFIG_STORAGE_TAG, "[%d] failed to set autospin_probability: %d", entry->conn_id, err);
             all_ok = false;
         }
 

@@ -88,33 +88,6 @@ bool toggle_device_autocatch(uint8_t c) {
     return entry->settings->autocatch;
 }
 
-uint8_t set_device_autospin_probability(uint8_t c, uint8_t autospin_probability) {
-    client_state_t* entry = get_client_state_entry_by_idx(c);
-
-    if (entry == NULL || entry->settings == NULL) {
-        return 0;
-    }
-
-    if (!xSemaphoreTake(entry->settings->mutex, 10000 / portTICK_PERIOD_MS)) {
-        return 0;
-    }
-
-    if (autospin_probability > 9) {
-        ESP_LOGW(SETTING_TASK_TAG,
-            "[%d] invalid autospin probability: %d (0-9 allowed)",
-            entry->conn_id,
-            autospin_probability);
-        xSemaphoreGive(entry->settings->mutex);
-        return entry->settings->autospin_probability;
-    }
-
-    entry->settings->autospin_probability = autospin_probability;
-
-    xSemaphoreGive(entry->settings->mutex);
-
-    return entry->settings->autospin_probability;
-}
-
 bool get_setting(bool* var) {
     if (!var || !xSemaphoreTake(global_settings.mutex, portMAX_DELAY)) {
         return false;

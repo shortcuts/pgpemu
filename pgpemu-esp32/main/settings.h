@@ -30,9 +30,6 @@ typedef struct {
 
     // gotcha functions
     bool autocatch, autospin;
-
-    // 0 = spin everything, 1 to 9 = N/10
-    uint8_t autospin_probability;
 } DeviceSettings;
 
 void init_global_settings();
@@ -40,7 +37,6 @@ void global_settings_ready();
 bool toggle_setting(bool* var);
 bool toggle_device_autospin(uint8_t c);
 bool toggle_device_autocatch(uint8_t c);
-uint8_t set_device_autospin_probability(uint8_t c, uint8_t autospin_probability);
 bool cycle_log_level(uint8_t* var);
 bool get_setting(bool* var);
 char* get_setting_log_value(bool* var);
