@@ -17,5 +17,6 @@ typedef struct {
 extern QueueHandle_t button_queue;
 
 bool init_autobutton();
+void purge_button_queue_for_connection(uint16_t conn_id);
 
 #endif /* PGP_AUTOBUTTON_H */

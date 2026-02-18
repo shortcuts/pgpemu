@@ -52,6 +52,9 @@ client_state_t* get_or_create_client_state_entry(uint16_t conn_id);
 // returns NULL when idx has no associated connection
 client_state_t* get_client_state_entry_by_idx(int i);
 
+// returns true if conn_id exists and is currently connected
+bool is_connection_active(uint16_t conn_id);
+
 int get_cert_state(uint16_t conn_id);
 void set_remote_bda(uint16_t conn_id, esp_bd_addr_t remote_bda);
 

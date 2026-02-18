@@ -5,6 +5,7 @@
 #include "esp_log.h"
 #include "log_tags.h"
 #include "mutex_helpers.h"
+#include "pgp_autobutton.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -56,6 +57,10 @@ client_state_t* get_client_state_entry_by_idx(int i) {
     }
 
     return NULL;
+}
+
+bool is_connection_active(uint16_t conn_id) {
+    return get_client_state_entry(conn_id) != NULL;
 }
 
 client_state_t* get_or_create_client_state_entry(uint16_t conn_id) {
@@ -182,6 +187,7 @@ void connection_stop(uint16_t conn_id) {
         conn_id,
         pdTICKS_TO_MS(entry->connection_end - entry->connection_start));
 
+    purge_button_queue_for_connection(conn_id);
     delete_client_state_entry(entry);
 }
 
