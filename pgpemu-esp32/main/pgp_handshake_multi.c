@@ -197,7 +197,7 @@ static void dump_client_state(int idx, client_state_t* entry) {
     }
 
     ESP_LOGI(HANDSHAKE_TAG,
-        "connection %d (session: %lu):\n"
+        "connection %d:\n"
         "- cert state: %d\n"
         "- reconn key: %d\n"
         "- notify: %d\n"
@@ -211,7 +211,6 @@ static void dump_client_state(int idx, client_state_t* entry) {
         "- Spin probability: %d\n"
         "- Autocatch: %s\n",
         entry->conn_id,
-        (unsigned long)entry->settings->session_id,
         entry->cert_state,
         entry->has_reconnect_key,
         entry->notify,
