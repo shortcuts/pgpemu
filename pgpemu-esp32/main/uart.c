@@ -82,8 +82,10 @@ void process_char(uint8_t c) {
         ESP_LOGI(UART_TAG,
             "---GLOBAL SETTINGS---\n"
             "- Log level: %d\n"
+            "- Advertising: %s\n"
             "- Connections: %d / %d",
             get_setting_uint8(&global_settings.log_level),
+            get_setting_log_value(&global_settings.advertising_enabled),
             get_active_connections(),
             get_setting_uint8(&global_settings.target_active_connections));
         break;

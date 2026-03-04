@@ -21,6 +21,10 @@ static esp_ble_adv_params_t adv_params = {
 };
 
 void advertise_if_needed() {
+    if (!get_setting(&global_settings.advertising_enabled)) {
+        ESP_LOGD(BT_GAP_TAG, "advertising disabled, not starting");
+        return;
+    }
     int target_active_connections = get_setting_uint8(&global_settings.target_active_connections);
     if (get_active_connections() < target_active_connections) {
         pgp_advertise();

@@ -18,6 +18,9 @@ typedef struct {
 
     // 1 = debug, 2 = info, 3 = verbose
     uint8_t log_level;
+
+    // enable/disable BLE advertising to save power
+    bool advertising_enabled;
 } GlobalSettings;
 
 extern GlobalSettings global_settings;

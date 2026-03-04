@@ -13,7 +13,7 @@ Autocatcher/Gotcha/Pokemon Go Plus device emulator for Pokemon Go, with autospin
 ## Table of Contents
 
 1. [Features](#features)
-2. [Hardware Requirements](#hardware-requirements)
+2. [Hardware](#hardware)
 3. [Installation & Setup](#installation--setup)
 4. [Configuration](#configuration)
 5. [Usage Guide](#usage-guide)
@@ -60,7 +60,8 @@ Autocatcher/Gotcha/Pokemon Go Plus device emulator for Pokemon Go, with autospin
 
 ## Hardware Requirements
 
-- **Microcontroller**: ESP32-C3
+- **Microcontroller**: ESP32-C3 Super Mini
+- **3d printed case**: [Makerworld Link](https://makerworld.com/en/models/1072508-esp32-c3-supermini-snap-fit-case-5-options#profileId-1062641)
 - **ESP-IDF Version**: v5.4.1
 - **Average Power Draw**: ~0.05A
 - **Communication Protocol**: BLE (Bluetooth Low Energy)

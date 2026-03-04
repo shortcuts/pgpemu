@@ -18,6 +18,7 @@
 // global settings keys
 static const char KEY_CONNECTION_COUNT[] = "maxcon";
 static const char KEY_LOG_LEVEL[] = "llevel";
+static const char KEY_ADVERTISING_ENABLED[] = "adv";
 
 // device settings keys
 static const char KEY_AUTOCATCH[] = "catch";
@@ -50,6 +51,7 @@ void init_settings_nvs_partition() {
 void read_stored_global_settings(bool use_mutex) {
     uint8_t log_level = 0;
     uint8_t connection_count = 0;
+    uint8_t advertising_enabled = 1;
 
     if (use_mutex) {
         if (!mutex_acquire_blocking(global_settings.mutex)) {
@@ -80,6 +82,10 @@ void read_stored_global_settings(bool use_mutex) {
                 connection_count,
                 CONFIG_BT_ACL_CONNECTIONS);
         }
+    }
+    err = nvs_get_u8(global_settings_handle, KEY_ADVERTISING_ENABLED, &advertising_enabled);
+    if (nvs_read_check(CONFIG_STORAGE_TAG, err, KEY_ADVERTISING_ENABLED)) {
+        global_settings.advertising_enabled = advertising_enabled != 0;
     }
 
     nvs_safe_close(global_settings_handle);
@@ -189,8 +195,9 @@ bool write_global_settings_to_nvs() {
     all_ok = all_ok && nvs_write_check(CONFIG_STORAGE_TAG, err, KEY_LOG_LEVEL);
     err = nvs_set_u8(global_settings_handle, KEY_CONNECTION_COUNT, global_settings.target_active_connections);
     all_ok = all_ok && nvs_write_check(CONFIG_STORAGE_TAG, err, KEY_CONNECTION_COUNT);
+    err = nvs_set_u8(global_settings_handle, KEY_ADVERTISING_ENABLED, global_settings.advertising_enabled ? 1 : 0);
+    all_ok = all_ok && nvs_write_check(CONFIG_STORAGE_TAG, err, KEY_ADVERTISING_ENABLED);
 
-    // give it back in any of the following cases
     mutex_release(global_settings.mutex);
 
     return nvs_commit_and_close(CONFIG_STORAGE_TAG, global_settings_handle, "global_settings") && all_ok;
