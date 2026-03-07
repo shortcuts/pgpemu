@@ -90,7 +90,7 @@ bool toggle_device_autocatch(uint8_t c) {
 }
 
 bool get_setting(bool* var) {
-    if (!var || !xSemaphoreTake(global_settings.mutex, portMAX_DELAY)) {
+    if (!var || !xSemaphoreTake(global_settings.mutex, pdMS_TO_TICKS(100))) {
         return false;
     }
 

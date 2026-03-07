@@ -77,11 +77,6 @@ void app_main() {
         return;
     }
 
-    // Synchronize LED and advertising state with loaded settings.
-    // This ensures the LED reflects the stored advertising_enabled setting.
-    // MUST be called after init_bluetooth() completes successfully.
-    advertise_if_needed();
-
     // done
     ESP_LOGI(PGPEMU_TAG, "Device: %s", PGP_CLONE_NAME);
     ESP_LOGI(PGPEMU_TAG,
@@ -94,6 +89,13 @@ void app_main() {
         PGP_MAC[5]);
     ESP_LOGI(PGPEMU_TAG, "Ready.");
 
-    // make settings available
+    // Release settings mutex FIRST, before advertise_if_needed() calls get_setting().
+    // This prevents deadlock during boot window when advertising needs to query settings.
     global_settings_ready();
+
+    // Synchronize LED and advertising state with loaded settings.
+    // This ensures the LED reflects the stored advertising_enabled setting.
+    // MUST be called after init_bluetooth() completes successfully.
+    // SAFE: called after global_settings_ready() releases the mutex.
+    advertise_if_needed();
 }
