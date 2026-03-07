@@ -94,8 +94,4 @@ void app_main() {
     global_settings_ready();
 
     pgp_advertise();
-    ESP_LOGI(PGPEMU_TAG, "Boot: pgp_advertise() called, checking LED state...");
-    vTaskDelay(pdMS_TO_TICKS(100));  // Small delay to let GPIO settle
-    int led_level = gpio_get_level(GPIO_NUM_8);
-    ESP_LOGI(PGPEMU_TAG, "Boot: LED GPIO level = %d (expected=1)", led_level);
 }

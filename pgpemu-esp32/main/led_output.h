@@ -4,15 +4,16 @@
 #include <stdbool.h>
 
 /**
- * Initialize LED output on GPIO 8 (active-high).
- * Sets GPIO 8 as output and initializes LED to OFF (LOW).
+ * Initialize LED output on GPIO 2 (active-high).
+ * Sets GPIO 2 as output and initializes LED to ON (HIGH).
  * Call this during system initialization.
+ * NOTE: Changed from GPIO 8 due to potential USB-Serial-JTAG conflict.
  */
 void init_led_output(void);
 
 /**
  * Set LED advertising state.
- * @param enabled true to turn LED ON (GPIO 8 = HIGH), false to turn LED OFF (GPIO 8 = LOW)
+ * @param enabled true to turn LED ON (GPIO 2 = HIGH), false to turn LED OFF (GPIO 2 = LOW)
  */
 void set_led_advertising(bool enabled);
 
