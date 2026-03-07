@@ -454,7 +454,7 @@ pgpemu.c (main)
 # Run all tests
 ./run_tests.sh
 
-# Expected output: All 252 assertions pass in ~2 seconds
+# Expected output: All 260 assertions pass in ~2 seconds
 ```
 
 ### Test Statistics
@@ -469,11 +469,11 @@ pgpemu.c (main)
 | test_nvs_helper.c | 23 | NVS utilities | ✓ PASS |
 | test_error_handling.c | 37 | Error recovery & resilience | ✓ PASS |
 | cert-test.c | 4 | Certificate validation | ✓ PASS |
-| **TOTAL** | **252** | **100% coverage** | **100% PASS** |
+| **TOTAL** | **260** | **100% coverage** | **100% PASS** |
 
 ### Test Coverage Overview
 
-This comprehensive test suite contains **252 total assertions** across 8 test modules covering critical functionality, edge cases, error handling, and certificate validation.
+This comprehensive test suite contains **260 total assertions** across 8 test modules covering critical functionality, edge cases, error handling, and certificate validation.
 
 #### Regression Tests (42 assertions) - Critical Bug Prevention
 
@@ -491,6 +491,11 @@ This comprehensive test suite contains **252 total assertions** across 8 test mo
 - Issue: Connection counter modified without mutex protection
 - Test: Verify mutex acquire/release around counter operations
 - Impact: Critical - ensures accurate connection tracking
+
+**Bug #4: Stale Session Cache Clearing**
+- Issue: Cached session keys become invalid after Android credential reset, causing reconnection failures
+- Test: Verify early disconnect detection (< 5s, cached session, reason 0x13) triggers cache clearing
+- Impact: Critical - prevents persistent connection failures requiring manual intervention
 
 **Bug #6: Invalid MAC Address (BDA) Handling**
 - Issue: No validation of device Bluetooth addresses
@@ -557,7 +562,7 @@ gcc -o cert-test cert-test.c aes.c && ./cert-test
 
 ## Manual Testing Guide
 
-After PC unit tests pass (all 252 assertions), use these procedures to validate features on actual hardware.
+After PC unit tests pass (all 260 assertions), use these procedures to validate features on actual hardware.
 
 ### Prerequisites
 
@@ -1102,7 +1107,7 @@ Use this checklist to track manual testing progress:
 1. **Run all tests** and ensure 100% pass rate:
    ```bash
    ./run_tests.sh
-    # Must show: All 252 assertions passed
+    # Must show: All 260 assertions passed
    ```
 
 2. **Format your code**:

@@ -3,9 +3,11 @@
 #include "config_storage.h"
 #include "esp_log.h"
 #include "esp_system.h"
+#include "led_output.h"
 #include "log_tags.h"
 #include "pgp_autobutton.h"
 #include "pgp_bluetooth.h"
+#include "pgp_gap.h"
 #include "secrets.h"
 #include "settings.h"
 #include "setup_button.h"
@@ -44,6 +46,10 @@ void app_main() {
         log_levels_debug();
     }
 
+    // Synchronize LED and advertising state with loaded settings.
+    // This ensures the LED reflects the stored advertising_enabled setting.
+    advertise_if_needed();
+
     // read secrets from nvs (settings are safe to use because mutex is still locked)
     read_secrets(PGP_CLONE_NAME, PGP_MAC, PGP_DEVICE_KEY, PGP_BLOB);
 
@@ -58,6 +64,8 @@ void app_main() {
         global_settings_ready();  // release mutex
         ESP_LOGI(PGPEMU_TAG, "setup button pressed on boot; continuing startup");
     }
+
+    init_led_output();
 
     init_button_input();
 

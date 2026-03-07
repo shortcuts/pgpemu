@@ -59,6 +59,7 @@ void handle_pgp_handshake_first(esp_gatt_if_t gatts_if, uint16_t descr_value, ui
                     client_state->remote_bda, client_state->session_key, client_state->reconnect_challenge)) {
                 client_state->has_reconnect_key = true;
                 ESP_LOGI(HANDSHAKE_TAG, "[%d] Using cached session keys for reconnection", conn_id);
+                client_state->used_cached_session = true;
 
                 // Send reconnect challenge
                 notify_data[0] = 3;
@@ -324,9 +325,9 @@ void handle_pgp_handshake_second(esp_gatt_if_t gatts_if, const uint8_t* prepare_
     }
 }
 
-void pgp_handshake_disconnect(uint16_t conn_id) {
+void pgp_handshake_disconnect(uint16_t conn_id, uint8_t reason) {
     // this deletes the client state entry
-    connection_stop(conn_id);
+    connection_stop(conn_id, reason);
 }
 
 int pgp_get_handshake_state(uint16_t conn_id) {

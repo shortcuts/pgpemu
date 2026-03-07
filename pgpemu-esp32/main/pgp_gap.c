@@ -1,6 +1,7 @@
 #include "pgp_gap.h"
 
 #include "esp_log.h"
+#include "led_output.h"
 #include "log_tags.h"
 #include "pgp_handshake_multi.h"
 #include "settings.h"
@@ -35,10 +36,12 @@ void advertise_if_needed() {
 
 void pgp_advertise() {
     esp_ble_gap_start_advertising(&adv_params);
+    set_led_advertising(true);
 }
 
 void pgp_advertise_stop() {
     esp_ble_gap_stop_advertising();
+    set_led_advertising(false);
 }
 
 void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t* param) {

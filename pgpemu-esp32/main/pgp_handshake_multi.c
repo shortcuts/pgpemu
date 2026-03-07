@@ -1,5 +1,6 @@
 #include "pgp_handshake_multi.h"
 
+#include "config_storage.h"
 #include "esp_bt_defs.h"
 #include "esp_gap_ble_api.h"
 #include "esp_log.h"
@@ -160,7 +161,7 @@ void connection_update(uint16_t conn_id) {
     entry->reconnection_at = xTaskGetTickCount();
 }
 
-void connection_stop(uint16_t conn_id) {
+void connection_stop(uint16_t conn_id, uint8_t reason) {
     // Safely decrement active connections count
     if (mutex_acquire_blocking(active_connections_mutex)) {
         active_connections--;
@@ -181,6 +182,15 @@ void connection_stop(uint16_t conn_id) {
 
     entry->connection_end = xTaskGetTickCount();
     entry->cert_state = 0;
+
+    // Detect early disconnect with cached session (potential stale cache)
+    uint32_t conn_duration_ms = pdTICKS_TO_MS(entry->connection_end - entry->connection_start);
+    if (conn_duration_ms < 5000 && entry->used_cached_session) {
+        if (reason == ESP_GATT_CONN_TERMINATE_PEER_USER) {
+            ESP_LOGW(HANDSHAKE_TAG, "[%d] Early disconnect detected with cached session, clearing cache", conn_id);
+            clear_device_session(entry->remote_bda);
+        }
+    }
 
     ESP_LOGI(HANDSHAKE_TAG,
         "[%d] was connected for %lu ms",
