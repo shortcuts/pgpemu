@@ -105,9 +105,9 @@ char* get_setting_log_value(bool* var) {
 }
 
 uint8_t get_setting_uint8(uint8_t* var) {
-	if (!var || !xSemaphoreTake(global_settings.mutex, pdMS_TO_TICKS(100))) {
-		return 0;
-	}
+    if (!var || !xSemaphoreTake(global_settings.mutex, pdMS_TO_TICKS(100))) {
+        return 0;
+    }
 
     uint8_t result = *var;
 

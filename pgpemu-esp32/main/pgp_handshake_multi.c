@@ -158,11 +158,8 @@ void connection_start(uint16_t conn_id) {
     int target = get_setting_uint8(&global_settings.target_active_connections);
     int current = get_active_connections();
     if (current >= target) {
-        ESP_LOGI(HANDSHAKE_TAG,
-            "[%d] reached target connections (%d/%d), stopping advertising",
-            conn_id,
-            current,
-            target);
+        ESP_LOGI(
+            HANDSHAKE_TAG, "[%d] reached target connections (%d/%d), stopping advertising", conn_id, current, target);
         pgp_advertise_stop();
     }
 }

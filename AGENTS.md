@@ -7,7 +7,7 @@ This repository targets **ESP32-C3** firmware built with **ESP-IDF v5.4.1**. The
 ## Tooling
 
 * **Editor**: neovim. Anything else is rejected.
-* **Build**: esp-idf 5.4.1 only. Upgrades require a separate RFC.
+* **Build**: NEVER run esp-idf yourself. Only rely on `make format` command, I'll do the esp-idf related tasks myself.
 * **Formatting**: clang-format with project config. If formatting churn obscures diffs, you did it wrong.
 
 ## Architecture Rules
