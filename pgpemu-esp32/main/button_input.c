@@ -34,15 +34,15 @@ int get_button_gpio() {
 
 static void IRAM_ATTR gpio_isr_handler(void* arg) {
     uint32_t gpio_num = (uint32_t)arg;
-    button_event_t event = {0};
-    
+    button_event_t event = { 0 };
+
     if (gpio_num == CONFIG_GPIO_INPUT_BUTTON0) {
         event.type = BUTTON_EVENT_BUTTON0;
     } else if (gpio_num == CONFIG_GPIO_INPUT_BUTTON1) {
         event.type = BUTTON_EVENT_BUTTON1;
     }
     event.gpio_num = gpio_num;
-    
+
     xQueueSendFromISR(button_input_queue, &event, NULL);
 }
 
