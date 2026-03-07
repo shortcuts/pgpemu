@@ -18,10 +18,10 @@ void init_led_output(void) {
     io_conf.intr_type = GPIO_INTR_DISABLE;
 
     gpio_config(&io_conf);
-    gpio_set_level(GPIO_LED_ADVERTISING, 0);
-    led_state = false;
+    gpio_set_level(GPIO_LED_ADVERTISING, 1);
+    led_state = true;
     int actual_level = gpio_get_level(GPIO_LED_ADVERTISING);
-    ESP_LOGI(LED_OUTPUT_TAG, "LED init: set=0, actual=%d, led_state=%d", actual_level, led_state);
+    ESP_LOGI(LED_OUTPUT_TAG, "LED init: set=1, actual=%d, led_state=%d", actual_level, led_state);
 
     ESP_LOGI(LED_OUTPUT_TAG, "initialized LED on GPIO %d", GPIO_LED_ADVERTISING);
 }
