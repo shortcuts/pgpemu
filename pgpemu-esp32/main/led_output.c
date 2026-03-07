@@ -4,9 +4,9 @@
 #include "esp_log.h"
 #include "log_tags.h"
 
-// Fix: Changed from GPIO_NUM_8 to GPIO_NUM_2 to avoid conflict with USB-Serial-JTAG
-// GPIO8 may be reserved or have special functionality. GPIO2 is a standard GPIO pin.
-static const int GPIO_LED_ADVERTISING = GPIO_NUM_2;
+// GPIO 0-5 are strapping pins on ESP32-C3 (boot mode/JTAG control).
+// GPIO 2 specifically is MTDI and cannot be used. GPIO 8 is valid and safe.
+static const int GPIO_LED_ADVERTISING = GPIO_NUM_8;
 static bool led_state = false;
 
 static const char* LED_OUTPUT_TAG = "led_output";
