@@ -35,26 +35,34 @@ void advertise_if_needed() {
 }
 
 void pgp_advertise() {
+    ESP_LOGI(BT_GAP_TAG, "pgp_advertise() called");
     esp_ble_gap_start_advertising(&adv_params);
     set_led_advertising(true);
+    ESP_LOGI(BT_GAP_TAG, "pgp_advertise() completed");
 }
 
 void pgp_advertise_stop() {
+    ESP_LOGI(BT_GAP_TAG, "pgp_advertise_stop() called");
     esp_ble_gap_stop_advertising();
     set_led_advertising(false);
+    ESP_LOGI(BT_GAP_TAG, "pgp_advertise_stop() completed");
 }
 
 void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t* param) {
     switch (event) {
     case ESP_GAP_BLE_ADV_DATA_RAW_SET_COMPLETE_EVT:
+        ESP_LOGI(BT_GAP_TAG, "GAP event: ADV_DATA_RAW_SET_COMPLETE");
         adv_config_done &= (~ADV_CONFIG_FLAG);
         if (adv_config_done == 0) {
+            ESP_LOGI(BT_GAP_TAG, "adv_config_done=0, calling pgp_advertise()");
             pgp_advertise();
         }
         break;
     case ESP_GAP_BLE_SCAN_RSP_DATA_RAW_SET_COMPLETE_EVT:
+        ESP_LOGI(BT_GAP_TAG, "GAP event: SCAN_RSP_DATA_RAW_SET_COMPLETE");
         adv_config_done &= (~SCAN_RSP_CONFIG_FLAG);
         if (adv_config_done == 0) {
+            ESP_LOGI(BT_GAP_TAG, "adv_config_done=0, calling pgp_advertise()");
             pgp_advertise();
         }
         break;

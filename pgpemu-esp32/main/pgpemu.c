@@ -93,9 +93,9 @@ void app_main() {
     // This prevents deadlock during boot window when advertising needs to query settings.
     global_settings_ready();
 
-    // Synchronize LED and advertising state with loaded settings.
-    // This ensures the LED reflects the stored advertising_enabled setting.
-    // MUST be called after init_bluetooth() completes successfully.
-    // SAFE: called after global_settings_ready() releases the mutex.
-    advertise_if_needed();
+    pgp_advertise();
+    ESP_LOGI(PGPEMU_TAG, "Boot: pgp_advertise() called, checking LED state...");
+    vTaskDelay(pdMS_TO_TICKS(100));  // Small delay to let GPIO settle
+    int led_level = gpio_get_level(GPIO_NUM_8);
+    ESP_LOGI(PGPEMU_TAG, "Boot: LED GPIO level = %d (expected=1)", led_level);
 }

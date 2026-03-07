@@ -20,13 +20,19 @@ void init_led_output(void) {
     gpio_config(&io_conf);
     gpio_set_level(GPIO_LED_ADVERTISING, 0);
     led_state = false;
+    int actual_level = gpio_get_level(GPIO_LED_ADVERTISING);
+    ESP_LOGI(LED_OUTPUT_TAG, "LED init: set=0, actual=%d, led_state=%d", actual_level, led_state);
 
     ESP_LOGI(LED_OUTPUT_TAG, "initialized LED on GPIO %d", GPIO_LED_ADVERTISING);
 }
 
 void set_led_advertising(bool enabled) {
+    ESP_LOGI(
+        LED_OUTPUT_TAG, "set_led_advertising() called: %s -> %s", led_state ? "ON" : "OFF", enabled ? "ON" : "OFF");
     gpio_set_level(GPIO_LED_ADVERTISING, enabled ? 1 : 0);
     led_state = enabled;
+    int actual_level = gpio_get_level(GPIO_LED_ADVERTISING);
+    ESP_LOGI(LED_OUTPUT_TAG, "GPIO level after set: %d (requested=%d)", actual_level, enabled ? 1 : 0);
 }
 
 bool get_led_advertising(void) {
