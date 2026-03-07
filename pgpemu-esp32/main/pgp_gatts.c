@@ -731,15 +731,6 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
             ESP_LOGD(BT_GATTS_TAG, "[%d] cached session found, skipping encryption request", param->connect.conn_id);
         }
 
-        // Stop advertising if we've reached target connections
-        int target_active_connections = get_setting_uint8(&global_settings.target_active_connections);
-        if (get_active_connections() >= target_active_connections) {
-            ESP_LOGI(BT_GATTS_TAG,
-                "[%d] reached target connections (%d), stopping advertising",
-                param->connect.conn_id,
-                target_active_connections);
-            pgp_advertise_stop();
-        }
         break;
     case ESP_GATTS_DISCONNECT_EVT:
         pgp_handshake_disconnect(param->disconnect.conn_id, param->disconnect.reason);
