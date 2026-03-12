@@ -1,3 +1,4 @@
+#include "battery.h"
 #include "button_input.h"
 #include "config_secrets.h"
 #include "config_storage.h"
@@ -84,6 +85,8 @@ void app_main() {
         PGP_MAC[4],
         PGP_MAC[5]);
     ESP_LOGI(PGPEMU_TAG, "Ready.");
+
+    init_battery();
 
     // make settings available
     global_settings_ready();
