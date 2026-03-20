@@ -1,5 +1,26 @@
 # Changelog
 
+## [1.1.0](https://github.com/shortcuts/pgpemu/compare/v1.0.1...v1.1.0) (2026-03-20)
+
+
+### Features
+
+* button press toggle advertise ([f7536bd](https://github.com/shortcuts/pgpemu/commit/f7536bd3e3b4539bec241614d43edc3e011d7b24))
+* button press toggle advertise ([#10](https://github.com/shortcuts/pgpemu/issues/10)) ([43bf5e7](https://github.com/shortcuts/pgpemu/commit/43bf5e7607899742229b059046d0980469e43fee))
+* toggle led on advertising toggle ([c4e5e94](https://github.com/shortcuts/pgpemu/commit/c4e5e9406692577ae8306f0823493231ee752779))
+
+
+### Bug Fixes
+
+* move advertise_if_needed() call after Bluetooth init ([53b0214](https://github.com/shortcuts/pgpemu/commit/53b0214f06b1273bb9f4fc7e17bbce6f1e6a541e))
+* prevent UART deadlock by adding timeout to get_setting_uint8() ([cf0b807](https://github.com/shortcuts/pgpemu/commit/cf0b807a238363d7a93c46dae55a09bbe0629b97))
+* remove premature advertising stop, add correct logic to connection_start() ([5a353d1](https://github.com/shortcuts/pgpemu/commit/5a353d189fa44b95444a0f14d56937f5ffb20663))
+* resolve boot-time mutex deadlock causing LED off, UART hang, and maxcon=0 ([3276bcc](https://github.com/shortcuts/pgpemu/commit/3276bcc217552d26018597ba1a53054f1223bb05))
+* resolve LED boot state issue - use GPIO2 instead of GPIO8 ([4c135a0](https://github.com/shortcuts/pgpemu/commit/4c135a0e446636e4e43c33dca9ce499737d16ac5))
+* restore LED to ON state at boot with diagnostic logging ([44dde91](https://github.com/shortcuts/pgpemu/commit/44dde91d9ad2b01314c87aeaa2eddf92ed3809c9))
+* revert LED to GPIO8 - GPIO2 is strapping pin ([e95e44c](https://github.com/shortcuts/pgpemu/commit/e95e44cbd41ce962aa88c27add7d27e2be7eba82))
+* stop advertising when target connections reached ([673fbdf](https://github.com/shortcuts/pgpemu/commit/673fbdf60c1ea1060c1526d2448c12796f36720a))
+
 ## [1.0.1](https://github.com/shortcuts/pgpemu/compare/v1.0.0...v1.0.1) (2026-02-18)
 
 
