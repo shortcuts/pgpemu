@@ -16,7 +16,7 @@ void factory_reset_and_reboot(void) {
 }
 
 bool setup_button_pressed_on_boot(void) {
-    /* use the same GPIO the regular button-task will use later */
+    /* use GPIO 9 (boot button) - same as button_input.c uses */
     const gpio_num_t BTN = get_button_gpio();
 
     /* configure temporarily as a plain input with pull-up */

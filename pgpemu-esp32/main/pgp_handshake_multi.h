@@ -38,6 +38,7 @@ typedef struct {
     uint8_t reconnect_challenge[32];
 
     TickType_t handshake_start, reconnection_at, connection_start, connection_end;
+    bool used_cached_session;
 } client_state_t;
 
 void init_handshake_multi();
@@ -64,6 +65,6 @@ void reset_client_states();
 
 void connection_start(uint16_t conn_id);
 void connection_update(uint16_t conn_id);
-void connection_stop(uint16_t conn_id);
+void connection_stop(uint16_t conn_id, uint8_t reason);
 
 #endif /* PGP_HANDSHAKE_MULTI_H */

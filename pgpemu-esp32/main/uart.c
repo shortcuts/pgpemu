@@ -7,6 +7,7 @@
 #include "esp_vfs_dev.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "led_output.h"
 #include "log_tags.h"
 #include "mbedtls/base64.h"
 #include "pgp_gap.h"
@@ -56,6 +57,7 @@ void process_char(uint8_t c) {
             "Secrets: %s\n"
             "Commands:\n"
             "- ? - help\n"
+            "- L - show LED advertising state\n"
             "- l - cycle through log levels\n"
             "- r - show runtime counter\n"
             "- t - show FreeRTOS task list\n"
@@ -82,8 +84,10 @@ void process_char(uint8_t c) {
         ESP_LOGI(UART_TAG,
             "---GLOBAL SETTINGS---\n"
             "- Log level: %d\n"
+            "- Advertising: %s\n"
             "- Connections: %d / %d",
             get_setting_uint8(&global_settings.log_level),
+            get_setting_log_value(&global_settings.advertising_enabled),
             get_active_connections(),
             get_setting_uint8(&global_settings.target_active_connections));
         break;
@@ -102,6 +106,13 @@ void process_char(uint8_t c) {
         break;
     case 'b':
         uart_bluetooth_handler();
+        break;
+    case 'L':
+        if (get_led_advertising()) {
+            ESP_LOGI(UART_TAG, "LED State: ON");
+        } else {
+            ESP_LOGI(UART_TAG, "LED State: OFF");
+        }
         break;
     case 'l':
         if (!cycle_log_level(&global_settings.log_level)) {
