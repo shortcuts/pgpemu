@@ -1,4 +1,5 @@
 #include "battery.h"
+
 #include "sdkconfig.h"
 
 #ifdef CONFIG_PGPEMU_BATTERY_ENABLED
@@ -30,15 +31,22 @@ static uint8_t battery_mv_to_percent(uint32_t mv, uint32_t empty_mv, uint32_t fu
 
 uint8_t battery_get_percent(void) {
     uint32_t mv = battery_get_mv();
-    if (mv >= CONFIG_PGPEMU_BATTERY_FULL_MV) return 100;
-    if (mv <= CONFIG_PGPEMU_BATTERY_EMPTY_MV) return 0;
+    if (mv >= CONFIG_PGPEMU_BATTERY_FULL_MV)
+        return 100;
+    if (mv <= CONFIG_PGPEMU_BATTERY_EMPTY_MV)
+        return 0;
     return battery_mv_to_percent(mv, CONFIG_PGPEMU_BATTERY_EMPTY_MV, CONFIG_PGPEMU_BATTERY_FULL_MV);
 }
 
 #else
 
-void init_battery(void) {}
-uint32_t battery_get_mv(void) { return 0; }
-uint8_t battery_get_percent(void) { return 0; }
+void init_battery(void) {
+}
+uint32_t battery_get_mv(void) {
+    return 0;
+}
+uint8_t battery_get_percent(void) {
+    return 0;
+}
 
 #endif

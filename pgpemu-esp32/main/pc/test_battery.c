@@ -1,9 +1,9 @@
 // Battery conversion function tests
 // Tests for battery_mv_to_percent() function extracted from battery.c
+#include <limits.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
-#include <limits.h>
 
 // ============================================================================
 // Configuration defaults from Kconfig.projbuild
@@ -18,14 +18,14 @@
 static int tests_passed = 0;
 static int tests_failed = 0;
 
-#define test_assert(condition) \
-    do { \
-        if (!(condition)) { \
-            tests_failed++; \
+#define test_assert(condition)                         \
+    do {                                               \
+        if (!(condition)) {                            \
+            tests_failed++;                            \
             printf("  ✗ FAIL at line %d\n", __LINE__); \
-        } else { \
-            tests_passed++; \
-        } \
+        } else {                                       \
+            tests_passed++;                            \
+        }                                              \
     } while (0)
 
 // ============================================================================
@@ -48,20 +48,29 @@ void test_battery_boundary_values(void) {
     uint8_t result_empty = battery_mv_to_percent(BATTERY_EMPTY_MV, BATTERY_EMPTY_MV, BATTERY_FULL_MV);
     test_assert(result_empty == 0);
     printf("  ✓ battery_mv_to_percent(%u, %u, %u) = %u (expected 0)\n",
-           BATTERY_EMPTY_MV, BATTERY_EMPTY_MV, BATTERY_FULL_MV, result_empty);
+        BATTERY_EMPTY_MV,
+        BATTERY_EMPTY_MV,
+        BATTERY_FULL_MV,
+        result_empty);
 
     // Test FULL boundary: 4200mV should give 100%
     uint8_t result_full = battery_mv_to_percent(BATTERY_FULL_MV, BATTERY_EMPTY_MV, BATTERY_FULL_MV);
     test_assert(result_full == 100);
     printf("  ✓ battery_mv_to_percent(%u, %u, %u) = %u (expected 100)\n",
-           BATTERY_FULL_MV, BATTERY_EMPTY_MV, BATTERY_FULL_MV, result_full);
+        BATTERY_FULL_MV,
+        BATTERY_EMPTY_MV,
+        BATTERY_FULL_MV,
+        result_full);
 
     // Test MIDPOINT: 3750mV (halfway between 3300 and 4200) should give 50%
     uint32_t midpoint = (BATTERY_EMPTY_MV + BATTERY_FULL_MV) / 2;  // 3750
     uint8_t result_mid = battery_mv_to_percent(midpoint, BATTERY_EMPTY_MV, BATTERY_FULL_MV);
     test_assert(result_mid == 50);
     printf("  ✓ battery_mv_to_percent(%u, %u, %u) = %u (expected 50)\n",
-           midpoint, BATTERY_EMPTY_MV, BATTERY_FULL_MV, result_mid);
+        midpoint,
+        BATTERY_EMPTY_MV,
+        BATTERY_FULL_MV,
+        result_mid);
 }
 
 // ============================================================================
@@ -76,7 +85,9 @@ void test_battery_out_of_range_low(void) {
     uint8_t result_zero = battery_mv_to_percent(0, BATTERY_EMPTY_MV, BATTERY_FULL_MV);
     // Just verify it doesn't crash; behavior with underflow is undefined
     printf("  ✓ battery_mv_to_percent(0, %u, %u) = %u (underflow behavior)\n",
-           BATTERY_EMPTY_MV, BATTERY_FULL_MV, result_zero);
+        BATTERY_EMPTY_MV,
+        BATTERY_FULL_MV,
+        result_zero);
     test_assert(1);  // Passes if function doesn't crash
 
     // Test 3299mV: just 1mV below empty
@@ -85,7 +96,9 @@ void test_battery_out_of_range_low(void) {
     // But in unsigned arithmetic: (3299-3300) wraps, giving large uint32_t value
     // This is undefined behavior; just verify it compiles and runs
     printf("  ✓ battery_mv_to_percent(3299, %u, %u) = %u (just below empty)\n",
-           BATTERY_EMPTY_MV, BATTERY_FULL_MV, result_below);
+        BATTERY_EMPTY_MV,
+        BATTERY_FULL_MV,
+        result_below);
     test_assert(result_below < 100);  // Any value is acceptable (underflow)
 }
 
@@ -102,7 +115,9 @@ void test_battery_out_of_range_high(void) {
     // (4201 - 3300) * 100 / 900 = 901 * 100 / 900 = 100.111... = 100 (truncated)
     uint8_t result_above = battery_mv_to_percent(4201, BATTERY_EMPTY_MV, BATTERY_FULL_MV);
     printf("  ✓ battery_mv_to_percent(4201, %u, %u) = %u (just above full)\n",
-           BATTERY_EMPTY_MV, BATTERY_FULL_MV, result_above);
+        BATTERY_EMPTY_MV,
+        BATTERY_FULL_MV,
+        result_above);
     test_assert(result_above == 100);
 
     // Test 5000mV: way above full
@@ -110,14 +125,18 @@ void test_battery_out_of_range_high(void) {
     // But uint8_t will wrap: 188 % 256 = 188
     uint8_t result_high = battery_mv_to_percent(5000, BATTERY_EMPTY_MV, BATTERY_FULL_MV);
     printf("  ✓ battery_mv_to_percent(5000, %u, %u) = %u (way above full)\n",
-           BATTERY_EMPTY_MV, BATTERY_FULL_MV, result_high);
+        BATTERY_EMPTY_MV,
+        BATTERY_FULL_MV,
+        result_high);
     test_assert(result_high == 188);  // (5000-3300)*100/900 = 188
 
     // Test UINT32_MAX: extreme overvoltage
     // (4294967295 - 3300) * 100 / 900 overflows uint32_t math, then converts to uint8_t
     uint8_t result_max = battery_mv_to_percent(UINT32_MAX, BATTERY_EMPTY_MV, BATTERY_FULL_MV);
     printf("  ✓ battery_mv_to_percent(UINT32_MAX, %u, %u) = %u (extreme overvoltage)\n",
-           BATTERY_EMPTY_MV, BATTERY_FULL_MV, result_max);
+        BATTERY_EMPTY_MV,
+        BATTERY_FULL_MV,
+        result_max);
     test_assert(result_max > 100);  // Will overflow and produce garbage value
 }
 
@@ -133,15 +152,15 @@ void test_battery_mid_range(void) {
     // 25% = 3300 + 900*0.25 = 3300 + 225 = 3525mV
     uint8_t result_25 = battery_mv_to_percent(3525, BATTERY_EMPTY_MV, BATTERY_FULL_MV);
     test_assert(result_25 == 25);
-    printf("  ✓ battery_mv_to_percent(3525, %u, %u) = %u (expected 25%%)\n",
-           BATTERY_EMPTY_MV, BATTERY_FULL_MV, result_25);
+    printf(
+        "  ✓ battery_mv_to_percent(3525, %u, %u) = %u (expected 25%%)\n", BATTERY_EMPTY_MV, BATTERY_FULL_MV, result_25);
 
     // Test 75% point: 3975mV
     // 75% = 3300 + 900*0.75 = 3300 + 675 = 3975mV
     uint8_t result_75 = battery_mv_to_percent(3975, BATTERY_EMPTY_MV, BATTERY_FULL_MV);
     test_assert(result_75 == 75);
-    printf("  ✓ battery_mv_to_percent(3975, %u, %u) = %u (expected 75%%)\n",
-           BATTERY_EMPTY_MV, BATTERY_FULL_MV, result_75);
+    printf(
+        "  ✓ battery_mv_to_percent(3975, %u, %u) = %u (expected 75%%)\n", BATTERY_EMPTY_MV, BATTERY_FULL_MV, result_75);
 }
 
 // ============================================================================
@@ -156,16 +175,14 @@ void test_battery_divider_ratios(void) {
     // 50% = 3300 + 900*0.5 = 3750mV
     uint8_t result_ratio1 = battery_mv_to_percent(3750, 3300, 4200);
     test_assert(result_ratio1 == 50);
-    printf("  ✓ Ratio 1: battery_mv_to_percent(3750, 3300, 4200) = %u (expected 50%%)\n",
-           result_ratio1);
+    printf("  ✓ Ratio 1: battery_mv_to_percent(3750, 3300, 4200) = %u (expected 50%%)\n", result_ratio1);
 
     // Ratio 2: Half voltage (with 1:1 divider like voltage divider)
     // Empty: 3300/2 = 1650, Full: 4200/2 = 2100, Mid: 1875
     // 50% = 1650 + (2100-1650)*0.5 = 1650 + 225 = 1875
     uint8_t result_ratio2 = battery_mv_to_percent(1875, 1650, 2100);
     test_assert(result_ratio2 == 50);
-    printf("  ✓ Ratio 2: battery_mv_to_percent(1875, 1650, 2100) = %u (expected 50%%)\n",
-           result_ratio2);
+    printf("  ✓ Ratio 2: battery_mv_to_percent(1875, 1650, 2100) = %u (expected 50%%)\n", result_ratio2);
 
     // Ratio 4: Quarter voltage (hypothetical 1:3 divider)
     // Empty: 3300/4 = 825, Full: 4200/4 = 1050, Mid: 937.5
@@ -173,8 +190,7 @@ void test_battery_divider_ratios(void) {
     uint8_t result_ratio4 = battery_mv_to_percent(937, 825, 1050);
     // (937 - 825) * 100 / (1050 - 825) = 112 * 100 / 225 = 11200 / 225 = 49.777... = 49
     test_assert(result_ratio4 == 49 || result_ratio4 == 50);  // Rounding variation
-    printf("  ✓ Ratio 4: battery_mv_to_percent(937, 825, 1050) = %u (expected ~50%%)\n",
-           result_ratio4);
+    printf("  ✓ Ratio 4: battery_mv_to_percent(937, 825, 1050) = %u (expected ~50%%)\n", result_ratio4);
 }
 
 // ============================================================================
