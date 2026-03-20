@@ -24,12 +24,15 @@ uint32_t battery_get_mv(void) {
     return (raw * 3100 / 4095) * CONFIG_PGPEMU_BATTERY_DIVIDER_RATIO;
 }
 
+static uint8_t battery_mv_to_percent(uint32_t mv, uint32_t empty_mv, uint32_t full_mv) {
+    return (uint8_t)((mv - empty_mv) * 100 / (full_mv - empty_mv));
+}
+
 uint8_t battery_get_percent(void) {
     uint32_t mv = battery_get_mv();
     if (mv >= CONFIG_PGPEMU_BATTERY_FULL_MV) return 100;
     if (mv <= CONFIG_PGPEMU_BATTERY_EMPTY_MV) return 0;
-    return (uint8_t)((mv - CONFIG_PGPEMU_BATTERY_EMPTY_MV) * 100 /
-                     (CONFIG_PGPEMU_BATTERY_FULL_MV - CONFIG_PGPEMU_BATTERY_EMPTY_MV));
+    return battery_mv_to_percent(mv, CONFIG_PGPEMU_BATTERY_EMPTY_MV, CONFIG_PGPEMU_BATTERY_FULL_MV);
 }
 
 #else
