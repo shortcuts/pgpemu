@@ -1,5 +1,6 @@
 #include "driver/uart.h"
 
+#include "battery.h"
 #include "config_secrets.h"
 #include "config_storage.h"
 #include "driver/usb_serial_jtag.h"
@@ -64,6 +65,7 @@ void process_char(uint8_t c) {
             "- s - show global settings values\n"
             "- S - save settings permanently\n"
             "- R - restart\n"
+            "- v - show battery voltage\n"
             "Secrets:\n"
             "- xs - show loaded secrets\n"
             "- xr - reset loaded secrets\n"
@@ -135,6 +137,13 @@ void process_char(uint8_t c) {
         break;
     case 'R':
         uart_restart_command();
+        break;
+    case 'v':
+#ifdef CONFIG_PGPEMU_BATTERY_ENABLED
+        ESP_LOGI(UART_TAG, "Battery: %lu mV (%d%%)", battery_get_mv(), battery_get_percent());
+#else
+        ESP_LOGI(UART_TAG, "Battery monitoring disabled. Enable in menuconfig.");
+#endif
         break;
     case 't': {
         // vTaskList requires a buffer. With CONFIG_BT_ACL_CONNECTIONS=4,
