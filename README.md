@@ -515,7 +515,7 @@ pgpemu.c (main)
 # Run all tests
 ./run_tests.sh
 
-# Expected output: All 260 assertions pass in ~2 seconds
+# Expected output: All 265 assertions pass in ~2 seconds
 ```
 
 ### Test Statistics
@@ -530,11 +530,12 @@ pgpemu.c (main)
 | test_nvs_helper.c | 23 | NVS utilities | ✓ PASS |
 | test_error_handling.c | 37 | Error recovery & resilience | ✓ PASS |
 | cert-test.c | 4 | Certificate validation | ✓ PASS |
-| **TOTAL** | **260** | **100% coverage** | **100% PASS** |
+| test_battery.c | 13 | Battery voltage conversion | ✓ PASS |
+| **TOTAL** | **265** | **100% coverage** | **100% PASS** |
 
 ### Test Coverage Overview
 
-This comprehensive test suite contains **260 total assertions** across 8 test modules covering critical functionality, edge cases, error handling, and certificate validation.
+This comprehensive test suite contains **265 total assertions** across 9 test modules covering critical functionality, edge cases, error handling, battery conversion, and certificate validation.
 
 #### Regression Tests (42 assertions) - Critical Bug Prevention
 
@@ -623,7 +624,7 @@ gcc -o cert-test cert-test.c aes.c && ./cert-test
 
 ## Manual Testing Guide
 
-After PC unit tests pass (all 260 assertions), use these procedures to validate features on actual hardware.
+After PC unit tests pass (all 265 assertions), use these procedures to validate features on actual hardware.
 
 ### Prerequisites
 
