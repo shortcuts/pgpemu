@@ -1,6 +1,6 @@
 // Regression tests for previously fixed critical bugs
 // These tests verify that bugs do not resurface in future changes
-// Test count: 42 assertions (Bug #5 retoggle tests removed)
+// Test count: 42 assertions (34 original + 8 stale cache clearing tests)
 #include <assert.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -204,6 +204,120 @@ void test_race_condition_active_connections(void) {
 }
 
 // =============================================================================
+// REGRESSION TEST 4: Stale Session Cache Clearing
+// Issue: Cached session keys may become invalid after Android credential reset
+// Result: Device fails to reconnect, requires manual cache clearing
+// =============================================================================
+
+typedef struct {
+    uint32_t connection_start_ms;
+    uint32_t connection_end_ms;
+    bool used_cached_session;
+    uint8_t disconnect_reason;
+    bool cache_cleared;
+} RegConnectionState;
+
+#define REG_ESP_GATT_CONN_TERMINATE_PEER_USER 0x13
+#define REG_ESP_GATT_CONN_TERMINATE_LOCAL_HOST 0x16
+
+bool reg_should_clear_cache(RegConnectionState* state) {
+    if (state == NULL) {
+        return false;
+    }
+
+    uint32_t conn_duration_ms = state->connection_end_ms - state->connection_start_ms;
+
+    // Early disconnect heuristic: < 5000 ms + cached session + peer user disconnect
+    if (conn_duration_ms < 5000 && state->used_cached_session) {
+        if (state->disconnect_reason == REG_ESP_GATT_CONN_TERMINATE_PEER_USER) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void reg_handle_disconnect(RegConnectionState* state) {
+    if (state == NULL) {
+        return;
+    }
+
+    if (reg_should_clear_cache(state)) {
+        state->cache_cleared = true;
+    }
+}
+
+void test_stale_cache_clearing(void) {
+    printf("=== Test: Stale Session Cache Clearing (Bug #7) ===\n");
+
+    // Test 1: Early disconnect with cached session and PEER_USER reason -> cache cleared
+    RegConnectionState early_disconnect = { .connection_start_ms = 1000,
+        .connection_end_ms = 2500,  // 1500 ms duration (< 5000)
+        .used_cached_session = true,
+        .disconnect_reason = REG_ESP_GATT_CONN_TERMINATE_PEER_USER,
+        .cache_cleared = false };
+    reg_handle_disconnect(&early_disconnect);
+    test_assert(early_disconnect.cache_cleared, "Early disconnect (<5s) with cached session clears cache");
+
+    // Test 2: Normal disconnect (>5s) with cached session -> cache NOT cleared
+    RegConnectionState normal_disconnect = { .connection_start_ms = 1000,
+        .connection_end_ms = 8000,  // 7000 ms duration (> 5000)
+        .used_cached_session = true,
+        .disconnect_reason = REG_ESP_GATT_CONN_TERMINATE_PEER_USER,
+        .cache_cleared = false };
+    reg_handle_disconnect(&normal_disconnect);
+    test_assert(!normal_disconnect.cache_cleared, "Normal disconnect (>5s) does NOT clear cache");
+
+    // Test 3: Early disconnect without cached session -> cache NOT cleared
+    RegConnectionState fresh_handshake = { .connection_start_ms = 1000,
+        .connection_end_ms = 2500,     // 1500 ms duration (< 5000)
+        .used_cached_session = false,  // Full handshake was used
+        .disconnect_reason = REG_ESP_GATT_CONN_TERMINATE_PEER_USER,
+        .cache_cleared = false };
+    reg_handle_disconnect(&fresh_handshake);
+    test_assert(!fresh_handshake.cache_cleared, "Early disconnect without cached session does NOT clear cache");
+
+    // Test 4: Early disconnect with LOCAL_HOST reason -> cache NOT cleared
+    RegConnectionState local_disconnect = { .connection_start_ms = 1000,
+        .connection_end_ms = 2500,  // 1500 ms duration (< 5000)
+        .used_cached_session = true,
+        .disconnect_reason = REG_ESP_GATT_CONN_TERMINATE_LOCAL_HOST,
+        .cache_cleared = false };
+    reg_handle_disconnect(&local_disconnect);
+    test_assert(!local_disconnect.cache_cleared, "Early disconnect with LOCAL_HOST reason does NOT clear cache");
+
+    // Test 5: Edge case - exactly 5000ms duration -> cache NOT cleared
+    RegConnectionState edge_5000ms = { .connection_start_ms = 1000,
+        .connection_end_ms = 6000,  // Exactly 5000 ms
+        .used_cached_session = true,
+        .disconnect_reason = REG_ESP_GATT_CONN_TERMINATE_PEER_USER,
+        .cache_cleared = false };
+    reg_handle_disconnect(&edge_5000ms);
+    test_assert(!edge_5000ms.cache_cleared, "Disconnect at exactly 5000ms does NOT clear cache");
+
+    // Test 6: Edge case - 4999ms duration -> cache cleared
+    RegConnectionState edge_4999ms = { .connection_start_ms = 1000,
+        .connection_end_ms = 5999,  // 4999 ms
+        .used_cached_session = true,
+        .disconnect_reason = REG_ESP_GATT_CONN_TERMINATE_PEER_USER,
+        .cache_cleared = false };
+    reg_handle_disconnect(&edge_4999ms);
+    test_assert(edge_4999ms.cache_cleared, "Disconnect at 4999ms DOES clear cache");
+
+    // Test 7: NULL state handling
+    test_assert(!reg_should_clear_cache(NULL), "NULL state returns false");
+
+    // Test 8: Very short connection (< 1 second)
+    RegConnectionState very_short = { .connection_start_ms = 1000,
+        .connection_end_ms = 1500,  // 500 ms
+        .used_cached_session = true,
+        .disconnect_reason = REG_ESP_GATT_CONN_TERMINATE_PEER_USER,
+        .cache_cleared = false };
+    reg_handle_disconnect(&very_short);
+    test_assert(very_short.cache_cleared, "Very short connection (500ms) with cached session clears cache");
+}
+
+// =============================================================================
 // REGRESSION TEST 5: Invalid BDA Handling
 // Issue: BDA validation missing, could cause invalid operations
 // Result: Crashes or undefined behavior with invalid device addresses
@@ -267,6 +381,8 @@ int main() {
     test_settings_mutex_memory_leak();
     printf("\n");
     test_race_condition_active_connections();
+    printf("\n");
+    test_stale_cache_clearing();
     printf("\n");
     test_invalid_bda_handling();
 

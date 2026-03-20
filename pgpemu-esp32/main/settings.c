@@ -14,6 +14,7 @@ GlobalSettings global_settings = {
     .mutex = NULL,
     .target_active_connections = 1,
     .log_level = 1,
+    .advertising_enabled = true,
 };
 
 void init_global_settings() {
@@ -89,7 +90,7 @@ bool toggle_device_autocatch(uint8_t c) {
 }
 
 bool get_setting(bool* var) {
-    if (!var || !xSemaphoreTake(global_settings.mutex, portMAX_DELAY)) {
+    if (!var || !xSemaphoreTake(global_settings.mutex, pdMS_TO_TICKS(100))) {
         return false;
     }
 
@@ -104,7 +105,7 @@ char* get_setting_log_value(bool* var) {
 }
 
 uint8_t get_setting_uint8(uint8_t* var) {
-    if (!var || !xSemaphoreTake(global_settings.mutex, portMAX_DELAY)) {
+    if (!var || !xSemaphoreTake(global_settings.mutex, pdMS_TO_TICKS(100))) {
         return 0;
     }
 

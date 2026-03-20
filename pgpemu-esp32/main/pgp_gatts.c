@@ -737,9 +737,10 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
             // Reconnection: let BLE stack handle encryption silently using existing bond
             ESP_LOGD(BT_GATTS_TAG, "[%d] cached session found, skipping encryption request", param->connect.conn_id);
         }
+
         break;
     case ESP_GATTS_DISCONNECT_EVT:
-        pgp_handshake_disconnect(param->disconnect.conn_id);
+        pgp_handshake_disconnect(param->disconnect.conn_id, param->disconnect.reason);
 
         ESP_LOGW(BT_GATTS_TAG, "[%d/%d] disconnected", param->disconnect.conn_id, get_active_connections());
 

@@ -4,9 +4,11 @@
 #include "config_storage.h"
 #include "esp_log.h"
 #include "esp_system.h"
+#include "led_output.h"
 #include "log_tags.h"
 #include "pgp_autobutton.h"
 #include "pgp_bluetooth.h"
+#include "pgp_gap.h"
 #include "secrets.h"
 #include "settings.h"
 #include "setup_button.h"
@@ -60,6 +62,8 @@ void app_main() {
         ESP_LOGI(PGPEMU_TAG, "setup button pressed on boot; continuing startup");
     }
 
+    init_led_output();
+
     init_button_input();
 
     // start autobutton task
@@ -88,6 +92,9 @@ void app_main() {
 
     init_battery();
 
-    // make settings available
+    // Release settings mutex FIRST, before advertise_if_needed() calls get_setting().
+    // This prevents deadlock during boot window when advertising needs to query settings.
     global_settings_ready();
+
+    pgp_advertise();
 }
