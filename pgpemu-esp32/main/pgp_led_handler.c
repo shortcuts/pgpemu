@@ -9,7 +9,6 @@
 #include "pgp_handshake_multi.h"
 #include "settings.h"
 #include "stats.h"
-#include "uart.h"
 
 #include <stdint.h>
 #include <stdlib.h>
