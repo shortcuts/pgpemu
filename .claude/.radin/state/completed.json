@@ -7,3 +7,5 @@
 {"id":"decide-timeout-retry-semantics-for-the-command-response-exchange","commit":"4f264f8"}
 {"id":"decide-android-ble-library-and-companion-app-connection-manager-architecture","commit":"93a4bba"}
 {"id":"design-the-companion-app-module-skeleton-and-hilt-compose-ble-repository-wiring","commit":"72d6921"}
+{"id":"prototype-the-companion-app-s-screen-command-coverage-and-destructive-action-ux","commit":"98bf6b6"}
+{"id":"decide-the-companion-app-s-broader-testing-strategy","commit":"f225d7d"}
