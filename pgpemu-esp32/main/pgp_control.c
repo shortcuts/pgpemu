@@ -212,6 +212,11 @@ static void pgp_control_handle_command_write(esp_gatt_if_t gatts_if,
 
     switch ((control_opcode_t)opcode) {
     case CONTROL_OP_HELP: {
+        // Worst-case help text can exceed CONTROL_MAX_RESPONSE_PAYLOAD; snprintf
+        // truncates safely and pgp_control_send_response() re-clamps payload_len,
+        // so this is not a buffer overrun, just more text than gcc can prove fits.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-truncation"
         int n = snprintf((char*)resp,
             sizeof(resp),
             "---HELP---\n"

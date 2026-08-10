@@ -7,7 +7,8 @@ This repository targets **ESP32-C3** firmware built with **ESP-IDF v5.4.1**. The
 ## Tooling
 
 * **Editor**: neovim. Anything else is rejected.
-* **Build**: NEVER run esp-idf yourself. Only rely on `make format` command, I'll do the esp-idf related tasks myself.
+* **Build**: use the CLI only, never the VSCode ESP-IDF extension. Run `make build` to compile and `make clean` to fullclean. Verify every change builds before calling it done.
+* **Flash**: NEVER run `idf.py flash`, `make monitor`, or touch real hardware. The maintainer flashes and tests on-device.
 * **Formatting**: clang-format with project config. If formatting churn obscures diffs, you did it wrong.
 
 ## Architecture Rules

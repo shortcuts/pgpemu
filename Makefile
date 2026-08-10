@@ -1,5 +1,7 @@
-.PHONY: build
+.PHONY: build clean menuconfig monitor format test
 .DEFAULT_GOAL := install-deps
+
+IDF_EXPORT := . $(HOME)/esp/v5.4.1/esp-idf/export.sh >/dev/null
 
 ##@ Global
 
@@ -16,18 +18,21 @@ setup-esp-idf: ## Setup the current session for esp-idf with target esp32c3
 	./scripts/setup.fish
 
 menuconfig: ## Opens the menuconfig
-	cd ./pgpemu-esp32 && idf.py menuconfig
+	$(IDF_EXPORT) && cd ./pgpemu-esp32 && idf.py menuconfig
 
-clean:
-	cd ./pgpemu-esp32 && idf.py fullclean
+build: ## Builds the firmware (no flash)
+	$(IDF_EXPORT) && cd ./pgpemu-esp32 && idf.py build
+
+clean: ## Removes the firmware build directory
+	$(IDF_EXPORT) && cd ./pgpemu-esp32 && idf.py fullclean
 
 monitor: ## Monitors the flash
 	./scripts/monitor.fish
 
 ##@ Code
 
-format:
+format: ## Formats the firmware C sources
 	cd ./pgpemu-esp32 && make -f Makefile.format format
 
-test:
+test: ## Runs the PC unit test suite
 	./run_tests.sh

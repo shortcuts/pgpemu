@@ -73,26 +73,37 @@ Autocatcher/Gotcha/Pokemon Go Plus device emulator for Pokemon Go, with autospin
 
 ### Prerequisites
 
-You need ESP-IDF v5.4.1 installed. See the [get started with ESP-IDF for ESP32-C3 guide](https://docs.espressif.com/projects/esp-idf/en/stable/esp32c3/get-started/index.html).
+The project builds from the command line only. There is no VSCode extension
+workflow.
 
-### Option 1: VSCode with ESP-IDF Extension
+### Setup
 
-1. Install the [VSCode ESP-IDF extension](https://docs.espressif.com/projects/vscode-esp-idf-extension/en/latest/installation.html)
-2. Open the folder [./pgpemu-esp32](https://github.com/shortcuts/pgpemu/tree/main/pgpemu-esp32) as a new project in VSCode
-3. Configure the extension:
-   - Shift+⌘+P > **ESP-IDF: Select Port to Use** > choose your device (e.g. `/dev/tty.usbmodem101`)
-   - Shift+⌘+P > **ESP-IDF: Set Espressif Device Target** > `esp32c3`
-   - Shift+⌘+P > **ESP-IDF: Select Flash Method** > `JTAG`
-   - Shift+⌘+P > **ESP-IDF: Select OpenOCD Board Configuration** > `JTAG`
-   - Shift+⌘+P > **ESP-IDF: Build, Flash and Monitor**
+1. Install dependencies and clone ESP-IDF v5.4.1 to `~/esp/v5.4.1/esp-idf`:
+   ```bash
+   make install-deps
+   ```
+2. Set up the ESP-IDF tools for the esp32c3 target:
+   ```bash
+   make setup-esp-idf
+   ```
+   Run this once per machine (not once per shell — `make build` and
+   `make clean` source ESP-IDF's `export.sh` for you on every run).
 
-### Option 2: Command Line
+### Build
+
+```bash
+make build   # compiles the firmware, does not flash
+make clean   # removes the build directory
+make test    # runs the PC unit test suite
+make format  # runs clang-format on the firmware sources
+```
+
+Flashing to a device and opening the serial monitor still use `idf.py`
+directly:
 
 ```bash
 cd pgpemu-esp32
-
-# Build the project
-idf.py build
+. ~/esp/v5.4.1/esp-idf/export.sh
 
 # Flash to device (adjust port as needed)
 idf.py flash -p /dev/ttyUSB0 -b 921600
@@ -914,8 +925,8 @@ Use this checklist to track manual testing progress:
 ### Build Issues
 
 **ESP-IDF not found**
-- Ensure ESP-IDF v5.4.1 is installed
-- Run: `. ~/esp/esp-idf/export.sh` to set up environment
+- Ensure ESP-IDF v5.4.1 is installed at `~/esp/v5.4.1/esp-idf` (`make install-deps`)
+- `make build` and `make clean` source `export.sh` for you; run `. ~/esp/v5.4.1/esp-idf/export.sh` yourself only when calling `idf.py` directly (e.g. to flash)
 - Check: `echo $IDF_PATH` should point to esp-idf directory
 
 **Compilation errors in pgp_handshake_multi.c**
@@ -923,9 +934,8 @@ Use this checklist to track manual testing progress:
 - These come from FreeRTOS headers and don't affect functionality
 
 **Tool not found (gcc, make, etc.)**
-- Ensure ESP-IDF tools are in PATH
-- Run: `. $IDF_PATH/tools/tools.sh`
-- Or use VSCode extension which manages tools automatically
+- Run `make setup-esp-idf` once to install the toolchain for esp32c3
+- Ensure ESP-IDF tools are in PATH: `. $IDF_PATH/tools/tools.sh`
 
 ---
 
@@ -1070,7 +1080,7 @@ Use this checklist to track manual testing progress:
 
 4. **Build the project**:
    ```bash
-   idf.py build
+   make build
    ```
 
 5. **No warnings or errors** should appear in build output
