@@ -160,8 +160,6 @@ bool pgp_control_handle_attr_tab_created(esp_ble_gatts_cb_param_t* param) {
     return true;
 }
 
-static const uint8_t CONTROL_RESPONSE_READY[1] = { 0x01 };
-
 static void pgp_control_send_response(esp_gatt_if_t gatts_if,
     uint16_t conn_id,
     control_status_t status,
@@ -188,8 +186,8 @@ static void pgp_control_send_response(esp_gatt_if_t gatts_if,
     esp_ble_gatts_send_indicate(gatts_if,
         conn_id,
         control_handle_table[IDX_CHAR_CONTROL_RESPONSE_VAL],
-        sizeof(CONTROL_RESPONSE_READY),
-        (uint8_t*)CONTROL_RESPONSE_READY,
+        2 + payload_len,
+        frame,
         false);
 }
 
