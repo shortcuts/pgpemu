@@ -41,56 +41,51 @@ bool cycle_log_level(uint8_t* var) {
     return true;
 }
 
-bool toggle_setting(bool* var) {
-    if (!var || !mutex_acquire_timeout(global_settings.mutex, 10000)) {
+// Flips *var under mutex, with a 10s timeout. Writes the post-toggle value to
+// *new_value_out (if given) while still holding the lock, since reading *var
+// after release would race another toggle.
+static bool toggle_bool_locked(SemaphoreHandle_t mutex, bool* var, bool* new_value_out) {
+    if (!var || !mutex_acquire_timeout(mutex, 10000)) {
         return false;
     }
 
     *var = !*var;
+    if (new_value_out) {
+        *new_value_out = *var;
+    }
 
-    mutex_release(global_settings.mutex);
-
+    mutex_release(mutex);
     return true;
+}
+
+bool toggle_setting(bool* var) {
+    return toggle_bool_locked(global_settings.mutex, var, NULL);
 }
 
 bool toggle_device_autospin(uint8_t c) {
     client_state_t* entry = get_client_state_entry_by_idx(c);
-
     if (entry == NULL || entry->settings == NULL) {
         return false;
     }
 
-    if (!xSemaphoreTake(entry->settings->mutex, 10000 / portTICK_PERIOD_MS)) {
-        return false;
-    }
-
-    entry->settings->autospin = !entry->settings->autospin;
-
-    xSemaphoreGive(entry->settings->mutex);
-
-    return entry->settings->autospin;
+    bool new_value = false;
+    toggle_bool_locked(entry->settings->mutex, &entry->settings->autospin, &new_value);
+    return new_value;
 }
 
 bool toggle_device_autocatch(uint8_t c) {
     client_state_t* entry = get_client_state_entry_by_idx(c);
-
     if (entry == NULL || entry->settings == NULL) {
         return false;
     }
 
-    if (!xSemaphoreTake(entry->settings->mutex, 10000 / portTICK_PERIOD_MS)) {
-        return false;
-    }
-
-    entry->settings->autocatch = !entry->settings->autocatch;
-
-    xSemaphoreGive(entry->settings->mutex);
-
-    return entry->settings->autocatch;
+    bool new_value = false;
+    toggle_bool_locked(entry->settings->mutex, &entry->settings->autocatch, &new_value);
+    return new_value;
 }
 
 bool get_setting(bool* var) {
-    if (!var || !xSemaphoreTake(global_settings.mutex, pdMS_TO_TICKS(100))) {
+    if (!var || !xSemaphoreTake(global_settings.mutex, portMAX_DELAY)) {
         return false;
     }
 
@@ -105,7 +100,7 @@ char* get_setting_log_value(bool* var) {
 }
 
 uint8_t get_setting_uint8(uint8_t* var) {
-    if (!var || !xSemaphoreTake(global_settings.mutex, pdMS_TO_TICKS(100))) {
+    if (!var || !xSemaphoreTake(global_settings.mutex, portMAX_DELAY)) {
         return 0;
     }
 

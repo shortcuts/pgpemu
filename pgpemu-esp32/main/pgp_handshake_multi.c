@@ -214,62 +214,10 @@ void connection_stop(uint16_t conn_id, uint8_t reason) {
     delete_client_state_entry(entry);
 }
 
-static void dump_client_state(int idx, client_state_t* entry) {
-    if (entry == NULL || entry->settings == NULL) {
-        return;
-    }
-
-    ESP_LOGI(HANDSHAKE_TAG,
-        "connection %d:\n"
-        "- cert state: %d\n"
-        "- reconn key: %d\n"
-        "- notify: %d\n"
-        "timestamps:\n"
-        "- handshake: %lu\n"
-        "- reconnection: %lu\n"
-        "- conn start: %lu\n"
-        "- conn end: %lu\n"
-        "settings:\n"
-        "- Autospin: %s\n"
-        "- Autocatch: %s\n",
-        entry->conn_id,
-        entry->cert_state,
-        entry->has_reconnect_key,
-        entry->notify,
-        entry->handshake_start,
-        entry->reconnection_at,
-        entry->connection_start,
-        entry->connection_end,
-        get_setting_log_value(&entry->settings->autospin),
-        get_setting_log_value(&entry->settings->autocatch));
-
-    ESP_LOGI(HANDSHAKE_TAG, "keys:");
-    ESP_LOG_BUFFER_HEX(HANDSHAKE_TAG, entry->state_0_nonce, sizeof(entry->state_0_nonce));
-    ESP_LOG_BUFFER_HEX(HANDSHAKE_TAG, entry->the_challenge, sizeof(entry->the_challenge));
-    ESP_LOG_BUFFER_HEX(HANDSHAKE_TAG, entry->main_nonce, sizeof(entry->main_nonce));
-    ESP_LOG_BUFFER_HEX(HANDSHAKE_TAG, entry->outer_nonce, sizeof(entry->outer_nonce));
-    ESP_LOG_BUFFER_HEX(HANDSHAKE_TAG, entry->session_key, sizeof(entry->session_key));
-    ESP_LOG_BUFFER_HEX(HANDSHAKE_TAG, entry->reconnect_challenge, sizeof(entry->reconnect_challenge));
-}
-
-void dump_client_states() {
-    ESP_LOGI(HANDSHAKE_TAG, "active_connections: %d", active_connections);
-    ESP_LOGI(HANDSHAKE_TAG, "conn_id_map:");
-    for (int i = 0; i < MAX_CONNECTIONS; i++) {
-        ESP_LOGI(HANDSHAKE_TAG, "%d: %04x", i, conn_id_map[i]);
-    }
-
-    ESP_LOGI(HANDSHAKE_TAG, "client_states:");
-    for (int i = 0; i < MAX_CONNECTIONS; i++) {
-        dump_client_state(i, &client_states[i]);
-    }
-}
-
-// Compact machine-readable counterpart to dump_client_state() above — same
-// fields relevant to the Control Service's GET_CLIENT_STATES opcode, built
-// into a buffer instead of ESP_LOGI lines. Keep field selection in sync with
-// dump_client_state() by eye; the two serve different consumers (verbose
-// debug log vs. app-facing dump) so aren't merged into one formatter.
+// Single source of truth for the client-state dump, shared by dump_client_states()
+// (verbose debug log) and the Control Service's GET_CLIENT_STATES opcode
+// (app-facing text). Both consumers get the same fields, so nothing can drift
+// out of sync between a "log" version and a "buffer" version.
 size_t dump_client_states_format(char* buf, size_t buf_len) {
     buf_writer_t writer;
     buf_writer_init(&writer, buf, buf_len);
@@ -282,7 +230,24 @@ size_t dump_client_states_format(char* buf, size_t buf_len) {
     buf_writer_appendf(&writer, "client_states:\n");
     for (int i = 0; i < MAX_CONNECTIONS; i++) {
         client_state_t* entry = &client_states[i];
-        buf_writer_appendf(&writer, "[%d] conn_id=%d cert_state=%d\n", i, entry->conn_id, entry->cert_state);
+        buf_writer_appendf(&writer,
+            "[%d] conn_id=%d cert_state=%d reconn_key=%d notify=%d\n"
+            "  handshake=%lu reconnection=%lu conn_start=%lu conn_end=%lu\n",
+            i,
+            entry->conn_id,
+            entry->cert_state,
+            entry->has_reconnect_key,
+            entry->notify,
+            entry->handshake_start,
+            entry->reconnection_at,
+            entry->connection_start,
+            entry->connection_end);
+        if (entry->settings != NULL) {
+            buf_writer_appendf(&writer,
+                "  autospin=%s autocatch=%s\n",
+                get_setting_log_value(&entry->settings->autospin),
+                get_setting_log_value(&entry->settings->autocatch));
+        }
         buf_writer_append_hex(&writer, "state_0_nonce", entry->state_0_nonce, sizeof(entry->state_0_nonce));
         buf_writer_append_hex(&writer, "the_challenge", entry->the_challenge, sizeof(entry->the_challenge));
         buf_writer_append_hex(&writer, "main_nonce", entry->main_nonce, sizeof(entry->main_nonce));
@@ -292,6 +257,12 @@ size_t dump_client_states_format(char* buf, size_t buf_len) {
             &writer, "reconnect_challenge", entry->reconnect_challenge, sizeof(entry->reconnect_challenge));
     }
     return buf_writer_len(&writer);
+}
+
+void dump_client_states() {
+    char buf[2048];
+    dump_client_states_format(buf, sizeof(buf));
+    ESP_LOGI(HANDSHAKE_TAG, "%s", buf);
 }
 
 
