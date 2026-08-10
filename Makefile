@@ -1,4 +1,4 @@
-.PHONY: build clean menuconfig flash monitor run format test
+.PHONY: build clean menuconfig flash monitor run format test companion-build companion-install companion-reinstall companion-start companion-log companion-test companion-clean
 .DEFAULT_GOAL := install-deps
 
 IDF_EXPORT := . $(HOME)/esp/v5.4.1/esp-idf/export.sh >/dev/null
@@ -44,3 +44,29 @@ format: ## Formats the firmware C sources
 
 test: ## Runs the PC unit test suite
 	./run_tests.sh
+
+##@ Companion app (Android)
+
+APP_ID := com.pgpemu.companion
+
+companion-build: ## Builds the companion app (debug APK)
+	cd ./companion-app && ./gradlew assembleDebug
+
+companion-install: ## Installs the companion app on a connected phone
+	cd ./companion-app && ./gradlew installDebug
+
+companion-reinstall: ## Uninstalls then reinstalls the companion app on a connected phone
+	adb uninstall $(APP_ID) || true
+	cd ./companion-app && ./gradlew installDebug
+
+companion-start: ## Launches the companion app on a connected phone
+	adb shell am start -n $(APP_ID)/.MainActivity
+
+companion-log: ## Tails the companion app's logcat on a connected phone
+	adb logcat --pid=$$(adb shell pidof $(APP_ID))
+
+companion-test: ## Runs the companion app's unit tests
+	cd ./companion-app && ./gradlew test
+
+companion-clean: ## Removes the companion app's Gradle build output
+	cd ./companion-app && ./gradlew clean

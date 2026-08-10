@@ -8,7 +8,7 @@ This repository targets **ESP32-C3** firmware built with **ESP-IDF v5.4.1**. The
 
 * **Editor**: neovim. Anything else is rejected.
 * **Build**: use the CLI only, never the VSCode ESP-IDF extension. Run `make build` to compile and `make clean` to fullclean. Verify every change builds before calling it done.
-* **Flash**: NEVER run `idf.py flash`, `make monitor`, or touch real hardware. The maintainer flashes and tests on-device.
+* **Flash**: default is NEVER run `idf.py flash`, `make monitor`, or touch real hardware. Exception: the user may explicitly instruct a flash/monitor in the current session (e.g. "flash it", "run make flash now") — only then run it, and only the command asked for. Without that explicit instruction, the maintainer flashes and tests on-device.
 * **Formatting**: clang-format with project config. If formatting churn obscures diffs, you did it wrong.
 
 ## Architecture Rules
@@ -45,3 +45,12 @@ This repository targets **ESP32-C3** firmware built with **ESP-IDF v5.4.1**. The
 ## Decision Authority
 
 * The maintainer has final say. If a change risks BLE parity or Android stability, the answer is no.
+
+## Companion App (Kotlin/Android)
+
+The `companion-app/` directory is a separate Kotlin/Jetpack Compose Gradle project (package `com.pgpemu.companion`). Use `make companion-*` targets (see Makefile) to build, install, and test it.
+
+* Work is NOT complete until `make companion-test` passes. Run it after every set of edits, not just at the end.
+* Fix every lint/build error before declaring done. Never suppress lint errors; if a rule is a genuine false positive, add an inline comment explaining why.
+* Doc changes go in the same commit as the code change, not a follow-up.
+* Never add co-authoring or "Claude-Sessions" trailers to commits.
