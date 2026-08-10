@@ -109,7 +109,11 @@ class NordicBleControlRepository @Inject constructor(
             } catch (e: RequestFailedException) {
                 if (e.status in setOf(GattError.GATT_INSUF_AUTHENTICATION, GattError.GATT_INSUF_AUTHORIZATION,
                         GattError.GATT_INSUF_ENCRYPTION, GattError.GATT_AUTH_FAIL)) {
-                    manager.disconnect().enqueue()
+                    // Android still thinks the device is bonded, but the peripheral rejected
+                    // encryption with our stored key (e.g. its keys were reset by a reflash).
+                    // Drop the stale bond so the next connect re-pairs instead of hitting this
+                    // same failure forever.
+                    manager.forgetBond()
                 }
                 throw IllegalStateException("command write failed: ${GattError.parse(e.status)} (status ${e.status})", e)
             }
@@ -186,9 +190,15 @@ class NordicBleControlRepository @Inject constructor(
             }
 
             override fun initialize() {
-                ensureBond()
-                    .fail { _, status -> _connectionState.value = ConnectionState.Error("bonding failed: ${GattError.parse(status)}") }
-                    .enqueue()
+                // ensureBond() calls Android's createBond(), which returns false for an
+                // already-bonded device; the library reads that as a stale bond and force
+                // removes+recreates it, killing an already-working connection. Only ask for
+                // it when there's no bond yet.
+                if (bluetoothDevice?.bondState != BluetoothDevice.BOND_BONDED) {
+                    ensureBond()
+                        .fail { _, status -> _connectionState.value = ConnectionState.Error("bonding failed: ${GattError.parse(status)}") }
+                        .enqueue()
+                }
                 setIndicationCallback(responseCharacteristic).with { _, data ->
                     val bytes = data.value ?: return@with
                     if (bytes.size >= 2) {
@@ -215,5 +225,9 @@ class NordicBleControlRepository @Inject constructor(
                 bytes,
                 android.bluetooth.BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT,
             )
+
+        // removeBond() is protected on BleManager; expose it for the stale-bond recovery
+        // in sendCommand(), which holds a ControlBleManager reference, not a subclass of it.
+        fun forgetBond() = removeBond().enqueue()
     }
 }

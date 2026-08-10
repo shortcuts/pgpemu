@@ -79,6 +79,13 @@ void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t* par
             "authentication completed: success=%d, device_count=%d",
             param->ble_security.auth_cmpl.success,
             esp_ble_get_bond_device_num());
+        if (!param->ble_security.auth_cmpl.success) {
+            // Leaving the stale bond in place makes the peer's Android bond (recreated after
+            // it forgets/re-pairs) permanently mismatch ours, so every future write on an
+            // encrypted characteristic keeps failing with GATT_INSUF_* until reboot. Drop our
+            // side too so the next pairing attempt starts clean.
+            esp_ble_remove_bond_device(param->ble_security.auth_cmpl.bd_addr);
+        }
         break;
     case ESP_GAP_BLE_SEC_REQ_EVT:
         ESP_LOGI(BT_GAP_TAG, "security request received, accepting");
