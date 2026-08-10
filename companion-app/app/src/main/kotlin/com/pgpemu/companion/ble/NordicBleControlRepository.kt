@@ -20,9 +20,12 @@ import javax.inject.Inject
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
-private val CONTROL_SERVICE_UUID: UUID = UUID.fromString("PLACEHOLDER-CONTROL-SERVICE-UUID")
-private val COMMAND_CHARACTERISTIC_UUID: UUID = UUID.fromString("PLACEHOLDER-COMMAND-CHAR-UUID")
-private val RESPONSE_CHARACTERISTIC_UUID: UUID = UUID.fromString("PLACEHOLDER-RESPONSE-CHAR-UUID")
+// Same 128-bit vendor UUIDs as pgp_control.c's GATTS_SERVICE_UUID_CONTROL /
+// GATTS_CHAR_UUID_CONTROL_COMMAND / GATTS_CHAR_UUID_CONTROL_RESPONSE
+// (little-endian byte arrays there, reordered to standard UUID string form here).
+private val CONTROL_SERVICE_UUID: UUID = UUID.fromString("bbe87709-5b89-4433-ab7f-8b8eef0d8e40")
+private val COMMAND_CHARACTERISTIC_UUID: UUID = UUID.fromString("bbe87709-5b89-4433-ab7f-8b8eef0d8e41")
+private val RESPONSE_CHARACTERISTIC_UUID: UUID = UUID.fromString("bbe87709-5b89-4433-ab7f-8b8eef0d8e42")
 private const val PGP_ADVERTISED_NAME = "PLACEHOLDER-PGP-DEVICE-NAME" // unchanged existing advertised name, ticket 06
 private const val COMMAND_TIMEOUT_MS = 5_000L
 private const val SCAN_TIMEOUT_MS = 15_000L
