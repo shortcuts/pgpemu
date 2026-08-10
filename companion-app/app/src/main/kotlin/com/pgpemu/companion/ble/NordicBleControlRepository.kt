@@ -14,7 +14,9 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
 import no.nordicsemi.android.ble.BleManager
 import no.nordicsemi.android.ble.observer.ConnectionObserver
+import dagger.hilt.android.qualifiers.ApplicationContext
 import java.util.UUID
+import javax.inject.Inject
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -26,8 +28,8 @@ private const val COMMAND_TIMEOUT_MS = 5_000L
 private const val SCAN_TIMEOUT_MS = 15_000L
 private const val CONNECT_TIMEOUT_MS = 15_000L
 
-class NordicBleControlRepository(
-    context: Context,
+class NordicBleControlRepository @Inject constructor(
+    @ApplicationContext context: Context,
 ) : BleControlRepository {
 
     private val _connectionState = MutableStateFlow<ConnectionState>(ConnectionState.Idle)

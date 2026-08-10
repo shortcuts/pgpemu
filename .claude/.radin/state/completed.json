@@ -5,3 +5,4 @@
 {"id":"design-the-control-service-gatt-layout-and-wire-format-protocol","commit":"4f264f8"}
 {"id":"design-the-pairing-and-bonding-flow","commit":"4f264f8"}
 {"id":"decide-timeout-retry-semantics-for-the-command-response-exchange","commit":"4f264f8"}
+{"id":"decide-android-ble-library-and-companion-app-connection-manager-architecture","commit":"93a4bba"}
