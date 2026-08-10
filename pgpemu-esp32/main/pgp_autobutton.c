@@ -11,12 +11,14 @@
 #include "pgp_gatts.h"
 #include "pgp_handshake_multi.h"
 
+#define BUTTON_QUEUE_LEN 10
+
 QueueHandle_t button_queue;
 
 static void autobutton_task(void* pvParameters);
 
 bool init_autobutton() {
-    button_queue = xQueueCreate(10, sizeof(button_queue_item_t));
+    button_queue = xQueueCreate(BUTTON_QUEUE_LEN, sizeof(button_queue_item_t));
     if (!button_queue) {
         ESP_LOGE(BUTTON_TASK_TAG, "%s creating button queue failed", __func__);
         return false;
@@ -86,12 +88,12 @@ static void autobutton_task(void* __attribute__((unused)) pvParameters) {
 
 void purge_button_queue_for_connection(uint16_t conn_id) {
     button_queue_item_t temp_item;
-    button_queue_item_t items_to_keep[10];
+    button_queue_item_t items_to_keep[BUTTON_QUEUE_LEN];
     int keep_count = 0;
 
     while (xQueueReceive(button_queue, &temp_item, 0) == pdTRUE) {
         if (temp_item.conn_id != conn_id) {
-            if (keep_count < 10) {
+            if (keep_count < BUTTON_QUEUE_LEN) {
                 items_to_keep[keep_count++] = temp_item;
             }
         }
