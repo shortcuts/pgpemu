@@ -89,27 +89,27 @@ workflow.
    Run this once per machine (not once per shell — `make build` and
    `make clean` source ESP-IDF's `export.sh` for you on every run).
 
-### Build
+### Build, Flash & Monitor
 
 ```bash
-make build   # compiles the firmware, does not flash
-make clean   # removes the build directory
-make test    # runs the PC unit test suite
-make format  # runs clang-format on the firmware sources
+make build    # compiles the firmware, does not flash
+make clean    # removes the build directory
+make flash    # builds, then flashes over the ESP32-C3's built-in USB-JTAG
+make monitor  # opens the serial monitor
+make run      # flash + monitor in one go
+make test     # runs the PC unit test suite
+make format   # runs clang-format on the firmware sources
 ```
 
-Flashing to a device and opening the serial monitor still use `idf.py`
-directly:
+`make flash` uses OpenOCD over the ESP32-C3's built-in USB-JTAG adapter —
+the same transport as the VSCode extension's "JTAG" flash method, not
+esptool over plain serial.
+
+`make monitor` and `make run` default to port `/dev/tty.usbmodem101`.
+Override it if your device enumerates elsewhere:
 
 ```bash
-cd pgpemu-esp32
-. ~/esp/v5.4.1/esp-idf/export.sh
-
-# Flash to device (adjust port as needed)
-idf.py flash -p /dev/ttyUSB0 -b 921600
-
-# Monitor serial output
-idf.py monitor -p /dev/ttyUSB0
+make monitor PORT=/dev/tty.usbmodemXXXX
 ```
 
 ---
@@ -332,7 +332,6 @@ pgpemu/
 │   └── Makefile.test                        # Test compilation rules
 │
 ├── scripts/                                 # Helper scripts
-│   ├── monitor.fish                         # Fish shell monitor script
 │   └── setup.fish                           # Fish shell setup script
 │
 ├── README.md                                # This file - Single source of truth
@@ -527,7 +526,7 @@ After PC unit tests pass (all 260 assertions), use these procedures to validate 
 - ESP32 device flashed with latest PGPemu firmware
 - Pokemon Go app installed on smartphone
 - Bluetooth-capable smartphone
-- Serial monitor (e.g., `idf.py monitor`)
+- Serial monitor (e.g., `make monitor`)
 - Optional: 2-4 additional devices for multi-device testing
 
 ---
@@ -537,8 +536,7 @@ After PC unit tests pass (all 260 assertions), use these procedures to validate 
 #### Step 1: Compile the Project
 
 ```bash
-cd pgpemu-esp32
-idf.py build
+make build
 ```
 
 Watch for compilation errors. Known issues:
@@ -547,13 +545,13 @@ Watch for compilation errors. Known issues:
 #### Step 2: Flash to Device
 
 ```bash
-idf.py flash -p /dev/ttyUSB0 -b 921600  # Adjust port as needed
+make flash  # builds, then flashes over the built-in USB-JTAG
 ```
 
 #### Step 3: Monitor Serial Output
 
 ```bash
-idf.py monitor -p /dev/ttyUSB0
+make monitor  # or: make run (flash + monitor)
 ```
 
 Keep this running during all test procedures to observe device behavior.
@@ -942,9 +940,10 @@ Use this checklist to track manual testing progress:
 ### Flash Issues
 
 **Device not found**
-- Verify USB cable is working (try another port)
+- Verify USB cable is working (try another port) — data-only cables won't expose JTAG
 - Check device shows up: `ls /dev/tty*` or `ls /dev/cu.*`
-- Ensure correct port is specified: `-p /dev/ttyUSB0` (adjust as needed)
+- `make flash` uses the built-in USB-JTAG (OpenOCD), no port argument needed
+- `make monitor` / `make run` need the serial port: `make monitor PORT=/dev/tty.usbmodemXXXX`
 - Try different USB port on computer
 
 **Permission denied when flashing**
@@ -952,10 +951,10 @@ Use this checklist to track manual testing progress:
 - Windows: Run command prompt as administrator
 - Reconnect device after permission changes
 
-**Flash timeout**
-- Try slower baud rate: `-b 115200` (instead of 921600)
+**Flash timeout / OpenOCD can't find the device**
 - Ensure power supply can handle device: ~0.05A average
-- Try different USB port (some ports have current limiting)
+- Try a different USB port (some ports have current limiting)
+- Only one process can hold the JTAG adapter at a time — close any other OpenOCD/debugger session first
 
 ---
 
@@ -963,7 +962,7 @@ Use this checklist to track manual testing progress:
 
 **Device not appearing in Pokemon Go scan**
 - Check serial logs for BLE advertisement messages
-- Run `idf.py monitor` and look for "advertising" messages
+- Run `make monitor` and look for "advertising" messages
 - Verify Bluetooth is enabled on phone
 - Try restarting Pokemon Go app
 - Check device isn't at max connection limit (use `b1` to reset)

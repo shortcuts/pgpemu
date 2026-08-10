@@ -1,7 +1,10 @@
-.PHONY: build clean menuconfig monitor format test
+.PHONY: build clean menuconfig flash monitor run format test
 .DEFAULT_GOAL := install-deps
 
 IDF_EXPORT := . $(HOME)/esp/v5.4.1/esp-idf/export.sh >/dev/null
+# Serial port for the built-in USB-Serial-JTAG on the ESP32-C3. Override on the
+# command line if your device enumerates elsewhere, e.g. `make monitor PORT=/dev/cu.usbmodem1234`.
+PORT ?= /dev/tty.usbmodem101
 
 ##@ Global
 
@@ -26,8 +29,13 @@ build: ## Builds the firmware (no flash)
 clean: ## Removes the firmware build directory
 	$(IDF_EXPORT) && cd ./pgpemu-esp32 && idf.py fullclean
 
-monitor: ## Monitors the flash
-	./scripts/monitor.fish
+flash: build ## Flashes the firmware over the built-in USB-JTAG adapter (same method as the VSCode extension's "JTAG" flash method)
+	$(IDF_EXPORT) && cd ./pgpemu-esp32 && openocd -f board/esp32c3-builtin.cfg -c "program_esp_bins build flasher_args.json verify reset exit"
+
+monitor: ## Opens the serial monitor
+	$(IDF_EXPORT) && cd ./pgpemu-esp32 && idf.py -p $(PORT) monitor
+
+run: flash monitor ## Builds, flashes and monitors in one go
 
 ##@ Code
 
