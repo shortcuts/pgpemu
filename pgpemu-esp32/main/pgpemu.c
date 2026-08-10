@@ -11,12 +11,8 @@
 #include "secrets.h"
 #include "settings.h"
 #include "setup_button.h"
-#include "uart.h"
 
 void app_main() {
-    // uart menu. put it first because it purges all logs
-    init_uart();
-
     // set log levels which let init msgs through
     log_levels_debug();
 

@@ -66,7 +66,6 @@ Autocatcher/Gotcha/Pokemon Go Plus device emulator for Pokemon Go, with autospin
 - **Average Power Draw**: ~0.05A
 - **Communication Protocol**: BLE (Bluetooth Low Energy)
 - **Storage**: NVS (Non-Volatile Storage) for settings persistence
-- **Serial Interface**: USB UART for configuration menu
 
 ---
 
@@ -140,89 +139,46 @@ After updating `secrets.csv`, rebuild and flash your device.
 
 ## Usage Guide
 
-### Serial Menu Commands
+### Companion App
 
-#### Help Menu (Press `?`)
+Configuration and diagnostics are done from the **PGPemu Companion** Android
+app (`companion-app/`) over BLE — the on-device serial menu has been
+removed.
 
-```
----HELP---
-Secrets: PKLMGOPLUS
-User Settings:
-- as - toggle autospin
-- ac - toggle autocatch
-- l - cycle through log levels
-- S - save user settings permanently
-Commands:
-- ? - help
-- r - show runtime counter
-- t - show FreeRTOS task list
-- s - show all configuration values
-- R - restart
-Hardware:
-- B - toggle input button
-Secrets:
-- xs - show loaded secrets
-- xr - reset loaded secrets
-Bluetooth:
-- bA - start advertising
-- ba - stop advertising
-- bs - show client states
-- br - clear connections
-- b[1,4] - set maximum client connections (e.g. 3 clients max. with 'b3', up to 4)
-```
+#### Install
 
-#### View Current Settings (Press `s`)
+The app isn't published; build and install it from source:
 
-```
----SETTINGS---
-- Autospin: on
-- Autocatch: on
-- Input button: on
-- Log level: 2
-- Connections: 1 / 2
-```
+1. Open `companion-app/` in Android Studio (or run Gradle directly:
+   `cd companion-app && ./gradlew installDebug`).
+2. Requires Android 12 (API 31) or newer.
+3. Install to a phone with Bluetooth Low Energy support.
 
-#### View Runtime Statistics (Press `r`)
+#### Pair
 
-```
----STATS---
-Connection 0:
-- Caught: 7
-- Fled: 4
-- Spin: 0
----STATS---
-Connection 1:
-- Caught: 35
-- Fled: 24
-- Spin: 60
-```
+1. Power on the PGPemu device.
+2. Open the app and tap **Connect** — it scans for the device, connects over
+   BLE, and completes bonding automatically.
+3. Once connected, the screen switches from the Connect button to
+   **Disconnect** and the sections below become visible.
 
-#### View Bluetooth Client States (Press `bs`)
+#### Screens
 
-```
-I (1716661) pgp_handshake: active_connections: 1
-I (1716661) pgp_handshake: conn_id_map:
-I (1716661) pgp_handshake: 0: ffff
-I (1716661) pgp_handshake: 1: ffff
-...
-```
+The app is a single scrolling screen, ordered by risk/frequency:
 
-### Per-Device UART Commands
-
-Format: `<device_idx><command>[<value>]`
-
-- `<device_idx>`: 0-3 for device 0-3
-- `<command>`:
-  - `s`: Toggle autospin for device
-  - `c`: Toggle autocatch for device
-  - `l`: Cycle log level for device
-
-**Examples:**
-```
-0s     → Toggle autospin on device 0
-1c     → Toggle autocatch on device 1
-0l     → Cycle log level for device 0
-```
+- **Status** — read-only: LED state, advertising state, active connection
+  count, log level.
+- **Device Profiles** — one row per device slot (0-3), each with
+  **Autospin** and **Autocatch** toggle chips.
+- **Settings** — advertising on/off switch, max-connections stepper, a
+  **Cycle log level** button, and **Save settings** to persist to flash.
+- **Diagnostics** — on-demand dumps (runtime stats, FreeRTOS task list,
+  BLE client states), each with its own **Refresh** button, plus
+  **Disconnect all** clients.
+- **Danger Zone** — **Reset secrets** and **Restart device**. Both open a
+  confirmation sheet that names the affected device and requires typing
+  `RESET` or `RESTART` before the action is enabled — these are silent,
+  irreversible BLE operations with no undo.
 
 ---
 
@@ -253,9 +209,6 @@ Pokemon GO App (Smartphone)
     ├─ Feature Tasks                            │
     │  ├─ LED Handler (pgp_led_handler.c)      │
     │  └─ Auto Button (pgp_autobutton.c)       │
-    │                                           │
-    ├─ Serial Interface (uart.c)               │
-    │  └─ Configuration menu                   │
     │                                           │
     └─ System Services                          │
        ├─ Bluetooth GAP (pgp_gap.c)            │
@@ -343,8 +296,7 @@ pgpemu/
 │   │   ├── Communication:
 │   │   │   ├── pgp_bluetooth.c(.h)          # BLE initialization
 │   │   │   ├── pgp_gap.c(.h)                # BLE device discovery
-│   │   │   ├── pgp_cert.c(.h)               # Certificate handling
-│   │   │   └── uart.c(.h)                   # Serial menu interface
+│   │   │   └── pgp_cert.c(.h)               # Certificate handling
 │   │   │
 │   │   ├── System:
 │   │   │   ├── pgpemu.c                     # Main entry point
@@ -391,7 +343,6 @@ The PGPemu codebase is organized in distinct layers with clear separation of con
 
 #### 1. Hardware Abstraction Layer (HAL)
 - `button_input.c` - GPIO input handling
-- `uart.c` - Serial communication
 - Direct interaction with ESP32-C3 hardware
 
 #### 2. Communication Layer
@@ -436,10 +387,6 @@ pgpemu.c (main)
   │   └─ pgp_autobutton.c
   │       └─ settings.c
   │           └─ config_storage.c
-  │
-  ├─ uart.c
-  │   └─ settings.c
-  │   └─ config_secrets.c
   │
   └─ stats.c
 ```

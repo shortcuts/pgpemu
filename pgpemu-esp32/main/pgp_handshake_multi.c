@@ -1,5 +1,6 @@
 #include "pgp_handshake_multi.h"
 
+#include "buf_writer.h"
 #include "config_storage.h"
 #include "esp_bt_defs.h"
 #include "esp_gap_ble_api.h"
@@ -262,6 +263,35 @@ void dump_client_states() {
     for (int i = 0; i < MAX_CONNECTIONS; i++) {
         dump_client_state(i, &client_states[i]);
     }
+}
+
+// Compact machine-readable counterpart to dump_client_state() above — same
+// fields relevant to the Control Service's GET_CLIENT_STATES opcode, built
+// into a buffer instead of ESP_LOGI lines. Keep field selection in sync with
+// dump_client_state() by eye; the two serve different consumers (verbose
+// debug log vs. app-facing dump) so aren't merged into one formatter.
+size_t dump_client_states_format(char* buf, size_t buf_len) {
+    buf_writer_t writer;
+    buf_writer_init(&writer, buf, buf_len);
+
+    buf_writer_appendf(&writer, "active_connections: %d\nconn_id_map:\n", active_connections);
+    for (int i = 0; i < MAX_CONNECTIONS; i++) {
+        buf_writer_appendf(&writer, "%d: %04x\n", i, conn_id_map[i]);
+    }
+
+    buf_writer_appendf(&writer, "client_states:\n");
+    for (int i = 0; i < MAX_CONNECTIONS; i++) {
+        client_state_t* entry = &client_states[i];
+        buf_writer_appendf(&writer, "[%d] conn_id=%d cert_state=%d\n", i, entry->conn_id, entry->cert_state);
+        buf_writer_append_hex(&writer, "state_0_nonce", entry->state_0_nonce, sizeof(entry->state_0_nonce));
+        buf_writer_append_hex(&writer, "the_challenge", entry->the_challenge, sizeof(entry->the_challenge));
+        buf_writer_append_hex(&writer, "main_nonce", entry->main_nonce, sizeof(entry->main_nonce));
+        buf_writer_append_hex(&writer, "outer_nonce", entry->outer_nonce, sizeof(entry->outer_nonce));
+        buf_writer_append_hex(&writer, "session_key", entry->session_key, sizeof(entry->session_key));
+        buf_writer_append_hex(
+            &writer, "reconnect_challenge", entry->reconnect_challenge, sizeof(entry->reconnect_challenge));
+    }
+    return buf_writer_len(&writer);
 }
 
 

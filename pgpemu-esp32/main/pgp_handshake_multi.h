@@ -9,6 +9,7 @@
 
 #include <portmacro.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 
 static const size_t CERT_BUFFER_LEN = 378;
@@ -60,6 +61,9 @@ int get_cert_state(uint16_t conn_id);
 void set_remote_bda(uint16_t conn_id, esp_bd_addr_t remote_bda);
 
 void dump_client_states();
+// Formats the same client-state dump as dump_client_states() into buf.
+// Returns the number of bytes written (excluding the null terminator).
+size_t dump_client_states_format(char* buf, size_t buf_len);
 void reset_client_states();
 
 

@@ -1,5 +1,6 @@
 #include "stats.h"
 
+#include "buf_writer.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -83,4 +84,26 @@ void stats_get_runtime() {
             stats[i].stats.fled,
             stats[i].stats.spin);
     }
+}
+
+size_t stats_format_runtime(char* buf, size_t buf_len) {
+    if (stats_len == 0) {
+        return 0;
+    }
+
+    buf_writer_t writer;
+    buf_writer_init(&writer, buf, buf_len);
+    for (size_t i = 0; i < stats_len; i++) {
+        buf_writer_appendf(&writer,
+            "---STATS---\n"
+            "Connection %d:\n"
+            "- Caught: %d\n"
+            "- Fled: %d\n"
+            "- Spin: %d\n",
+            stats[i].conn_id,
+            stats[i].stats.caught,
+            stats[i].stats.fled,
+            stats[i].stats.spin);
+    }
+    return buf_writer_len(&writer);
 }
