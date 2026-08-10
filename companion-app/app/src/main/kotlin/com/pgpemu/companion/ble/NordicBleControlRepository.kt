@@ -60,8 +60,15 @@ class NordicBleControlRepository @Inject constructor(
                 .timeout(CONNECT_TIMEOUT_MS)
                 .suspend()
         } catch (e: Exception) {
-            // ControlBleManager.onDeviceFailedToConnect already sets ConnectionState.Error
-            // (mapping "service not supported" to "device not migrated") before this rethrows.
+            // ControlBleManager.onDeviceFailedToConnect usually sets ConnectionState.Error
+            // (mapping "service not supported" to "device not migrated") before this rethrows,
+            // but connect() can also throw synchronously without that callback firing (e.g. the
+            // manager still holding a stale GATT from a prior unexpected disconnect) — leaving
+            // the UI stuck on the Scanning/Connecting spinner forever. Fall back to Error so the
+            // Connect button always comes back.
+            if (_connectionState.value !is ConnectionState.Error) {
+                _connectionState.value = ConnectionState.Error(e.message ?: "connect failed")
+            }
         }
     }
 
