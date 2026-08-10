@@ -6,3 +6,4 @@ pgpemu-esp32/main/pc
 .sisyphus
 .claude/settings.local.json
 .scratch/**/.omc/
+.claude/.radin/

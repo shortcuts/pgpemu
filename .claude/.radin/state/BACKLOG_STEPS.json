@@ -1,1 +1,0 @@
-{"id":"decide-migration-cutover-sequencing-from-uart-to-the-control-service","order":12,"status":"pending","depends_on":["decide-the-fate-of-usb-serial-jtag-console-output-after-uart-c-removal","design-the-control-service-gatt-layout-and-wire-format-protocol","design-the-companion-app-module-skeleton-and-hilt-compose-ble-repository-wiring"],"note":""}
