@@ -13,7 +13,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
 import no.nordicsemi.android.ble.BleManager
+import no.nordicsemi.android.ble.error.GattError
+import no.nordicsemi.android.ble.exception.RequestFailedException
 import no.nordicsemi.android.ble.ktx.suspend
+import no.nordicsemi.android.ble.observer.BondingObserver
 import no.nordicsemi.android.ble.observer.ConnectionObserver
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.util.UUID
@@ -101,7 +104,15 @@ class NordicBleControlRepository @Inject constructor(
             val deferred = CompletableDeferred<ResponseFrame>()
             pendingResponse = deferred
             val request = byteArrayOf(opcode.toByte(), *payload)
-            manager.writeCommand(request).suspend()
+            try {
+                manager.writeCommand(request).suspend()
+            } catch (e: RequestFailedException) {
+                if (e.status in setOf(GattError.GATT_INSUF_AUTHENTICATION, GattError.GATT_INSUF_AUTHORIZATION,
+                        GattError.GATT_INSUF_ENCRYPTION, GattError.GATT_AUTH_FAIL)) {
+                    manager.disconnect().enqueue()
+                }
+                throw IllegalStateException("command write failed: ${GattError.parse(e.status)} (status ${e.status})", e)
+            }
             withTimeoutOrNull(COMMAND_TIMEOUT_MS) { deferred.await() }
                 ?: throw java.util.concurrent.TimeoutException("no response for opcode $opcode")
         }.also {
@@ -152,6 +163,15 @@ class NordicBleControlRepository @Inject constructor(
                     _connectionState.value = ConnectionState.Disconnected(reason.toString())
                 }
             }
+            bondingObserver = object : BondingObserver {
+                override fun onBondingRequired(device: android.bluetooth.BluetoothDevice) {
+                    _connectionState.value = ConnectionState.Bonding
+                }
+                override fun onBonded(device: android.bluetooth.BluetoothDevice) { /* next observer/init callback advances state */ }
+                override fun onBondingFailed(device: android.bluetooth.BluetoothDevice) {
+                    _connectionState.value = ConnectionState.Error("bonding failed")
+                }
+            }
         }
 
         private var commandCharacteristic: android.bluetooth.BluetoothGattCharacteristic? = null
@@ -166,6 +186,9 @@ class NordicBleControlRepository @Inject constructor(
             }
 
             override fun initialize() {
+                ensureBond()
+                    .fail { _, status -> _connectionState.value = ConnectionState.Error("bonding failed: ${GattError.parse(status)}") }
+                    .enqueue()
                 setIndicationCallback(responseCharacteristic).with { _, data ->
                     val bytes = data.value ?: return@with
                     if (bytes.size >= 2) {
