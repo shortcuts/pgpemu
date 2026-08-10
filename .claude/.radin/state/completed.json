@@ -1,0 +1,7 @@
+{"id":"research-ble-mtu-and-payload-limits-on-esp32-c3","commit":"115e5bb"}
+{"id":"research-ble-bonding-and-security-options-in-esp-idf","commit":"115e5bb"}
+{"id":"research-android-ble-central-apis-and-libraries","commit":"115e5bb"}
+{"id":"decide-the-fate-of-usb-serial-jtag-console-output-after-uart-c-removal","commit":"1bb4e04"}
+{"id":"design-the-control-service-gatt-layout-and-wire-format-protocol","commit":"4f264f8"}
+{"id":"design-the-pairing-and-bonding-flow","commit":"4f264f8"}
+{"id":"decide-timeout-retry-semantics-for-the-command-response-exchange","commit":"4f264f8"}
