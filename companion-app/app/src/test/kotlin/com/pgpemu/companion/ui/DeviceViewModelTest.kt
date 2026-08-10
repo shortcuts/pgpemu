@@ -55,6 +55,34 @@ class DeviceViewModelTest {
             Opcode.GET_LED_STATE,
             Result.success(ResponseFrame(StatusCode.OK, Opcode.GET_LED_STATE.toByte(), byteArrayOf(1))),
         )
+        repository.stubResponse(
+            Opcode.GET_CLIENT_STATES,
+            Result.success(
+                ResponseFrame(
+                    StatusCode.OK,
+                    Opcode.GET_CLIENT_STATES.toByte(),
+                    (
+                        "active_connections: 1\n" +
+                            "conn_id_map:\n" +
+                            "0: 0001\n" +
+                            "1: ffff\n" +
+                            "2: ffff\n" +
+                            "3: ffff\n" +
+                            "client_states:\n" +
+                            "[0] conn_id=1 cert_state=2 reconn_key=0 notify=1\n" +
+                            "  handshake=0 reconnection=0 conn_start=0 conn_end=0\n" +
+                            "  autospin=on autocatch=off\n" +
+                            "[1] conn_id=0 cert_state=0 reconn_key=0 notify=0\n" +
+                            "  handshake=0 reconnection=0 conn_start=0 conn_end=0\n" +
+                            "[2] conn_id=0 cert_state=0 reconn_key=0 notify=0\n" +
+                            "  handshake=0 reconnection=0 conn_start=0 conn_end=0\n" +
+                            "  autospin=off autocatch=on\n" +
+                            "[3] conn_id=0 cert_state=0 reconn_key=0 notify=0\n" +
+                            "  handshake=0 reconnection=0 conn_start=0 conn_end=0\n"
+                        ).toByteArray(),
+                ),
+            ),
+        )
         val viewModel = DeviceViewModel(repository)
 
         viewModel.refreshStatus()
@@ -66,6 +94,11 @@ class DeviceViewModelTest {
         assertEquals(3, state.status.activeConnections)
         assertEquals(4, state.settings.maxConnections)
         assertEquals(true, state.status.ledOn)
+        assertEquals(true, state.profiles[0].autospin)
+        assertEquals(false, state.profiles[0].autocatch)
+        assertNull(state.profiles[1].autospin)
+        assertEquals(false, state.profiles[2].autospin)
+        assertEquals(true, state.profiles[2].autocatch)
     }
 
     @Test

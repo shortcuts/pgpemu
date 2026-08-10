@@ -135,6 +135,14 @@ class DeviceViewModel @Inject constructor(
         runCommand(Opcode.GET_LED_STATE) { frame ->
             _uiState.update { it.copy(status = it.status.copy(ledOn = frame.payload[0] == 1.toByte())) }
         }
+        runCommand(Opcode.GET_CLIENT_STATES) { frame ->
+            val autoStates = parseProfileAutoStates(String(frame.payload, Charsets.UTF_8))
+            _uiState.update { s ->
+                s.copy(profiles = s.profiles.map { p ->
+                    autoStates[p.index]?.let { p.copy(autospin = it.autospin, autocatch = it.autocatch) } ?: p
+                })
+            }
+        }
     }
 
     fun toggleAdvertising() {
@@ -269,3 +277,22 @@ private fun parseConnStats(text: String): Map<Int, ConnRuntimeStats> =
             spin = m.groupValues[4].toInt(),
         )
     }
+
+private data class ProfileAutoState(val autospin: Boolean, val autocatch: Boolean)
+
+// Matches a "[i] conn_id=... / handshake=... / autospin=on autocatch=off"
+// block from GET_CLIENT_STATES's client_states section
+// (pgp_handshake_multi.c: dump_client_states_format). The autospin/autocatch
+// line is only present when the firmware slot has settings attached
+// (entry->settings != NULL), so it's an optional group here too.
+private val CLIENT_STATE_AUTO_BLOCK = Regex(
+    """^\[(\d+)] conn_id=.*\n {2}handshake=.*\n(?: {2}autospin=(on|off) autocatch=(on|off)\n)?""",
+    RegexOption.MULTILINE,
+)
+
+private fun parseProfileAutoStates(text: String): Map<Int, ProfileAutoState> =
+    CLIENT_STATE_AUTO_BLOCK.findAll(text).mapNotNull { m ->
+        val spin = m.groups[2]?.value ?: return@mapNotNull null
+        val catch = m.groups[3]?.value ?: return@mapNotNull null
+        m.groupValues[1].toInt() to ProfileAutoState(spin == "on", catch == "on")
+    }.toMap()
