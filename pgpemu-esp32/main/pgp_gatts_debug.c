@@ -1,5 +1,6 @@
 #include "pgp_gatts_debug.h"
 
+#include "pgp_control.h"
 #include "pgp_gatts.h"
 
 #include <stdint.h>
@@ -33,6 +34,13 @@ static const char* cert_char_names[] = { "CERT_SVC",
     "CHAR_SFIDA_TO_CENTRAL",
     "CHAR_SFIDA_TO_CENTRAL_VAL" };
 
+static const char* control_char_names[] = { "CONTROL_SVC",
+    "CHAR_CONTROL_COMMAND",
+    "CHAR_CONTROL_COMMAND_VAL",
+    "CHAR_CONTROL_RESPONSE",
+    "CHAR_CONTROL_RESPONSE_VAL",
+    "CHAR_CONTROL_RESPONSE_CFG" };
+
 static const char* UNKNOWN_HANDLE_NAME = "<UNKNOWN HANDLE NAME>";
 
 static int find_handle_index(uint16_t handle, uint16_t* handle_table, int count) {
@@ -56,6 +64,10 @@ const char* char_name_from_handle(uint16_t handle) {
     idx = find_handle_index(handle, certificate_handle_table, CERT_LAST_IDX);
     if (idx >= 0)
         return cert_char_names[idx];
+
+    idx = find_handle_index(handle, control_handle_table, CONTROL_LAST_IDX);
+    if (idx >= 0)
+        return control_char_names[idx];
 
     return UNKNOWN_HANDLE_NAME;
 }

@@ -9,6 +9,7 @@
 #include "pgp_autobutton.h"
 #include "pgp_gap.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -262,6 +263,51 @@ void dump_client_states() {
     for (int i = 0; i < MAX_CONNECTIONS; i++) {
         dump_client_state(i, &client_states[i]);
     }
+}
+
+static size_t append_hex(char* buf, size_t buf_len, size_t offset, const char* label, const uint8_t* data, size_t len) {
+    int n = snprintf(buf + offset, buf_len > offset ? buf_len - offset : 0, "%s: ", label);
+    offset += (n > 0) ? (size_t)n : 0;
+    for (size_t i = 0; i < len && offset < buf_len; i++) {
+        n = snprintf(buf + offset, buf_len - offset, "%02x", data[i]);
+        offset += (n > 0) ? (size_t)n : 0;
+    }
+    n = snprintf(buf + offset, buf_len > offset ? buf_len - offset : 0, "\n");
+    offset += (n > 0) ? (size_t)n : 0;
+    return offset;
+}
+
+size_t dump_client_states_format(char* buf, size_t buf_len) {
+    size_t offset = 0;
+    int n = snprintf(buf, buf_len, "active_connections: %d\nconn_id_map:\n", active_connections);
+    offset += (n > 0) ? (size_t)n : 0;
+
+    for (int i = 0; i < MAX_CONNECTIONS && offset < buf_len; i++) {
+        n = snprintf(buf + offset, buf_len - offset, "%d: %04x\n", i, conn_id_map[i]);
+        offset += (n > 0) ? (size_t)n : 0;
+    }
+
+    n = snprintf(buf + offset, buf_len > offset ? buf_len - offset : 0, "client_states:\n");
+    offset += (n > 0) ? (size_t)n : 0;
+
+    for (int i = 0; i < MAX_CONNECTIONS && offset < buf_len; i++) {
+        client_state_t* entry = &client_states[i];
+        n = snprintf(
+            buf + offset, buf_len - offset, "[%d] conn_id=%d cert_state=%d\n", i, entry->conn_id, entry->cert_state);
+        offset += (n > 0) ? (size_t)n : 0;
+        offset = append_hex(buf, buf_len, offset, "state_0_nonce", entry->state_0_nonce, sizeof(entry->state_0_nonce));
+        offset = append_hex(buf, buf_len, offset, "the_challenge", entry->the_challenge, sizeof(entry->the_challenge));
+        offset = append_hex(buf, buf_len, offset, "main_nonce", entry->main_nonce, sizeof(entry->main_nonce));
+        offset = append_hex(buf, buf_len, offset, "outer_nonce", entry->outer_nonce, sizeof(entry->outer_nonce));
+        offset = append_hex(buf, buf_len, offset, "session_key", entry->session_key, sizeof(entry->session_key));
+        offset = append_hex(buf,
+            buf_len,
+            offset,
+            "reconnect_challenge",
+            entry->reconnect_challenge,
+            sizeof(entry->reconnect_challenge));
+    }
+    return offset > buf_len ? buf_len : offset;
 }
 
 

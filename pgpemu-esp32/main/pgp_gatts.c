@@ -11,6 +11,7 @@
 #include "log_tags.h"
 #include "mutex_helpers.h"
 #include "nvs_flash.h"
+#include "pgp_control.h"
 #include "pgp_gap.h"
 #include "pgp_gatts_debug.h"
 #include "pgp_handshake.h"
@@ -30,10 +31,6 @@ static const uint8_t BATTERY_INST_ID = 0;
 static const uint8_t LED_BUTTON_INST_ID = 1;
 static const uint8_t CERT_INST_ID = 2;
 
-/* The max length of characteristic value. When the gatt client write or prepare write,
- *  the data length must be less than MAX_VALUE_LENGTH.
- */
-#define MAX_VALUE_LENGTH 500
 #define PREPARE_BUF_MAX_SIZE 1024
 #define CHAR_DECLARATION_SIZE (sizeof(uint8_t))
 
@@ -568,6 +565,8 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
         if (create_attr_ret) {
             ESP_LOGE(BT_GATTS_TAG, "create attr table for cert  failed, error code = %x", create_attr_ret);
         }
+
+        pgp_control_create_attr_table(gatts_if);
     } break;
     case ESP_GATTS_READ_EVT:
         ESP_LOGD(BT_GATTS_TAG,
@@ -617,6 +616,8 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
             } else if (led_button_handle_table[IDX_CHAR_BUTTON_CFG] == param->write.handle) {
                 ESP_LOGW(BT_GATTS_TAG, "%s: unhandled CHAR_BUTTON_CFG", __func__);
                 return;
+            } else if (pgp_control_try_handle_write(gatts_if, param)) {
+                // handled inside pgp_control.c
             } else {
                 ESP_LOGW(BT_GATTS_TAG, "%s: unknown handle %d", __func__, param->write.handle);
                 // dump all tables
@@ -796,6 +797,10 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
                     BT_GATTS_TAG, "create cert attribute table success, handle = %d", param->add_attr_tab.num_handle);
                 found = 1;
             }
+        }
+
+        if (!found) {
+            found = pgp_control_handle_attr_tab_created(param);
         }
 
         if (!found) {

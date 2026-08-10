@@ -7,6 +7,7 @@
 #include "nvs.h"
 
 #include <stdint.h>
+#include <stdio.h>
 
 #define MAX_CONNECTIONS CONFIG_BT_ACL_CONNECTIONS
 
@@ -83,4 +84,30 @@ void stats_get_runtime() {
             stats[i].stats.fled,
             stats[i].stats.spin);
     }
+}
+
+size_t stats_format_runtime(char* buf, size_t buf_len) {
+    if (stats_len == 0) {
+        return 0;
+    }
+
+    size_t offset = 0;
+    for (size_t i = 0; i < stats_len && offset < buf_len; i++) {
+        int n = snprintf(buf + offset,
+            buf_len - offset,
+            "---STATS---\n"
+            "Connection %d:\n"
+            "- Caught: %d\n"
+            "- Fled: %d\n"
+            "- Spin: %d\n",
+            stats[i].conn_id,
+            stats[i].stats.caught,
+            stats[i].stats.fled,
+            stats[i].stats.spin);
+        if (n < 0) {
+            break;
+        }
+        offset += (size_t)n;
+    }
+    return offset > buf_len ? buf_len : offset;
 }
