@@ -1,5 +1,6 @@
 #include "stats.h"
 
+#include "buf_writer.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -7,7 +8,6 @@
 #include "nvs.h"
 
 #include <stdint.h>
-#include <stdio.h>
 
 #define MAX_CONNECTIONS CONFIG_BT_ACL_CONNECTIONS
 
@@ -91,10 +91,10 @@ size_t stats_format_runtime(char* buf, size_t buf_len) {
         return 0;
     }
 
-    size_t offset = 0;
-    for (size_t i = 0; i < stats_len && offset < buf_len; i++) {
-        int n = snprintf(buf + offset,
-            buf_len - offset,
+    buf_writer_t writer;
+    buf_writer_init(&writer, buf, buf_len);
+    for (size_t i = 0; i < stats_len; i++) {
+        buf_writer_appendf(&writer,
             "---STATS---\n"
             "Connection %d:\n"
             "- Caught: %d\n"
@@ -104,10 +104,6 @@ size_t stats_format_runtime(char* buf, size_t buf_len) {
             stats[i].stats.caught,
             stats[i].stats.fled,
             stats[i].stats.spin);
-        if (n < 0) {
-            break;
-        }
-        offset += (size_t)n;
     }
-    return offset > buf_len ? buf_len : offset;
+    return buf_writer_len(&writer);
 }
