@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
 import no.nordicsemi.android.ble.BleManager
+import no.nordicsemi.android.ble.ktx.suspend
 import no.nordicsemi.android.ble.observer.ConnectionObserver
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.util.UUID
@@ -26,7 +27,7 @@ import kotlin.coroutines.resumeWithException
 private val CONTROL_SERVICE_UUID: UUID = UUID.fromString("bbe87709-5b89-4433-ab7f-8b8eef0d8e40")
 private val COMMAND_CHARACTERISTIC_UUID: UUID = UUID.fromString("bbe87709-5b89-4433-ab7f-8b8eef0d8e41")
 private val RESPONSE_CHARACTERISTIC_UUID: UUID = UUID.fromString("bbe87709-5b89-4433-ab7f-8b8eef0d8e42")
-private const val PGP_ADVERTISED_NAME = "PLACEHOLDER-PGP-DEVICE-NAME" // unchanged existing advertised name, ticket 06
+private const val PGP_ADVERTISED_NAME = "Pokemon GO Plus" // matches PGP_DEVICE_NAME in pgpemu-esp32/main/pgp_gatts.c
 private const val COMMAND_TIMEOUT_MS = 5_000L
 private const val SCAN_TIMEOUT_MS = 15_000L
 private const val CONNECT_TIMEOUT_MS = 15_000L
@@ -67,6 +68,7 @@ class NordicBleControlRepository @Inject constructor(
     /** Filters by [PGP_ADVERTISED_NAME] — the existing PGP advertised name, unchanged per ticket 06/the map. */
     private suspend fun scanForDevice(): BluetoothDevice = suspendCancellableCoroutine { cont ->
         val scanner = bluetoothAdapter.bluetoothLeScanner
+            ?: run { cont.resumeWithException(IllegalStateException("bluetooth adapter has no LE scanner (BT off?)")); return@suspendCancellableCoroutine }
         val filter = ScanFilter.Builder().setDeviceName(PGP_ADVERTISED_NAME).build()
         val settings = ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build()
         val callback = object : ScanCallback() {
@@ -110,11 +112,10 @@ class NordicBleControlRepository @Inject constructor(
 
     /**
      * Nordic BleManager subclass — owns the GATT callback, service discovery,
-     * and the Command/Response characteristic pair. Skeleton only: exact
-     * ble-ktx suspend-extension names (`.suspend()` on `WriteRequest`/
-     * `ConnectRequest`, `setNotificationCallback().with { }`) must be checked
-     * against the pinned 2.11.0 docs/samples during implementation — this
-     * plan is not build-verified.
+     * and the Command/Response characteristic pair. API surface (`.suspend()`
+     * on `WriteRequest`/`ConnectRequest`, `setIndicationCallback().with { }`,
+     * `FailCallback.REASON_DEVICE_NOT_SUPPORTED`) verified against the
+     * no.nordicsemi.android:ble / ble-ktx 2.11.0 sources.
      */
     private inner class ControlBleManager(context: Context) : BleManager(context) {
         init {
@@ -130,8 +131,8 @@ class NordicBleControlRepository @Inject constructor(
                 }
                 override fun onDeviceFailedToConnect(device: android.bluetooth.BluetoothDevice, reason: Int) {
                     // FailCallback.REASON_DEVICE_NOT_SUPPORTED (isRequiredServiceSupported() returned
-                    // false, i.e. Control Service UUID absent post-discovery) — verify this constant
-                    // name/value against the pinned 2.11.0 docs during implementation.
+                    // false, i.e. Control Service UUID absent post-discovery); confirmed against the
+                    // ble-ktx 2.11.0 sources.
                     _connectionState.value = if (reason == no.nordicsemi.android.ble.callback.FailCallback.REASON_DEVICE_NOT_SUPPORTED) {
                         ConnectionState.Error("device not migrated")
                     } else {

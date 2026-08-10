@@ -48,6 +48,22 @@ jobs:
         target: esp32c3
         path: 'pgpemu-esp32'
 
+  companion-app-build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - uses: android-actions/setup-android@v4
+
+    - name: gradle build companion-app
+      working-directory: companion-app
+      run: ./gradlew :app:assembleDebug
+
   release:
     if: ${{ github.ref == 'refs/heads/main' }}
     needs:
