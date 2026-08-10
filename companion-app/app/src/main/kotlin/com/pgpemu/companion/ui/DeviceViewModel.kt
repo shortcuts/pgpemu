@@ -42,6 +42,9 @@ data class ProfileState(
     val index: Int,
     val autospin: Boolean? = null,
     val autocatch: Boolean? = null,
+    val caught: Int? = null,
+    val fled: Int? = null,
+    val spin: Int? = null,
 )
 
 data class SettingsState(
@@ -180,7 +183,41 @@ class DeviceViewModel @Inject constructor(
         }
     }
 
-    fun refreshRuntimeStats() = refreshDiagnostic(Opcode.GET_RUNTIME_STATS) { d, text -> d.copy(runtimeStats = text) }
+    fun refreshRuntimeStats() {
+        if (_uiState.value.isBusy) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isBusy = true, errorMessage = null) }
+
+            val slotToConnId = repository.sendCommand(Opcode.GET_CLIENT_STATES, ByteArray(0))
+                .getOrNull()
+                ?.takeIf { it.isOk }
+                ?.let { parseSlotToConnId(String(it.payload, Charsets.UTF_8)) }
+                ?: emptyMap()
+
+            repository.sendCommand(Opcode.GET_RUNTIME_STATS, ByteArray(0)).fold(
+                onSuccess = { frame ->
+                    if (frame.isOk) {
+                        val text = String(frame.payload, Charsets.UTF_8)
+                        val connStats = parseConnStats(text)
+                        _uiState.update { s ->
+                            s.copy(
+                                diagnostics = s.diagnostics.copy(runtimeStats = text),
+                                profiles = s.profiles.map { profile ->
+                                    val stat = slotToConnId[profile.index]?.let { connStats[it] }
+                                    profile.copy(caught = stat?.caught, fled = stat?.fled, spin = stat?.spin)
+                                },
+                            )
+                        }
+                    } else {
+                        _uiState.update { it.copy(errorMessage = "device returned status ${frame.status}") }
+                    }
+                },
+                onFailure = { e -> _uiState.update { it.copy(errorMessage = e.message ?: "command failed") } },
+            )
+
+            _uiState.update { it.copy(isBusy = false) }
+        }
+    }
     fun refreshTaskList() = refreshDiagnostic(Opcode.GET_TASK_LIST) { d, text -> d.copy(taskList = text) }
     fun refreshClientStates() = refreshDiagnostic(Opcode.GET_CLIENT_STATES) { d, text -> d.copy(clientStates = text) }
 
@@ -200,3 +237,35 @@ class DeviceViewModel @Inject constructor(
         }
     }
 }
+
+private data class ConnRuntimeStats(val caught: Int, val fled: Int, val spin: Int)
+
+// Matches "<slot>: <conn_id in hex>" lines from GET_CLIENT_STATES's
+// conn_id_map section (pgp_handshake_multi.c: dump_client_states_format).
+// "ffff" is the firmware's empty-slot sentinel.
+private val CONN_ID_MAP_LINE = Regex("""^(\d+): ([0-9a-f]{4})$""")
+
+private fun parseSlotToConnId(text: String): Map<Int, Int> {
+    val result = mutableMapOf<Int, Int>()
+    for (line in text.lineSequence()) {
+        val match = CONN_ID_MAP_LINE.matchEntire(line.trim()) ?: continue
+        val connIdHex = match.groupValues[2]
+        if (connIdHex == "ffff") continue
+        result[match.groupValues[1].toInt()] = connIdHex.toInt(16)
+    }
+    return result
+}
+
+// Matches GET_RUNTIME_STATS blocks from stats.c: stats_format_runtime.
+private val RUNTIME_STATS_BLOCK = Regex(
+    "Connection (\\d+):\\n- Caught: (\\d+)\\n- Fled: (\\d+)\\n- Spin: (\\d+)",
+)
+
+private fun parseConnStats(text: String): Map<Int, ConnRuntimeStats> =
+    RUNTIME_STATS_BLOCK.findAll(text).associate { m ->
+        m.groupValues[1].toInt() to ConnRuntimeStats(
+            caught = m.groupValues[2].toInt(),
+            fled = m.groupValues[3].toInt(),
+            spin = m.groupValues[4].toInt(),
+        )
+    }

@@ -129,4 +129,56 @@ class DeviceViewModelTest {
         assertEquals("device returned status ${StatusCode.ERR_BUSY}", viewModel.uiState.value.errorMessage)
         assertNull(viewModel.uiState.value.status.logLevel)
     }
+
+    @Test
+    fun `refreshRuntimeStats attributes caught fled spin to the right profile slot`() = runTest {
+        val repository = FakeBleControlRepository()
+        repository.stubResponse(
+            Opcode.GET_CLIENT_STATES,
+            Result.success(
+                ResponseFrame(
+                    StatusCode.OK,
+                    Opcode.GET_CLIENT_STATES.toByte(),
+                    (
+                        "active_connections: 1\n" +
+                            "conn_id_map:\n" +
+                            "0: 0003\n" +
+                            "1: ffff\n" +
+                            "2: ffff\n" +
+                            "3: ffff\n"
+                        ).toByteArray(),
+                ),
+            ),
+        )
+        repository.stubResponse(
+            Opcode.GET_RUNTIME_STATS,
+            Result.success(
+                ResponseFrame(
+                    StatusCode.OK,
+                    Opcode.GET_RUNTIME_STATS.toByte(),
+                    (
+                        "---STATS---\n" +
+                            "Connection 3:\n" +
+                            "- Caught: 5\n" +
+                            "- Fled: 2\n" +
+                            "- Spin: 7\n"
+                        ).toByteArray(),
+                ),
+            ),
+        )
+        val viewModel = DeviceViewModel(repository)
+
+        viewModel.refreshRuntimeStats()
+        dispatcher.scheduler.advanceUntilIdle()
+
+        val profiles = viewModel.uiState.value.profiles
+        assertEquals(5, profiles[0].caught)
+        assertEquals(2, profiles[0].fled)
+        assertEquals(7, profiles[0].spin)
+        assertNull(profiles[1].caught)
+        assertEquals(
+            listOf(Opcode.GET_CLIENT_STATES, Opcode.GET_RUNTIME_STATS),
+            repository.sentCommands.map { it.first },
+        )
+    }
 }

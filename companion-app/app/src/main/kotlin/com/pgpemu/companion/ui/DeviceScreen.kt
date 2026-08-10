@@ -304,6 +304,12 @@ private fun RowScope.ProfileChip(
         FlagDot(label = "SPIN", active = profile.autospin == true, onClick = onToggleAutospin)
         Spacer(modifier = Modifier.height(4.dp))
         FlagDot(label = "CATCH", active = profile.autocatch == true, onClick = onToggleAutocatch)
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = "C:${profile.caught ?: "—"} F:${profile.fled ?: "—"} S:${profile.spin ?: "—"}",
+            color = colors.muted,
+            fontSize = 9.sp,
+        )
     }
 }
 
