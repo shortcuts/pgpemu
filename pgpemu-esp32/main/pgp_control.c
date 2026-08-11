@@ -183,12 +183,8 @@ static void pgp_control_send_response(esp_gatt_if_t gatts_if,
     }
 
     esp_ble_gatts_set_attr_value(control_handle_table[IDX_CHAR_CONTROL_RESPONSE_VAL], 2 + payload_len, frame);
-    esp_ble_gatts_send_indicate(gatts_if,
-        conn_id,
-        control_handle_table[IDX_CHAR_CONTROL_RESPONSE_VAL],
-        2 + payload_len,
-        frame,
-        false);
+    esp_ble_gatts_send_indicate(
+        gatts_if, conn_id, control_handle_table[IDX_CHAR_CONTROL_RESPONSE_VAL], 2 + payload_len, frame, false);
 }
 
 static void pgp_control_handle_command_write(esp_gatt_if_t gatts_if,
