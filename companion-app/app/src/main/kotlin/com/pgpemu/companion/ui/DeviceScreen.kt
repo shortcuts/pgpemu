@@ -98,6 +98,7 @@ fun DeviceScreen(viewModel: DeviceViewModel = hiltViewModel()) {
                 item {
                     DeviceProfilesSection(
                         profiles = uiState.profiles,
+                        maxConnections = uiState.settings.maxConnections,
                         onToggleAutospin = viewModel::toggleAutospin,
                         onToggleAutocatch = viewModel::toggleAutocatch,
                     )
@@ -267,18 +268,24 @@ private fun logLevelName(level: Int) = when (level) { 3 -> "Verbose"; 2 -> "Info
 @Composable
 private fun DeviceProfilesSection(
     profiles: List<ProfileState>,
+    maxConnections: Int?,
     onToggleAutospin: (Int) -> Unit,
     onToggleAutocatch: (Int) -> Unit,
 ) {
+    val active = profiles.filter { it.connected }.let { conn -> maxConnections?.let { conn.take(it) } ?: conn }
     SectionCard(title = "Device profiles") {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            profiles.forEach { profile ->
-                ProfileChip(
-                    profile = profile,
-                    modifier = Modifier.weight(1f),
-                    onToggleAutospin = { onToggleAutospin(profile.index) },
-                    onToggleAutocatch = { onToggleAutocatch(profile.index) },
-                )
+        if (active.isEmpty()) {
+            Text(text = "No devices connected", color = LocalPgpColors.current.muted, fontSize = 12.sp)
+        } else {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                active.forEach { profile ->
+                    ProfileChip(
+                        profile = profile,
+                        modifier = Modifier.weight(1f),
+                        onToggleAutospin = { onToggleAutospin(profile.index) },
+                        onToggleAutocatch = { onToggleAutocatch(profile.index) },
+                    )
+                }
             }
         }
     }

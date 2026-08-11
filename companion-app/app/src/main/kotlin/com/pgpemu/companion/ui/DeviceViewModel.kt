@@ -40,6 +40,7 @@ data class StatusState(
 
 data class ProfileState(
     val index: Int,
+    val connected: Boolean = false,
     val autospin: Boolean? = null,
     val autocatch: Boolean? = null,
     val caught: Int? = null,
@@ -145,10 +146,13 @@ class DeviceViewModel @Inject constructor(
                 _uiState.update { it.copy(status = it.status.copy(ledOn = frame.payload[0] == 1.toByte())) }
             }
             runStep(Opcode.GET_CLIENT_STATES) { frame ->
-                val autoStates = parseProfileAutoStates(String(frame.payload, Charsets.UTF_8))
+                val text = String(frame.payload, Charsets.UTF_8)
+                val autoStates = parseProfileAutoStates(text)
+                val connectedSlots = parseSlotToConnId(text).keys
                 _uiState.update { s ->
                     s.copy(profiles = s.profiles.map { p ->
-                        autoStates[p.index]?.let { p.copy(autospin = it.autospin, autocatch = it.autocatch) } ?: p
+                        val withAuto = autoStates[p.index]?.let { p.copy(autospin = it.autospin, autocatch = it.autocatch) } ?: p
+                        withAuto.copy(connected = p.index in connectedSlots)
                     })
                 }
             }
@@ -223,7 +227,12 @@ class DeviceViewModel @Inject constructor(
                                 diagnostics = s.diagnostics.copy(runtimeStats = text),
                                 profiles = s.profiles.map { profile ->
                                     val stat = slotToConnId[profile.index]?.let { connStats[it] }
-                                    profile.copy(caught = stat?.caught, fled = stat?.fled, spin = stat?.spin)
+                                    profile.copy(
+                                        connected = profile.index in slotToConnId,
+                                        caught = stat?.caught,
+                                        fled = stat?.fled,
+                                        spin = stat?.spin,
+                                    )
                                 },
                             )
                         }
