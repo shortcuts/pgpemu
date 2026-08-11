@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settings, pgpemu</title>
+  <link rel="icon" href="icon.png" type="image/png">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@docsearch/css@4">
+</head>
+<body>
+<div class="layout">
+
+  <main>
+    <h2 id="settings">Settings</h2>
+    <p>
+      The Settings section controls how the device presents itself over Bluetooth: whether it's
+      discoverable, how many connections it accepts at once, and how much detail it logs.
+    </p>
+
+    <div class="table-wrap">
+    <table class="option-table">
+      <thead><tr><th>Setting</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>Advertising</strong></td>
+          <td>Turns Bluetooth advertising on or off. While on, the device is visible to Pokémon GO and the companion app when they scan. Turn it off once everything you need is already paired, so it stops showing up to new scans. Existing connections aren't affected by turning it off.</td>
+        </tr>
+        <tr>
+          <td><strong>Max connections</strong></td>
+          <td>The largest number of simultaneous Bluetooth connections the device accepts, from 1 to 4. Lower it to reserve the device for fewer accounts; raise it back up to 4 to allow the full set. See <a href="connect.html#multiple-devices">Multiple connections</a>.</td>
+        </tr>
+        <tr>
+          <td><strong>Log level</strong></td>
+          <td>How much detail the device records internally: Debug, Info, or Verbose. Tap <strong>Cycle log level</strong> to step through the options. Verbose is the most useful setting when you're trying to reproduce a problem to report.</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+    <h2 id="saving">Saving changes</h2>
+    <p>
+      Changes take effect right away, but tap <strong>Save to device</strong> to write Advertising,
+      Max connections, and Log level to the device's flash storage so they're still set the next
+      time it powers on. Without saving, these reset to their last saved value after a restart.
+    </p>
+  </main>
+
+</div>
+<script src="wiki-init.js"></script>
+</body>
+</html>

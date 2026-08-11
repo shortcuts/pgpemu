@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Connect & Pair, pgpemu</title>
+  <link rel="icon" href="icon.png" type="image/png">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@docsearch/css@4">
+</head>
+<body>
+<div class="layout">
+
+  <main>
+    <h2 id="connect-companion-app">Connect the companion app</h2>
+    <p>
+      Power on the PGPemu device, open PGPemu Companion, and tap <strong>Connect</strong>. The
+      app scans for the device, connects, and completes pairing on its own — there's no PIN or
+      passphrase to type.
+    </p>
+    <ul class="section-bullets">
+      <li>The status pill in the top bar shows <strong>Scanning</strong>, then <strong>Connecting</strong>, then <strong>Bonding</strong> as pairing goes through.</li>
+      <li>Once pairing finishes, the pill switches to <strong>Ready</strong> and the app shows the full dashboard: status, device profiles, settings, diagnostics, and the danger zone.</li>
+      <li>The first time you connect, your phone may ask for Bluetooth permission. Allow it — without it, the app can't scan for the device.</li>
+      <li>Later connections to a device you've already paired are quicker, since pairing only needs to happen once.</li>
+    </ul>
+
+    <h2 id="pair-pokemon-go">Pair with Pokémon GO</h2>
+    <p>
+      This is a separate step from connecting the companion app, done from inside Pokémon GO
+      itself, the same way you'd pair a real Poké Ball Plus or GO Plus.
+    </p>
+    <ol class="quickstart">
+      <li>In Pokémon GO, open <strong>Settings</strong> and go to the Pokémon GO Plus / Poké Ball Plus pairing screen.</li>
+      <li>Start the search. Your PGPemu device shows up in the scan like a real accessory.</li>
+      <li>Select it. Pairing completes automatically, with no passphrase required.</li>
+    </ol>
+    <p>
+      Once paired, Pokémon GO reconnects to it automatically whenever both are in range and
+      Bluetooth is on — the same as it would with genuine hardware.
+    </p>
+
+    <h2 id="multiple-devices">Multiple connections</h2>
+    <p>
+      A single PGPemu device can hold up to 4 simultaneous Bluetooth connections at once, shared
+      between Pokémon GO and the companion app. Each connection gets its own device profile
+      (numbered #0 to #3) with independent Autospin and Autocatch settings — see
+      <a href="profiles.html">Device Profiles</a>.
+    </p>
+    <p>
+      This is useful if more than one Pokémon GO account uses the same device, since each
+      account's connection is tracked and configured separately. The
+      <a href="settings.html">Settings</a> page lets you lower the connection limit below 4 if
+      you'd rather keep it reserved for fewer accounts.
+    </p>
+
+    <h2 id="disconnect">Disconnecting</h2>
+    <p>
+      Tap <strong>Disconnect</strong> at the bottom of the companion app screen to end its own
+      connection. This doesn't affect Pokémon GO's connection to the device — the two are
+      independent. To drop every connection at once, including Pokémon GO's, use
+      <strong>Disconnect all clients</strong> in <a href="diagnostics.html">Diagnostics</a>.
+    </p>
+  </main>
+
+</div>
+<script src="wiki-init.js"></script>
+</body>
+</html>

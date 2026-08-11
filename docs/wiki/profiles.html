@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Device Profiles, pgpemu</title>
+  <link rel="icon" href="icon.png" type="image/png">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@docsearch/css@4">
+</head>
+<body>
+<div class="layout">
+
+  <main>
+    <h2 id="device-profiles">Device profiles</h2>
+    <p>
+      The <strong>Device Profiles</strong> section shows one card per connection slot, numbered
+      #0 to #3. Whichever Pokémon GO account is connected to a given slot is controlled by that
+      card's settings.
+    </p>
+    <div class="feature-section" id="profiles-card">
+      <ul class="section-bullets">
+        <li>Each card has a <strong>SPIN</strong> dot and a <strong>CATCH</strong> dot. Tap either to turn that behavior on or off for that slot.</li>
+        <li>A lit, colored dot means the behavior is on. A dim dot means it's off.</li>
+        <li>Underneath, a small counter tracks how many Pokémon were caught (<strong>C</strong>), how many fled (<strong>F</strong>), and how many Pokéstops were spun (<strong>S</strong>) since the device last restarted.</li>
+      </ul>
+    </div>
+
+    <h2 id="autospin">Autospin</h2>
+    <p>
+      When Autospin is on, the device automatically presses its button whenever Pokémon GO
+      signals that you're near a Pokéstop or Gym you can spin. You don't have to touch your
+      phone — walk past a stop and it spins on its own.
+    </p>
+
+    <h2 id="autocatch">Autocatch</h2>
+    <p>
+      When Autocatch is on, the device automatically presses its button when Pokémon GO signals
+      a wild Pokémon encounter, the same way pressing the button on a real GO Plus registers a
+      catch attempt.
+    </p>
+
+    <h2 id="how-it-decides">How it decides when to press</h2>
+    <p>
+      Pokémon GO Plus accessories, including PGPemu, take their cue from a pattern of light the
+      game sends over the connection rather than anything shown on your screen. PGPemu
+      recognizes each of these patterns and reacts accordingly:
+    </p>
+    <ul class="trouble">
+      <li>Pokémon caught — the button press succeeded.</li>
+      <li>Pokémon fled — the encounter ended without a catch.</li>
+      <li>Pokéstop or Gym spun.</li>
+      <li>Item bag is full — the device holds off on spinning stops until there's room again.</li>
+      <li>Pokémon box is full — the device holds off on catching until there's room again.</li>
+      <li>Poké Balls are empty — nothing left to throw, so catching pauses.</li>
+    </ul>
+    <p>
+      Button presses use small randomized delays rather than firing instantly, closer to how a
+      person reacts than a fixed, mechanical timing.
+    </p>
+
+    <h2 id="persisted">Settings stick around</h2>
+    <p>
+      Autospin and Autocatch are remembered per device profile and reapplied automatically the
+      next time that same Pokémon GO account reconnects, even after the PGPemu device restarts.
+    </p>
+  </main>
+
+</div>
+<script src="wiki-init.js"></script>
+</body>
+</html>

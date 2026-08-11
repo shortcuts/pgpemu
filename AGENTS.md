@@ -54,3 +54,35 @@ The `companion-app/` directory is a separate Kotlin/Jetpack Compose Gradle proje
 * Fix every lint/build error before declaring done. Never suppress lint errors; if a rule is a genuine false positive, add an inline comment explaining why.
 * Doc changes go in the same commit as the code change, not a follow-up.
 * Never add co-authoring or "Claude-Sessions" trailers to commits.
+
+## Website (GitHub Pages)
+
+Static documentation site at `docs/wiki/`, served at `pgpemu.shrtcts.fr` via GitHub Pages. Deployed automatically on push to `main` by `.github/workflows/pages.yml`. Run locally with:
+
+```bash
+make wiki-serve   # http://localhost:8080
+```
+
+### Structure
+
+| File | Purpose |
+|------|---------|
+| `docs/wiki/index.html` | Overview + what you need + quick start |
+| `docs/wiki/connect.html` | Pairing the companion app and the device with Pokémon GO |
+| `docs/wiki/profiles.html` | Autospin / Autocatch per device profile |
+| `docs/wiki/settings.html` | Advertising, max connections, log level |
+| `docs/wiki/diagnostics.html` | Status, diagnostics dumps, danger zone |
+| `docs/wiki/troubleshooting.html` | Connection and usage problems |
+| `docs/wiki/changelog.html` | User-facing curated changelog |
+| `docs/wiki/privacy.html` | Privacy policy |
+| `docs/wiki/acknowledgements.html` | Open-source credits |
+| `docs/wiki/style.css` | Single stylesheet — all pages share it |
+| `docs/wiki/wiki-init.js` | Injects the sidebar nav, search, and heading anchors into every page at runtime |
+
+### Maintaining content
+
+Follow `docs/wiki/CONTRIBUTING.md` for page structure, nav ordering, and writing style. Wiki pages are for **app and device users, not developers** — no code symbols, opcode names, firmware internals, or build/contribution instructions.
+
+- New user-visible companion app or device behavior → update the matching wiki page. Add a new page only if the change doesn't fit any existing one, and add it to `NAV_ITEMS` in `docs/wiki/wiki-init.js`.
+- Wiki prose must pass the audience test in `docs/wiki/CONTRIBUTING.md`: could a non-technical user understand every sentence? If not, rewrite.
+- No external resources beyond the DocSearch CDN script/stylesheet already in use — no other CDN fonts or JS libraries.

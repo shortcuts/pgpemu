@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Diagnostics & Danger Zone, pgpemu</title>
+  <link rel="icon" href="icon.png" type="image/png">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@docsearch/css@4">
+</head>
+<body>
+<div class="layout">
+
+  <main>
+    <h2 id="status">Status</h2>
+    <p>
+      The Status card at the top of the dashboard is a read-only snapshot of the device right
+      now:
+    </p>
+    <div class="table-wrap">
+    <table class="option-table">
+      <thead><tr><th>Field</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>LED</strong></td>
+          <td>Whether the device's indicator light is currently on.</td>
+        </tr>
+        <tr>
+          <td><strong>Advertising</strong></td>
+          <td>Whether the device is currently discoverable to new Bluetooth connections.</td>
+        </tr>
+        <tr>
+          <td><strong>Connections</strong></td>
+          <td>How many devices are connected right now, out of the max set in <a href="settings.html">Settings</a>.</td>
+        </tr>
+        <tr>
+          <td><strong>Log level</strong></td>
+          <td>The device's current logging detail: Debug, Info, or Verbose.</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+    <h2 id="diagnostics">Diagnostics</h2>
+    <p>
+      Diagnostics pulls detailed, on-demand information straight from the device. None of it
+      updates automatically — tap <strong>Refresh</strong> on any of the three dumps to fetch the
+      latest.
+    </p>
+    <ul class="section-bullets">
+      <li><strong>Runtime stats</strong> — internal counters for the device's current session.</li>
+      <li><strong>Task list</strong> — the device's internal task activity.</li>
+      <li><strong>Client states</strong> — the state of each connected client, one per connection slot.</li>
+    </ul>
+    <p>
+      This is raw, technical output meant to be copied into a
+      <a href="https://github.com/shortcuts/pgpemu/issues/new?labels=bug" target="_blank" rel="noopener">bug report</a>
+      rather than read at a glance. Tap and hold any dump to select and copy its text.
+    </p>
+
+    <h3 id="disconnect-all">Disconnect all clients</h3>
+    <p>
+      Drops every Bluetooth connection the device currently holds, including Pokémon GO's, not
+      just the companion app's own connection. Useful for a clean restart when something seems
+      stuck, without power-cycling the device itself.
+    </p>
+
+    <h2 id="danger-zone">Danger zone</h2>
+    <p>
+      These two actions are irreversible and take effect on the device immediately. Each opens a
+      confirmation sheet naming exactly what will happen, and asks you to type a confirmation
+      word before the action becomes available — there's no undo after that.
+    </p>
+
+    <div class="table-wrap">
+    <table class="option-table">
+      <thead><tr><th>Action</th><th>What happens</th><th>Confirm with</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>Reset session secrets</strong></td>
+          <td>Erases the device's clone identity, address, and keys. It will need to be paired from scratch afterward, in both Pokémon GO and the companion app.</td>
+          <td><code>RESET</code></td>
+        </tr>
+        <tr>
+          <td><strong>Restart device</strong></td>
+          <td>Restarts the device right away. Every Bluetooth connection drops immediately.</td>
+          <td><code>RESTART</code></td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </main>
+
+</div>
+<script src="wiki-init.js"></script>
+</body>
+</html>

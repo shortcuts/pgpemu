@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Troubleshooting, pgpemu</title>
+  <link rel="icon" href="icon.png" type="image/png">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@docsearch/css@4">
+</head>
+<body>
+<div class="layout">
+
+  <main>
+    <h2 id="troubleshooting">Troubleshooting</h2>
+    <p>Common connection and usage problems, and how to fix them.</p>
+
+    <h2 id="app-cant-find-device">Companion app can't find the device</h2>
+    <ul class="trouble">
+      <li>Make sure the device is powered on and its LED is active.</li>
+      <li>Turn Bluetooth on for your phone, and grant the app's Bluetooth permission if it was denied earlier — the app shows a message under the Connect button when that's the problem.</li>
+      <li>Move closer. Bluetooth Low Energy range shrinks fast through walls and at distance.</li>
+      <li>Check <a href="settings.html">Advertising</a> is turned on. If it was switched off, the device won't show up in a scan at all.</li>
+      <li>If the device is already holding as many connections as its Max connections limit allows, it won't accept a new one. Disconnect something first, or raise the limit from another already-connected client.</li>
+    </ul>
+
+    <h2 id="connect-fails-with-error">Connecting fails with an error message</h2>
+    <p>
+      The companion app shows the underlying Bluetooth error text below the Connect button so it
+      can be reported if needed. A few you might see, and what they usually mean:
+    </p>
+    <div class="table-wrap">
+    <table class="option-table">
+      <thead><tr><th>Message contains</th><th>Likely cause</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Bluetooth adapter is off / Bluetooth is disabled</td>
+          <td>Turn Bluetooth on for your phone and try again.</td>
+        </tr>
+        <tr>
+          <td>connection timed out</td>
+          <td>The device didn't respond in time. Move closer, make sure it's powered on, and retry.</td>
+        </tr>
+        <tr>
+          <td>connection cancelled</td>
+          <td>The connection attempt was interrupted, often by tapping Connect again mid-scan. Just retry.</td>
+        </tr>
+        <tr>
+          <td>device not migrated</td>
+          <td>The device connected, but doesn't support the companion app protocol. Its firmware needs to be updated to a version that includes it.</td>
+        </tr>
+        <tr>
+          <td>bonding failed</td>
+          <td>Pairing itself was rejected. Forget the device from your phone's Bluetooth settings and try connecting again from scratch.</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+    <h2 id="not-appearing-in-pokemon-go">Device not appearing in Pokémon GO's pairing scan</h2>
+    <ul class="trouble">
+      <li>Confirm <a href="settings.html">Advertising</a> is on — this is checked from the companion app or Status card.</li>
+      <li>Make sure the device isn't already at its Max connections limit.</li>
+      <li>Turn Bluetooth off and back on for your phone, and restart the Pokémon GO app.</li>
+      <li>Some phones need Bluetooth scanning permission granted to Pokémon GO specifically — check its app permissions if the scan comes up empty.</li>
+    </ul>
+
+    <h2 id="autospin-autocatch-not-triggering">Autospin or Autocatch isn't triggering</h2>
+    <ul class="trouble">
+      <li>Open <a href="profiles.html">Device Profiles</a> and confirm the SPIN or CATCH dot is lit for the profile that matches your connected Pokémon GO account.</li>
+      <li>Autospin pauses on its own if your item bag is full, and Autocatch pauses if your Pokémon box is full or you're out of Poké Balls. Clear space in-game and it resumes automatically.</li>
+      <li>If more than one account uses the same device, double check you're toggling the profile for the right connection slot, not a different one.</li>
+    </ul>
+
+    <h2 id="settings-not-sticking">Settings reset after a restart</h2>
+    <p>
+      Advertising, Max connections, and Log level only persist across a power cycle if you tap
+      <strong>Save to device</strong> in <a href="settings.html">Settings</a> after changing them.
+      A change that's never saved reverts to its last saved value the next time the device
+      restarts.
+    </p>
+
+    <h2 id="frequent-disconnects">Frequent disconnects or slow responses</h2>
+    <ul class="trouble">
+      <li>Keep the device within a stable Bluetooth range — physical distance and obstructions are the most common cause.</li>
+      <li>A Log level of Verbose adds overhead. Switch it back to Info or Debug once you're done diagnosing an issue.</li>
+      <li>If several devices are connected at once, an already-busy connection slot can make everything feel slower. Check <a href="diagnostics.html">Client states</a> to see what's connected.</li>
+    </ul>
+
+    <h2 id="starting-fresh">Starting over from scratch</h2>
+    <p>
+      If a device is stuck in a bad state that the steps above don't fix, <strong>Reset session
+      secrets</strong> in the <a href="diagnostics.html#danger-zone">Danger Zone</a> clears its
+      pairing identity entirely. You'll need to pair it again in both the companion app and
+      Pokémon GO afterward, so use it as a last resort.
+    </p>
+
+    <h2 id="still-stuck">Still stuck?</h2>
+    <p>
+      Grab a copy of the <a href="diagnostics.html#diagnostics">Diagnostics</a> dumps and
+      <a href="https://github.com/shortcuts/pgpemu/issues/new?labels=bug" target="_blank" rel="noopener">open a bug report</a>.
+    </p>
+  </main>
+
+</div>
+<script src="wiki-init.js"></script>
+</body>
+</html>

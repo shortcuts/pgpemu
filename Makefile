@@ -1,4 +1,4 @@
-.PHONY: build clean menuconfig flash monitor run format test companion-build companion-install companion-reinstall companion-start companion-log companion-test companion-clean
+.PHONY: build clean menuconfig flash monitor run format test companion-build companion-install companion-reinstall companion-start companion-log companion-test companion-clean wiki-serve
 .DEFAULT_GOAL := install-deps
 
 IDF_EXPORT := . $(HOME)/esp/v5.4.1/esp-idf/export.sh >/dev/null
@@ -70,3 +70,8 @@ companion-test: ## Runs the companion app's unit tests
 
 companion-clean: ## Removes the companion app's Gradle build output
 	cd ./companion-app && ./gradlew clean
+
+##@ Wiki
+
+wiki-serve: ## Serves the docs wiki locally at http://localhost:8080
+	cd ./docs/wiki && python3 -m http.server 8080

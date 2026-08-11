@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Acknowledgements: pgpemu</title>
+  <link rel="icon" href="icon.png" type="image/png">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@docsearch/css@4">
+</head>
+<body>
+<div class="layout">
+
+  <main>
+    <h2 id="acknowledgements">Acknowledgements</h2>
+    <p>
+      PGPemu builds on earlier work reverse-engineering the Pokémon GO Plus protocol, and the
+      companion app is built using a number of open-source projects. Thanks to everyone who
+      works on them.
+    </p>
+
+    <h2 id="prior-work">Prior work</h2>
+    <div class="table-wrap">
+    <table class="option-table">
+      <thead><tr><th>Project</th><th>Contribution</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong><a href="https://github.com/yohanes/pgpemu" target="_blank" rel="noopener">yohane's pgpemu</a></strong></td>
+          <td>The original Pokémon GO Plus emulator this project is based on.</td>
+        </tr>
+        <tr>
+          <td><strong><a href="https://github.com/spezifisch/pgpemu" target="_blank" rel="noopener">spezifisch's fork</a></strong></td>
+          <td>Further protocol work carried forward into this project.</td>
+        </tr>
+        <tr>
+          <td><strong><a href="https://github.com/paper183/pgpemu" target="_blank" rel="noopener">paper183's fork</a></strong></td>
+          <td>Further protocol work carried forward into this project.</td>
+        </tr>
+        <tr>
+          <td><strong><a href="https://github.com/Mygod/pogoplusle" target="_blank" rel="noopener">pogoplusle</a></strong></td>
+          <td>A compatible client PGPemu is tested against for auto reconnect and handshake behavior.</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+    <h2 id="companion-app-bluetooth">Companion app &amp; Bluetooth</h2>
+    <div class="table-wrap">
+    <table class="option-table">
+      <thead><tr><th>Project</th><th>Used for</th><th>License</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong><a href="https://github.com/NordicSemiconductor/Android-BLE-Library" target="_blank" rel="noopener">Nordic Android BLE Library</a></strong> (Nordic Semiconductor)</td>
+          <td>Handles the Bluetooth Low Energy connection, pairing, and the command/response protocol used to talk to the device.</td>
+          <td><a href="https://github.com/NordicSemiconductor/Android-BLE-Library/blob/main/LICENSE" target="_blank" rel="noopener">BSD 3-Clause</a></td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+    <h2 id="language-async">Language &amp; async</h2>
+    <div class="table-wrap">
+    <table class="option-table">
+      <thead><tr><th>Project</th><th>Used for</th><th>License</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong><a href="https://kotlinlang.org" target="_blank" rel="noopener">Kotlin</a></strong> (JetBrains)</td>
+          <td>The programming language the entire app is written in.</td>
+          <td><a href="https://github.com/JetBrains/kotlin/blob/master/license/LICENSE.txt" target="_blank" rel="noopener">Apache 2.0</a></td>
+        </tr>
+        <tr>
+          <td><strong><a href="https://github.com/Kotlin/kotlinx.coroutines" target="_blank" rel="noopener">Kotlin Coroutines</a></strong> (JetBrains)</td>
+          <td>Handles background work and the app's real-time connection state.</td>
+          <td><a href="https://github.com/Kotlin/kotlinx.coroutines/blob/master/LICENSE.txt" target="_blank" rel="noopener">Apache 2.0</a></td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+    <h2 id="ui-architecture">UI &amp; architecture</h2>
+    <div class="table-wrap">
+    <table class="option-table">
+      <thead><tr><th>Project</th><th>Used for</th><th>License</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong><a href="https://developer.android.com/compose" target="_blank" rel="noopener">Jetpack Compose</a></strong> (Google)</td>
+          <td>The toolkit used to build every screen in the app.</td>
+          <td><a href="https://android.googlesource.com/platform/frameworks/support/+/refs/heads/androidx-main/LICENSE.txt" target="_blank" rel="noopener">Apache 2.0</a></td>
+        </tr>
+        <tr>
+          <td><strong><a href="https://m3.material.io" target="_blank" rel="noopener">Material 3</a></strong> (Google)</td>
+          <td>Provides base interface components used throughout the app.</td>
+          <td><a href="https://github.com/material-components/material-components-android/blob/master/LICENSE" target="_blank" rel="noopener">Apache 2.0</a></td>
+        </tr>
+        <tr>
+          <td><strong><a href="https://dagger.dev/hilt/" target="_blank" rel="noopener">Hilt (Dagger)</a></strong> (Google)</td>
+          <td>Internal framework that connects the app's components together.</td>
+          <td><a href="https://github.com/google/dagger/blob/master/LICENSE.txt" target="_blank" rel="noopener">Apache 2.0</a></td>
+        </tr>
+        <tr>
+          <td><strong><a href="https://developer.android.com/topic/libraries/architecture/lifecycle" target="_blank" rel="noopener">AndroidX Lifecycle</a></strong> (Google)</td>
+          <td>Manages how the app responds to screen rotation, backgrounding, and other Android lifecycle events.</td>
+          <td><a href="https://android.googlesource.com/platform/frameworks/support/+/refs/heads/androidx-main/LICENSE.txt" target="_blank" rel="noopener">Apache 2.0</a></td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+    <h2 id="firmware">Device firmware</h2>
+    <div class="table-wrap">
+    <table class="option-table">
+      <thead><tr><th>Project</th><th>Used for</th><th>License</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong><a href="https://github.com/espressif/esp-idf" target="_blank" rel="noopener">ESP-IDF</a></strong> (Espressif Systems)</td>
+          <td>The framework the device's firmware, including its Bluetooth Low Energy stack, is built on.</td>
+          <td><a href="https://github.com/espressif/esp-idf/blob/master/LICENSE" target="_blank" rel="noopener">Apache 2.0</a></td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </main>
+
+</div>
+<script src="wiki-init.js"></script>
+</body>
+</html>

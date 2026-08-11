@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Getting started, pgpemu</title>
+  <link rel="icon" href="icon.png" type="image/png">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@docsearch/css@4">
+</head>
+<body>
+<div class="layout">
+
+  <main>
+    <p class="page-title">pgpemu</p>
+    <p>
+      PGPemu turns a small piece of hardware into a Pokémon GO Plus accessory. It pairs with
+      Pokémon GO over Bluetooth the same way a real Poké Ball Plus or GO Plus does, then spins
+      Pokéstops and catches Pokémon on your behalf while your phone stays in your pocket.
+    </p>
+    <p>
+      A companion Android app handles everything else: pairing, per-device settings, and
+      diagnostics, all over Bluetooth Low Energy.
+    </p>
+
+    <h2 id="what-you-need">What you need</h2>
+    <ul class="step-list">
+      <li>
+        <div>
+          <strong>A PGPemu device</strong>
+          <p>
+            A powered-on PGPemu accessory, already set up with its own pairing identity. If you
+            don't have one yet, see the
+            <a href="https://github.com/shortcuts/pgpemu" target="_blank" rel="noopener">project page</a>
+            for what hardware is needed and how to build one.
+          </p>
+        </div>
+      </li>
+      <li>
+        <div>
+          <strong>PGPemu Companion</strong>
+          <p>
+            The Android app used to pair with the device, check its status, and change its
+            settings. Requires Android 12 or newer and Bluetooth Low Energy support.
+          </p>
+        </div>
+      </li>
+    </ul>
+
+    <h2 id="install">Install the companion app</h2>
+    <p>
+      The app isn't on the Play Store yet. Build it from the
+      <a href="https://github.com/shortcuts/pgpemu" target="_blank" rel="noopener">source repository</a>'s
+      <code>companion-app</code> project in Android Studio and install it to your phone, or check
+      <a href="https://github.com/shortcuts/pgpemu/releases/latest" target="_blank" rel="noopener">GitHub Releases</a>
+      for a prebuilt APK if one is available.
+    </p>
+
+    <h2 id="start">Start here</h2>
+    <p>
+      Once the app is installed and your device is powered on, head to
+      <a href="connect.html">Connect &amp; Pair</a> to link the app to your device and pair the
+      device with Pokémon GO.
+    </p>
+
+    <h2 id="source">Source</h2>
+    <p>
+      <a href="https://github.com/shortcuts/pgpemu" target="_blank" rel="noopener">github.com/shortcuts/pgpemu</a>.
+      Free and open source.
+    </p>
+    <p>
+      See <a href="acknowledgements.html">Acknowledgements</a> for the open-source projects this
+      app is built on.
+    </p>
+  </main>
+
+</div>
+<script src="wiki-init.js"></script>
+</body>
+</html>

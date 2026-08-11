@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Changelog, pgpemu</title>
+  <link rel="icon" href="icon.png" type="image/png">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@docsearch/css@4">
+</head>
+<body>
+<div class="layout">
+
+  <main>
+    <h2 id="changelog">Changelog</h2>
+    <p>What's new in each release. See <a href="https://github.com/shortcuts/pgpemu/releases" target="_blank" rel="noopener">GitHub Releases</a> for the full history.</p>
+
+    <h3 id="v101"><a href="https://github.com/shortcuts/pgpemu/releases/tag/v1.0.1" target="_blank" rel="noopener">1.0.1</a> — February 18, 2026</h3>
+    <ul>
+      <li>Fixed a stall that could leave a connection queue stuck.</li>
+      <li>Fixed a crash that could occur during device handshakes.</li>
+    </ul>
+
+    <h3 id="v100"><a href="https://github.com/shortcuts/pgpemu/releases/tag/v1.0.0" target="_blank" rel="noopener">1.0.0</a> — February 1, 2026</h3>
+    <ul>
+      <li>New: per-device settings, so each connected Pokémon GO account keeps its own Autospin and Autocatch state.</li>
+      <li>New: caught, fled, and spin counters shown per device.</li>
+      <li>New: log levels, for more or less detail when diagnosing a problem.</li>
+      <li>Autospin now pauses automatically when the item bag is full, and resumes on its own once there's room.</li>
+      <li>Reconnecting to a previously paired account is now faster and more reliable.</li>
+      <li>Settings are restored automatically on every new connection.</li>
+    </ul>
+  </main>
+
+</div>
+<script src="wiki-init.js"></script>
+</body>
+</html>
