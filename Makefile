@@ -1,4 +1,4 @@
-.PHONY: build clean menuconfig flash monitor run format test companion-build companion-install companion-reinstall companion-start companion-log companion-test companion-clean wiki-serve
+.PHONY: build clean menuconfig flash monitor run install format test companion-build companion-install companion-reinstall companion-start companion-log companion-test companion-clean wiki-serve
 .DEFAULT_GOAL := install-deps
 
 IDF_EXPORT := . $(HOME)/esp/v5.4.1/esp-idf/export.sh >/dev/null
@@ -36,6 +36,8 @@ monitor: ## Opens the serial monitor
 	$(IDF_EXPORT) && cd ./pgpemu-esp32 && idf.py -p $(PORT) monitor
 
 run: flash monitor ## Builds, flashes and monitors in one go
+
+install: flash companion-install ## Flashes the firmware and installs the companion app in one go
 
 ##@ Code
 
