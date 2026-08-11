@@ -142,17 +142,18 @@ void set_remote_bda(uint16_t conn_id, esp_bd_addr_t remote_bda) {
 }
 
 void connection_start(uint16_t conn_id) {
-    // Safely increment active connections count
-    if (mutex_acquire_blocking(active_connections_mutex)) {
-        active_connections++;
-        mutex_release(active_connections_mutex);
-    }
-
     client_state_t* entry = get_client_state_entry(conn_id);
     if (!entry) {
         ESP_LOGE(HANDSHAKE_TAG, "connection_start: conn_id %d unknown", conn_id);
         return;
     }
+
+    // Safely increment active connections count
+    if (mutex_acquire_blocking(active_connections_mutex)) {
+        active_connections++;
+        mutex_release(active_connections_mutex);
+    }
+    entry->counted_as_active = true;
 
     entry->conn_id = conn_id;
     entry->connection_start = xTaskGetTickCount();
@@ -185,22 +186,27 @@ void connection_update(uint16_t conn_id) {
 }
 
 void connection_stop(uint16_t conn_id, uint8_t reason) {
-    // Safely decrement active connections count
-    if (mutex_acquire_blocking(active_connections_mutex)) {
-        active_connections--;
-        if (active_connections < 0) {
-            // I'm not entirely sure that we covered all paths so try to save something in case of
-            // mistakes
-            ESP_LOGE(HANDSHAKE_TAG, "we counted connections wrong!");
-            active_connections = 0;
-        }
-        mutex_release(active_connections_mutex);
-    }
-
     client_state_t* entry = get_client_state_entry(conn_id);
     if (!entry) {
         ESP_LOGE(HANDSHAKE_TAG, "connection_stop: conn_id %d unknown", conn_id);
         return;
+    }
+
+    // Only decrement active_connections if this entry was actually counted, i.e.
+    // connection_start() ran for it. A handshake that never completed never
+    // incremented the counter, so stopping it must not decrement it either.
+    if (entry->counted_as_active) {
+        if (mutex_acquire_blocking(active_connections_mutex)) {
+            active_connections--;
+            if (active_connections < 0) {
+                // I'm not entirely sure that we covered all paths so try to save something in case of
+                // mistakes
+                ESP_LOGE(HANDSHAKE_TAG, "we counted connections wrong!");
+                active_connections = 0;
+            }
+            mutex_release(active_connections_mutex);
+        }
+        entry->counted_as_active = false;
     }
 
     entry->connection_end = xTaskGetTickCount();

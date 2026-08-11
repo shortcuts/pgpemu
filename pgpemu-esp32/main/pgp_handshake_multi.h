@@ -40,6 +40,10 @@ typedef struct {
 
     TickType_t handshake_start, reconnection_at, connection_start, connection_end;
     bool used_cached_session;
+    // Set by connection_start() once this entry has been counted in the global
+    // active_connections total. connection_stop() only decrements when this is
+    // set, so stopping a handshake that never completed can't undercount.
+    bool counted_as_active;
     // Set once BLE auth (ESP_GAP_BLE_AUTH_CMPL_EVT) succeeds on this connection instance.
     // Lets pgp_gap.c tell a fresh pairing's auth failure apart from a transient auth
     // hiccup on a link that already authenticated once and is still live.

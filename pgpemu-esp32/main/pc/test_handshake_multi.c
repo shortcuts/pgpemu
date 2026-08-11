@@ -92,6 +92,7 @@ typedef struct {
     uint8_t reconnect_challenge[32];
     TickType_t handshake_start, reconnection_at, connection_start, connection_end;
     bool auth_succeeded;
+    bool counted_as_active;
 } client_state_t;
 
 static int active_connections = 0;
@@ -179,24 +180,35 @@ static void delete_client_state_entry(client_state_t* entry) {
 }
 
 void connection_start(uint16_t conn_id) {
-    active_connections++;
     client_state_t* entry = get_client_state_entry(conn_id);
-    if (entry) {
-        entry->connection_start = xTaskGetTickCount();
+    if (!entry) {
+        return;
     }
+
+    active_connections++;
+    entry->counted_as_active = true;
+    entry->connection_start = xTaskGetTickCount();
 }
 
+// connection_stop() only decrements active_connections when the entry was actually
+// counted as active (i.e. connection_start() ran for it). Stopping a handshake that
+// never completed must not decrement the counter.
 void connection_stop(uint16_t conn_id) {
-    active_connections--;
-    if (active_connections < 0)
-        active_connections = 0;
-
     client_state_t* entry = get_client_state_entry(conn_id);
-    if (entry) {
-        entry->connection_end = xTaskGetTickCount();
-        entry->cert_state = 0;
-        delete_client_state_entry(entry);
+    if (!entry) {
+        return;
     }
+
+    if (entry->counted_as_active) {
+        active_connections--;
+        if (active_connections < 0)
+            active_connections = 0;
+        entry->counted_as_active = false;
+    }
+
+    entry->connection_end = xTaskGetTickCount();
+    entry->cert_state = 0;
+    delete_client_state_entry(entry);
 }
 
 // Test initialization
@@ -468,6 +480,36 @@ void test_auth_fail_bond_removal_decision() {
     printf("✓ Auth failure with no tracked connection removes the bond\n");
 }
 
+// Regression test: stopping a connection whose handshake never completed (connection_start()
+// never ran) must not decrement active_connections. Otherwise a completed, still-active
+// connection's count drifts below its real value.
+void test_stop_incomplete_handshake_does_not_undercount() {
+    printf("\n=== Test: Stopping an Incomplete Handshake Does Not Undercount ===\n");
+
+    init_handshake_multi();
+
+    uint16_t completed_conn_id = 0x0001;
+    uint16_t incomplete_conn_id = 0x0002;
+
+    get_or_create_client_state_entry(completed_conn_id);
+    get_or_create_client_state_entry(incomplete_conn_id);
+
+    // Only the first connection finishes its handshake and gets counted.
+    connection_start(completed_conn_id);
+    assert(get_active_connections() == 1);
+    printf("✓ Completed handshake counted as active\n");
+
+    // The second connection never finished (no connection_start()), then disconnects.
+    connection_stop(incomplete_conn_id);
+    assert(get_active_connections() == 1);
+    printf("✓ Stopping an incomplete handshake does not decrement active_connections\n");
+
+    // The genuinely active connection still decrements normally when it stops.
+    connection_stop(completed_conn_id);
+    assert(get_active_connections() == 0);
+    printf("✓ Stopping a completed handshake still decrements active_connections\n");
+}
+
 // Run all tests
 int main() {
     printf("========================================\n");
@@ -483,6 +525,7 @@ int main() {
     test_device_settings_linkage();
     test_lookup_consistency();
     test_auth_fail_bond_removal_decision();
+    test_stop_incomplete_handshake_does_not_undercount();
 
     printf("\n========================================\n");
     printf("✓ All handshake_multi tests passed!\n");
