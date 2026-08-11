@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
 import no.nordicsemi.android.ble.BleManager
+import no.nordicsemi.android.ble.callback.FailCallback
 import no.nordicsemi.android.ble.error.GattError
 import no.nordicsemi.android.ble.exception.RequestFailedException
 import no.nordicsemi.android.ble.ktx.suspend
@@ -34,6 +35,27 @@ private const val PGP_ADVERTISED_NAME = "Pokemon GO Plus" // matches PGP_DEVICE_
 private const val COMMAND_TIMEOUT_MS = 5_000L
 private const val SCAN_TIMEOUT_MS = 15_000L
 private const val CONNECT_TIMEOUT_MS = 15_000L
+
+/**
+ * Human-readable text for a [ConnectionObserver.onDeviceFailedToConnect] reason code, with the
+ * raw code kept in parens (e.g. "connection timed out (-5)") so it's still reportable.
+ * Negative codes are [FailCallback.REASON_*][FailCallback]; positive codes are GATT status codes.
+ */
+internal fun describeConnectFailure(reason: Int): String {
+    val description = when (reason) {
+        FailCallback.REASON_DEVICE_DISCONNECTED -> "device disconnected before connecting"
+        FailCallback.REASON_TIMEOUT -> "connection timed out"
+        FailCallback.REASON_CANCELLED -> "connection cancelled"
+        FailCallback.REASON_NOT_ENABLED -> "Bluetooth adapter is off"
+        FailCallback.REASON_BLUETOOTH_DISABLED -> "Bluetooth is disabled"
+        FailCallback.REASON_NULL_ATTRIBUTE -> "device is missing a required attribute"
+        FailCallback.REASON_REQUEST_FAILED -> "connection request failed"
+        FailCallback.REASON_VALIDATION -> "invalid connection request"
+        FailCallback.REASON_UNSUPPORTED_CONFIGURATION -> "unsupported Bluetooth configuration"
+        else -> if (reason > 0) GattError.parse(reason) else "unknown error"
+    }
+    return "$description ($reason)"
+}
 
 class NordicBleControlRepository @Inject constructor(
     @ApplicationContext context: Context,
@@ -155,10 +177,10 @@ class NordicBleControlRepository @Inject constructor(
                     // FailCallback.REASON_DEVICE_NOT_SUPPORTED (isRequiredServiceSupported() returned
                     // false, i.e. Control Service UUID absent post-discovery); confirmed against the
                     // ble-ktx 2.11.0 sources.
-                    _connectionState.value = if (reason == no.nordicsemi.android.ble.callback.FailCallback.REASON_DEVICE_NOT_SUPPORTED) {
+                    _connectionState.value = if (reason == FailCallback.REASON_DEVICE_NOT_SUPPORTED) {
                         ConnectionState.Error("device not migrated")
                     } else {
-                        ConnectionState.Error("connect failed: $reason")
+                        ConnectionState.Error("connect failed: ${describeConnectFailure(reason)}")
                     }
                 }
                 override fun onDeviceDisconnecting(device: android.bluetooth.BluetoothDevice) {}
@@ -196,7 +218,7 @@ class NordicBleControlRepository @Inject constructor(
                 // it when there's no bond yet.
                 if (bluetoothDevice?.bondState != BluetoothDevice.BOND_BONDED) {
                     ensureBond()
-                        .fail { _, status -> _connectionState.value = ConnectionState.Error("bonding failed: ${GattError.parse(status)}") }
+                        .fail { _, status -> _connectionState.value = ConnectionState.Error("bonding failed: ${GattError.parse(status)} ($status)") }
                         .enqueue()
                 }
                 setIndicationCallback(responseCharacteristic).with { _, data ->
