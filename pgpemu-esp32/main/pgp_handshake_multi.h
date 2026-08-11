@@ -40,6 +40,10 @@ typedef struct {
 
     TickType_t handshake_start, reconnection_at, connection_start, connection_end;
     bool used_cached_session;
+    // Set once BLE auth (ESP_GAP_BLE_AUTH_CMPL_EVT) succeeds on this connection instance.
+    // Lets pgp_gap.c tell a fresh pairing's auth failure apart from a transient auth
+    // hiccup on a link that already authenticated once and is still live.
+    bool auth_succeeded;
 } client_state_t;
 
 void init_handshake_multi();
@@ -53,6 +57,8 @@ client_state_t* get_client_state_entry(uint16_t conn_id);
 client_state_t* get_or_create_client_state_entry(uint16_t conn_id);
 // returns NULL when idx has no associated connection
 client_state_t* get_client_state_entry_by_idx(int i);
+// returns NULL when no currently-connected client matches bda
+client_state_t* get_client_state_entry_by_bda(esp_bd_addr_t bda);
 
 // returns true if conn_id exists and is currently connected
 bool is_connection_active(uint16_t conn_id);

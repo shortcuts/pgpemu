@@ -91,6 +91,7 @@ typedef struct {
     uint8_t session_key[16];
     uint8_t reconnect_challenge[32];
     TickType_t handshake_start, reconnection_at, connection_start, connection_end;
+    bool auth_succeeded;
 } client_state_t;
 
 static int active_connections = 0;
@@ -127,6 +128,23 @@ client_state_t* get_client_state_entry_by_idx(int i) {
         return &client_states[i];
     }
     return NULL;
+}
+
+client_state_t* get_client_state_entry_by_bda(esp_bd_addr_t bda) {
+    for (int i = 0; i < MAX_CONNECTIONS; i++) {
+        if (conn_id_map[i] != 0xffff && memcmp(client_states[i].remote_bda, bda, sizeof(esp_bd_addr_t)) == 0) {
+            return &client_states[i];
+        }
+    }
+    return NULL;
+}
+
+// Mirrors pgp_gap.c's ESP_GAP_BLE_AUTH_CMPL_EVT decision: only remove the bond when this
+// connection has never authenticated successfully before. An auth failure on a connection
+// that already authenticated once is a transient hiccup on a still-live link, not a stale
+// bond, and must not remove the bond.
+bool should_remove_bond_on_auth_fail(client_state_t* entry) {
+    return !(entry && entry->auth_succeeded);
 }
 
 client_state_t* get_or_create_client_state_entry(uint16_t conn_id) {
@@ -417,6 +435,39 @@ void test_lookup_consistency() {
     printf("✓ Lookup by conn_id and by index are consistent\n");
 }
 
+// Test auth-failure bond removal decision (regression test for the BLE scan-timeout bug:
+// removing the bond on every failed auth stole the advertising slot from an already-live
+// connection experiencing a transient hiccup).
+void test_auth_fail_bond_removal_decision() {
+    printf("\n=== Test: Auth-Fail Bond Removal Decision ===\n");
+
+    init_handshake_multi();
+    uint16_t conn_id = 0x0001;
+    esp_bd_addr_t bda = { 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff };
+
+    client_state_t* entry = get_or_create_client_state_entry(conn_id);
+    memcpy(entry->remote_bda, bda, sizeof(esp_bd_addr_t));
+
+    // Fresh connection, never authenticated: a failure here is a genuine stale-bond
+    // re-pair, so the bond must be removed.
+    assert(should_remove_bond_on_auth_fail(get_client_state_entry_by_bda(bda)) == true);
+    printf("✓ Fresh connection auth failure removes the bond\n");
+
+    // Auth succeeds once on this connection.
+    entry->auth_succeeded = true;
+
+    // A later auth failure on the same still-live connection is a transient hiccup, so
+    // the bond must be left in place.
+    assert(should_remove_bond_on_auth_fail(get_client_state_entry_by_bda(bda)) == false);
+    printf("✓ Auth failure after a prior success on the same connection keeps the bond\n");
+
+    // No connection tracked for this address at all (e.g. already disconnected): treat as
+    // a genuine stale-bond re-pair too.
+    esp_bd_addr_t unknown_bda = { 0x11, 0x22, 0x33, 0x44, 0x55, 0x66 };
+    assert(should_remove_bond_on_auth_fail(get_client_state_entry_by_bda(unknown_bda)) == true);
+    printf("✓ Auth failure with no tracked connection removes the bond\n");
+}
+
 // Run all tests
 int main() {
     printf("========================================\n");
@@ -431,6 +482,7 @@ int main() {
     test_connection_state_transitions();
     test_device_settings_linkage();
     test_lookup_consistency();
+    test_auth_fail_bond_removal_decision();
 
     printf("\n========================================\n");
     printf("✓ All handshake_multi tests passed!\n");

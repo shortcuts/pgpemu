@@ -66,6 +66,16 @@ bool is_connection_active(uint16_t conn_id) {
     return get_client_state_entry(conn_id) != NULL;
 }
 
+client_state_t* get_client_state_entry_by_bda(esp_bd_addr_t bda) {
+    for (int i = 0; i < MAX_CONNECTIONS; i++) {
+        if (conn_id_map[i] != 0xffff && memcmp(client_states[i].remote_bda, bda, sizeof(esp_bd_addr_t)) == 0) {
+            return &client_states[i];
+        }
+    }
+
+    return NULL;
+}
+
 client_state_t* get_or_create_client_state_entry(uint16_t conn_id) {
     // check if it exists
     for (int i = 0; i < MAX_CONNECTIONS; i++) {

@@ -74,12 +74,23 @@ void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t* par
             ESP_LOGI(BT_GAP_TAG, "advertising stop successful");
         }
         break;
-    case ESP_GAP_BLE_AUTH_CMPL_EVT:
+    case ESP_GAP_BLE_AUTH_CMPL_EVT: {
         ESP_LOGI(BT_GAP_TAG,
             "authentication completed: success=%d, device_count=%d",
             param->ble_security.auth_cmpl.success,
             esp_ble_get_bond_device_num());
-        if (!param->ble_security.auth_cmpl.success) {
+        client_state_t* auth_entry = get_client_state_entry_by_bda(param->ble_security.auth_cmpl.bd_addr);
+        if (param->ble_security.auth_cmpl.success) {
+            if (auth_entry) {
+                auth_entry->auth_succeeded = true;
+            }
+        } else if (auth_entry && auth_entry->auth_succeeded) {
+            // This connection already authenticated successfully once, so both sides still
+            // consider it live. A later auth failure here is a transient hiccup (e.g. a
+            // spurious re-encryption retry), not a stale bond. Removing our bond now would
+            // break a connection that still works instead of fixing anything.
+            ESP_LOGW(BT_GAP_TAG, "auth failed on an already-authenticated connection, leaving bond in place");
+        } else {
             // Leaving the stale bond in place makes the peer's Android bond (recreated after
             // it forgets/re-pairs) permanently mismatch ours, so every future write on an
             // encrypted characteristic keeps failing with GATT_INSUF_* until reboot. Drop our
@@ -87,6 +98,7 @@ void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t* par
             esp_ble_remove_bond_device(param->ble_security.auth_cmpl.bd_addr);
         }
         break;
+    }
     case ESP_GAP_BLE_SEC_REQ_EVT:
         ESP_LOGI(BT_GAP_TAG, "security request received, accepting");
         esp_ble_gap_security_rsp(param->ble_security.ble_req.bd_addr, true);
