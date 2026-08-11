@@ -11,6 +11,9 @@
 
 uint8_t adv_config_done = 0;
 
+#define ADV_START_MAX_RETRIES 3
+static uint8_t adv_start_retry_count = 0;
+
 // review with
 // https://github.com/espressif/esp-idf/blob/master/examples/bluetooth/bluedroid/ble/gatt_security_client/main/example_ble_sec_gattc_demo.c
 static esp_ble_adv_params_t adv_params = {
@@ -65,9 +68,23 @@ void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t* par
         /* advertising start complete event to indicate advertising start successfully or failed
          */
         if (param->adv_start_cmpl.status != ESP_BT_STATUS_SUCCESS) {
-            ESP_LOGE(BT_GAP_TAG, "advertising start failed");
+            if (adv_start_retry_count < ADV_START_MAX_RETRIES) {
+                adv_start_retry_count++;
+                ESP_LOGW(BT_GAP_TAG,
+                    "advertising start failed, retrying (%d/%d)",
+                    adv_start_retry_count,
+                    ADV_START_MAX_RETRIES);
+                pgp_advertise();
+            } else {
+                ESP_LOGE(BT_GAP_TAG,
+                    "advertising start failed after %d attempts, giving up — device will stay "
+                    "undiscoverable until the next advertise_if_needed()/pgp_advertise() call",
+                    ADV_START_MAX_RETRIES);
+                adv_start_retry_count = 0;
+            }
         } else {
             ESP_LOGI(BT_GAP_TAG, "advertising start successful");
+            adv_start_retry_count = 0;
         }
         break;
     case ESP_GAP_BLE_ADV_STOP_COMPLETE_EVT:
