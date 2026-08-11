@@ -3,6 +3,7 @@
 
 #include "esp_gap_ble_api.h"
 
+#include <stdbool.h>
 #include <stdint.h>
 
 static const uint8_t ADV_CONFIG_FLAG = (1 << 0);
@@ -22,5 +23,10 @@ void pgp_advertise();
 void pgp_advertise_stop();
 
 void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t* param);
+
+// True if bda has a live BLE bond (LTK) in the local bond store, i.e. the
+// esp_ble stack — not the PGP-protocol session cache — considers this
+// device already paired.
+bool pgp_gap_is_bonded(esp_bd_addr_t bda);
 
 #endif /* PGP_GAP_H */

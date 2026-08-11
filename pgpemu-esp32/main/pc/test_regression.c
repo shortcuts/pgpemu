@@ -1,6 +1,7 @@
 // Regression tests for previously fixed critical bugs
 // These tests verify that bugs do not resurface in future changes
-// Test count: 42 assertions (34 original + 8 stale cache clearing tests)
+// Test count: 44 assertions (34 original + 8 stale cache clearing tests
+// + 2 encryption-request-on-bond-state tests)
 #include <assert.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -367,6 +368,29 @@ void test_invalid_bda_handling(void) {
 }
 
 // =============================================================================
+// REGRESSION TEST 6: Encryption Request Uses BLE Bond State, Not PGP Session Cache
+// Issue: pgp_gatts.c decided whether to request BLE encryption using the
+// PGP-protocol session-key cache instead of the actual BLE bond/LTK state.
+// A device with a cached PGP session but no real BLE bond skipped the
+// encryption request entirely, so the link stayed unencrypted and the
+// first encrypted-permission write (save-to-device) was rejected by the
+// GATT server outright instead of transparently triggering pairing.
+// =============================================================================
+
+bool reg_should_request_encryption(bool ble_bonded) {
+    return !ble_bonded;
+}
+
+void test_encryption_request_uses_ble_bond_state(void) {
+    printf("=== Test: Encryption Request Uses BLE Bond State (Bug #8) ===\n");
+
+    test_assert(reg_should_request_encryption(false),
+        "No real BLE bond -> encryption is requested, regardless of any PGP session cache");
+    test_assert(!reg_should_request_encryption(true),
+        "Real BLE bond exists -> encryption request is skipped, stack handles it silently");
+}
+
+// =============================================================================
 // Main test runner
 // =============================================================================
 
@@ -385,6 +409,9 @@ int main() {
     test_stale_cache_clearing();
     printf("\n");
     test_invalid_bda_handling();
+
+    printf("\n");
+    test_encryption_request_uses_ble_bond_state();
 
     printf("\n");
     printf("========================================\n");

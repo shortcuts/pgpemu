@@ -720,16 +720,18 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
             }
         }
 
-        // Only request encryption for new devices. For reconnections with cached session,
-        // let the BLE stack handle encryption silently using the existing bond.
-        // Check if we have cached session keys (reconnection)
-        if (!has_cached_session(conn_params.bda)) {
-            // New device: request encryption which will trigger pairing on Android
-            ESP_LOGD(BT_GATTS_TAG, "[%d] new device, requesting encryption", param->connect.conn_id);
+        // Only skip an explicit encryption request when this bda has a real BLE bond (LTK) on
+        // file. The PGP-protocol session cache (has_cached_session) is a different, unrelated
+        // cache and must not be used for this decision: a device can have a cached PGP session
+        // while its BLE bond is gone (bond removed by a prior auth failure, NVS bond state
+        // cleared, peer re-paired, ...). If we skip requesting encryption in that case, nothing
+        // ever encrypts the link, and the first encrypted-permission write (e.g. save-to-device)
+        // is rejected outright by the GATT server instead of transparently triggering pairing.
+        if (!pgp_gap_is_bonded(conn_params.bda)) {
+            ESP_LOGD(BT_GATTS_TAG, "[%d] not BLE-bonded, requesting encryption", param->connect.conn_id);
             esp_ble_set_encryption(param->connect.remote_bda, ESP_BLE_SEC_ENCRYPT_MITM);
         } else {
-            // Reconnection: let BLE stack handle encryption silently using existing bond
-            ESP_LOGD(BT_GATTS_TAG, "[%d] cached session found, skipping encryption request", param->connect.conn_id);
+            ESP_LOGD(BT_GATTS_TAG, "[%d] already BLE-bonded, skipping encryption request", param->connect.conn_id);
         }
 
         break;
