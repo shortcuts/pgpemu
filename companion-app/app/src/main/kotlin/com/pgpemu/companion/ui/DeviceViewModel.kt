@@ -103,45 +103,56 @@ class DeviceViewModel @Inject constructor(
         viewModelScope.launch { repository.disconnect() }
     }
 
+    private suspend fun runStep(opcode: Int, payload: ByteArray = ByteArray(0), onOk: (ResponseFrame) -> Unit) {
+        val result = repository.sendCommand(opcode, payload)
+        result.fold(
+            onSuccess = { frame ->
+                if (frame.isOk) onOk(frame) else _uiState.update { it.copy(errorMessage = "device returned status ${frame.status}") }
+            },
+            onFailure = { e -> _uiState.update { it.copy(errorMessage = e.message ?: "command failed") } },
+        )
+    }
+
     private fun runCommand(opcode: Int, payload: ByteArray = ByteArray(0), onOk: (ResponseFrame) -> Unit) {
         if (_uiState.value.isBusy) return // one in-flight command at a time — NordicBleControlRepository has a single pendingResponse slot
         viewModelScope.launch {
             _uiState.update { it.copy(isBusy = true, errorMessage = null) }
-            val result = repository.sendCommand(opcode, payload)
-            result.fold(
-                onSuccess = { frame ->
-                    if (frame.isOk) onOk(frame) else _uiState.update { it.copy(errorMessage = "device returned status ${frame.status}") }
-                },
-                onFailure = { e -> _uiState.update { it.copy(errorMessage = e.message ?: "command failed") } },
-            )
+            runStep(opcode, payload, onOk)
             _uiState.update { it.copy(isBusy = false) }
         }
     }
 
+    /** Requests current device state after connect — runs its GET commands sequentially,
+     * since NordicBleControlRepository only has one pendingResponse slot at a time. */
     fun refreshStatus() {
-        runCommand(Opcode.GET_GLOBAL_SETTINGS) { frame ->
-            val p = frame.payload
-            _uiState.update {
-                it.copy(
-                    status = it.status.copy(
-                        logLevel = p[0].toInt(),
-                        advertisingEnabled = p[1] == 1.toByte(),
-                        activeConnections = p[2].toInt() and 0xFF,
-                    ),
-                    settings = it.settings.copy(maxConnections = p[3].toInt() and 0xFF),
-                )
+        if (_uiState.value.isBusy) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isBusy = true, errorMessage = null) }
+            runStep(Opcode.GET_GLOBAL_SETTINGS) { frame ->
+                val p = frame.payload
+                _uiState.update {
+                    it.copy(
+                        status = it.status.copy(
+                            logLevel = p[0].toInt(),
+                            advertisingEnabled = p[1] == 1.toByte(),
+                            activeConnections = p[2].toInt() and 0xFF,
+                        ),
+                        settings = it.settings.copy(maxConnections = p[3].toInt() and 0xFF),
+                    )
+                }
             }
-        }
-        runCommand(Opcode.GET_LED_STATE) { frame ->
-            _uiState.update { it.copy(status = it.status.copy(ledOn = frame.payload[0] == 1.toByte())) }
-        }
-        runCommand(Opcode.GET_CLIENT_STATES) { frame ->
-            val autoStates = parseProfileAutoStates(String(frame.payload, Charsets.UTF_8))
-            _uiState.update { s ->
-                s.copy(profiles = s.profiles.map { p ->
-                    autoStates[p.index]?.let { p.copy(autospin = it.autospin, autocatch = it.autocatch) } ?: p
-                })
+            runStep(Opcode.GET_LED_STATE) { frame ->
+                _uiState.update { it.copy(status = it.status.copy(ledOn = frame.payload[0] == 1.toByte())) }
             }
+            runStep(Opcode.GET_CLIENT_STATES) { frame ->
+                val autoStates = parseProfileAutoStates(String(frame.payload, Charsets.UTF_8))
+                _uiState.update { s ->
+                    s.copy(profiles = s.profiles.map { p ->
+                        autoStates[p.index]?.let { p.copy(autospin = it.autospin, autocatch = it.autocatch) } ?: p
+                    })
+                }
+            }
+            _uiState.update { it.copy(isBusy = false) }
         }
     }
 
