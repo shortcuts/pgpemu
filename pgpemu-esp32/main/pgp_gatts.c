@@ -734,6 +734,15 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
             ESP_LOGD(BT_GATTS_TAG, "[%d] already BLE-bonded, skipping encryption request", param->connect.conn_id);
         }
 
+        // The BLE controller stops advertising as soon as this connection completes, even
+        // though active_connections only increments once (if ever) the PGP handshake finishes.
+        // A connection that never runs the handshake (e.g. the companion app, which only talks
+        // to the Control service) would otherwise leave advertising off with nothing left to
+        // turn it back on, since connection_start()'s advertise_if_needed() call never runs for
+        // it. Re-arm advertising here so any client type that stays under target_active_connections
+        // keeps the device discoverable to others (e.g. Pokemon GO) after it connects.
+        advertise_if_needed();
+
         break;
     case ESP_GATTS_DISCONNECT_EVT:
         pgp_handshake_disconnect(param->disconnect.conn_id, param->disconnect.reason);
