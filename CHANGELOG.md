@@ -1,5 +1,60 @@
 # Changelog
 
+## [2.0.0](https://github.com/shortcuts/pgpemu/compare/v1.0.1...v2.0.0) (2026-08-12)
+
+
+### ⚠ BREAKING CHANGES
+
+* the USB serial command menu no longer exists. Configuration and diagnostics require the Companion App over BLE. Log output over USB console is unaffected.
+
+### Features
+
+* add Control Service GATT layout and opcode wire protocol ([4f264f8](https://github.com/shortcuts/pgpemu/commit/4f264f8e8fab5eaddadb208cf4dcc8cc3b168e5c))
+* add Hilt DI, DeviceScreen, and BLE repository test fake ([72d6921](https://github.com/shortcuts/pgpemu/commit/72d692196fb803215a64cee1829acb0857ec5281))
+* attribute runtime stats to device profile slots ([7dc5f02](https://github.com/shortcuts/pgpemu/commit/7dc5f02dfb9f44330866152b772d20d5c41192d6))
+* **ble:** add GET_CLIENT_SUMMARY binary opcode ([81d2db0](https://github.com/shortcuts/pgpemu/commit/81d2db08ab9fb32dbd6efc2c4f4f0e04c2b47494))
+* build full DeviceScreen with command coverage ([98bf6b6](https://github.com/shortcuts/pgpemu/commit/98bf6b64e926d6171607a25e0588fe88c4c408a2))
+* button press toggle advertise ([f7536bd](https://github.com/shortcuts/pgpemu/commit/f7536bd3e3b4539bec241614d43edc3e011d7b24))
+* button press toggle advertise ([#10](https://github.com/shortcuts/pgpemu/issues/10)) ([43bf5e7](https://github.com/shortcuts/pgpemu/commit/43bf5e7607899742229b059046d0980469e43fee))
+* **companion:** show human-readable BLE connect errors ([198c00f](https://github.com/shortcuts/pgpemu/commit/198c00f12a8414144bb0bbb989879d7646a85d20))
+* full build/flash/monitor pipeline via make, matching the VSCode extension's JTAG method ([64d1ede](https://github.com/shortcuts/pgpemu/commit/64d1edefbf2c7ef1938e63f36e8d3366155f1ff7))
+* load per-profile autospin/autocatch on device connect ([7e0f578](https://github.com/shortcuts/pgpemu/commit/7e0f578e7a3e18babeaaeb775d9add8240eff503))
+* local CLI build tooling, drop VSCode extension workflow ([8395ceb](https://github.com/shortcuts/pgpemu/commit/8395ceb834d0a7c99359e24199c6010a6baf12f4))
+* redesign companion app UI, fix BLE permission and status-bar overlap ([8d1bdab](https://github.com/shortcuts/pgpemu/commit/8d1bdab3f3651eadb4e0e084d6a91b3f6047996f))
+* remove UART serial menu, cut over to Companion App ([d226f3c](https://github.com/shortcuts/pgpemu/commit/d226f3ca47aa3e29ac13aaaccc0b79619f36fb17))
+* scaffold companion-app Gradle project and ble/ repository ([93a4bba](https://github.com/shortcuts/pgpemu/commit/93a4bba9fa676f6463e447b2de6f321e6158f6fd))
+* toggle led on advertising toggle ([c4e5e94](https://github.com/shortcuts/pgpemu/commit/c4e5e9406692577ae8306f0823493231ee752779))
+* verify NordicBleControlRepository BLE skeleton and add companion-app build ([6230774](https://github.com/shortcuts/pgpemu/commit/6230774a2eca1b9789ae53b7ab1332e76fd9f18e))
+
+
+### Bug Fixes
+
+* **ble:** bump BTC_TASK stack, fixes save-to-device crash ([441642a](https://github.com/shortcuts/pgpemu/commit/441642ad2bc7df863298ae544558a26ef61d641d))
+* **ble:** drop malloc/free from pgp_gap_is_bonded ([7bbdec7](https://github.com/shortcuts/pgpemu/commit/7bbdec72902153016ba2fc3f4dc0d02f19f84a81))
+* **ble:** keep bond-device array off pgp_gap_is_bonded's stack frame ([9fcb492](https://github.com/shortcuts/pgpemu/commit/9fcb4927f71d11d67bd4527a2797be7d856a2e78))
+* **ble:** only remove bond on first-time auth failure ([650fb6b](https://github.com/shortcuts/pgpemu/commit/650fb6b7068d17c784397c1928290c8090d72f5b))
+* **ble:** re-arm advertising on every GATT connect, not just handshake completion ([f4366fa](https://github.com/shortcuts/pgpemu/commit/f4366fa3b1f19f037ce26c0e1f79c89e07edc16b))
+* **ble:** request encryption based on real BLE bond, not PGP cache ([c895ed9](https://github.com/shortcuts/pgpemu/commit/c895ed9880f9360324e1a3e45db6f769f08a987a))
+* **ble:** request max MTU on connect, was truncating indications ([f5e834b](https://github.com/shortcuts/pgpemu/commit/f5e834bdf1cf5378a5929887d7640fa2284cf966))
+* **ble:** retry advertising start on transient failure ([a4f6498](https://github.com/shortcuts/pgpemu/commit/a4f64981943a0f410fed5cf106ccb66ac9229038))
+* bond before encrypted BLE writes to fix status-8 stall ([6fc260d](https://github.com/shortcuts/pgpemu/commit/6fc260d208847d336a7daf1d884a9a5375607e43))
+* **ci:** raise gradle JVM heap, fixes D8 OOM in companion-app-build ([280a388](https://github.com/shortcuts/pgpemu/commit/280a388cbde6a1af2e8d7af323c6577a89591a2f))
+* **companion:** sequence post-connect state fetch, was silently dropping 2 of 3 GETs ([1c93e28](https://github.com/shortcuts/pgpemu/commit/1c93e28626dd9498a8890be4b86f103aeb1cc245))
+* **companion:** show only connected device profiles, capped at max connections ([18ea625](https://github.com/shortcuts/pgpemu/commit/18ea62508aeb93104a386bbed28938177423c478))
+* fall back to Error state when BLE connect() throws without onDeviceFailedToConnect ([294b011](https://github.com/shortcuts/pgpemu/commit/294b011ec841a1d195efbb0bcc54b4bf008af0ff))
+* **handshake:** guard active_connections decrement with counted state ([99cf618](https://github.com/shortcuts/pgpemu/commit/99cf618b0db30d6dde5bbdafef82c565864a7097))
+* indicate real response frame, not fixed 0x01 byte ([20d61d3](https://github.com/shortcuts/pgpemu/commit/20d61d3436b5846c0e9b56fbf9a9f6247a4966ce))
+* move advertise_if_needed() call after Bluetooth init ([53b0214](https://github.com/shortcuts/pgpemu/commit/53b0214f06b1273bb9f4fc7e17bbce6f1e6a541e))
+* prevent UART deadlock by adding timeout to get_setting_uint8() ([cf0b807](https://github.com/shortcuts/pgpemu/commit/cf0b807a238363d7a93c46dae55a09bbe0629b97))
+* reconnect ([cc4a1e8](https://github.com/shortcuts/pgpemu/commit/cc4a1e8c96117f925b2e7d6b93ab2fc6d2abce4c))
+* remove premature advertising stop, add correct logic to connection_start() ([5a353d1](https://github.com/shortcuts/pgpemu/commit/5a353d189fa44b95444a0f14d56937f5ffb20663))
+* replace placeholder UUID strings in NordicBleControlRepository ([d0f64f0](https://github.com/shortcuts/pgpemu/commit/d0f64f0b50e6e755a83ee7b672f9c7fb35f1de9b))
+* resolve boot-time mutex deadlock causing LED off, UART hang, and maxcon=0 ([3276bcc](https://github.com/shortcuts/pgpemu/commit/3276bcc217552d26018597ba1a53054f1223bb05))
+* resolve LED boot state issue - use GPIO2 instead of GPIO8 ([4c135a0](https://github.com/shortcuts/pgpemu/commit/4c135a0e446636e4e43c33dca9ce499737d16ac5))
+* restore LED to ON state at boot with diagnostic logging ([44dde91](https://github.com/shortcuts/pgpemu/commit/44dde91d9ad2b01314c87aeaa2eddf92ed3809c9))
+* revert LED to GPIO8 - GPIO2 is strapping pin ([e95e44c](https://github.com/shortcuts/pgpemu/commit/e95e44cbd41ce962aa88c27add7d27e2be7eba82))
+* stop advertising when target connections reached ([673fbdf](https://github.com/shortcuts/pgpemu/commit/673fbdf60c1ea1060c1526d2448c12796f36720a))
+
 ## [1.0.1](https://github.com/shortcuts/pgpemu/compare/v1.0.0...v1.0.1) (2026-02-18)
 
 
