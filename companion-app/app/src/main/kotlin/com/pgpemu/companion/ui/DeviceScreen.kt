@@ -2,6 +2,7 @@ package com.pgpemu.companion.ui
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -58,7 +59,15 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pgpemu.companion.ble.ConnectionState
 import com.pgpemu.companion.ui.theme.LocalPgpColors
 
-private val BLE_PERMISSIONS = arrayOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT)
+// API 31+ (Android 12+) uses the dedicated BLUETOOTH_SCAN/CONNECT runtime permissions.
+// Below that, BLE scanning is gated on location instead (no BLUETOOTH_CONNECT equivalent
+// exists pre-31 — BLUETOOTH/BLUETOOTH_ADMIN in the manifest are install-time-granted there).
+private val BLE_PERMISSIONS =
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        arrayOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT)
+    } else {
+        arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
+    }
 
 @Composable
 fun DeviceScreen(viewModel: DeviceViewModel = hiltViewModel()) {
