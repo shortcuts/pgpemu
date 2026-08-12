@@ -6,7 +6,6 @@
 #include "pgp_handshake_multi.h"
 #include "settings.h"
 
-#include <stdlib.h>
 #include <string.h>
 
 uint8_t adv_config_done = 0;
@@ -145,12 +144,14 @@ bool pgp_gap_is_bonded(esp_bd_addr_t bda) {
     if (dev_num <= 0) {
         return false;
     }
-
-    esp_ble_bond_dev_t* dev_list = malloc(sizeof(esp_ble_bond_dev_t) * dev_num);
-    if (!dev_list) {
-        ESP_LOGE(BT_GAP_TAG, "pgp_gap_is_bonded: alloc failed for %d bonded devices", dev_num);
-        return false;
+    // Bluedroid's bond store is capped at CONFIG_BT_SMP_MAX_BONDS entries
+    // (BTM_SEC_MAX_DEVICE_RECORDS), not CONFIG_BT_ACL_CONNECTIONS — bonds
+    // persist across reconnects and can outnumber concurrent connections.
+    if (dev_num > CONFIG_BT_SMP_MAX_BONDS) {
+        dev_num = CONFIG_BT_SMP_MAX_BONDS;
     }
+
+    esp_ble_bond_dev_t dev_list[CONFIG_BT_SMP_MAX_BONDS];
 
     bool found = false;
     if (esp_ble_get_bond_device_list(&dev_num, dev_list) == ESP_OK) {
@@ -161,6 +162,5 @@ bool pgp_gap_is_bonded(esp_bd_addr_t bda) {
             }
         }
     }
-    free(dev_list);
     return found;
 }
