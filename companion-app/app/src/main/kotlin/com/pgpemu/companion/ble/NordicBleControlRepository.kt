@@ -212,6 +212,11 @@ class NordicBleControlRepository @Inject constructor(
             }
 
             override fun initialize() {
+                // Default ATT MTU is 23 bytes (20-byte payload). GET_CLIENT_SUMMARY alone
+                // needs 44; GET_SECRETS needs 294. Request the max before anything else so
+                // every later indication arrives whole instead of silently truncated.
+                requestMtu(517).enqueue()
+
                 // ensureBond() calls Android's createBond(), which returns false for an
                 // already-bonded device; the library reads that as a stale bond and force
                 // removes+recreates it, killing an already-working connection. Only ask for
