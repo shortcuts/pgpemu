@@ -151,7 +151,12 @@ bool pgp_gap_is_bonded(esp_bd_addr_t bda) {
         dev_num = CONFIG_BT_SMP_MAX_BONDS;
     }
 
-    esp_ble_bond_dev_t dev_list[CONFIG_BT_SMP_MAX_BONDS];
+    // static: 15 * sizeof(esp_ble_bond_dev_t) is too big to put on this
+    // function's stack frame — this runs in BTC_TASK on every GATTS connect
+    // event, the hottest path in the firmware. Safe as static: Bluedroid
+    // dispatches GATTS callbacks serially from one task, so no concurrent
+    // callers.
+    static esp_ble_bond_dev_t dev_list[CONFIG_BT_SMP_MAX_BONDS];
 
     bool found = false;
     if (esp_ble_get_bond_device_list(&dev_num, dev_list) == ESP_OK) {
