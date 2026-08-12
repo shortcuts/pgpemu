@@ -357,6 +357,42 @@ static void pgp_control_handle_command_write(esp_gatt_if_t gatts_if,
         resp_len = 1;
         break;
     }
+    case CONTROL_OP_GET_CLIENT_SUMMARY: {
+        size_t offset = 0;
+        for (int i = 0; i < CONFIG_BT_ACL_CONNECTIONS; i++) {
+            client_state_t* entry = get_client_state_entry_by_idx(i);
+            uint16_t conn_id = entry ? entry->conn_id : 0xffff;
+            uint8_t flags = 0;
+            uint8_t autospin = 0;
+            uint8_t autocatch = 0;
+            Stats stats = { 0 };
+
+            if (entry != NULL) {
+                if (entry->settings != NULL) {
+                    flags |= 0x01;
+                    autospin = get_setting(&entry->settings->autospin) ? 1 : 0;
+                    autocatch = get_setting(&entry->settings->autocatch) ? 1 : 0;
+                }
+                if (stats_get_for_conn(entry->conn_id, &stats)) {
+                    flags |= 0x02;
+                }
+            }
+
+            resp[offset++] = (uint8_t)(conn_id & 0xFF);
+            resp[offset++] = (uint8_t)(conn_id >> 8);
+            resp[offset++] = flags;
+            resp[offset++] = autospin;
+            resp[offset++] = autocatch;
+            resp[offset++] = (uint8_t)(stats.caught & 0xFF);
+            resp[offset++] = (uint8_t)(stats.caught >> 8);
+            resp[offset++] = (uint8_t)(stats.fled & 0xFF);
+            resp[offset++] = (uint8_t)(stats.fled >> 8);
+            resp[offset++] = (uint8_t)(stats.spin & 0xFF);
+            resp[offset++] = (uint8_t)(stats.spin >> 8);
+        }
+        resp_len = offset;
+        break;
+    }
     default:
         status = CONTROL_STATUS_ERR_UNKNOWN_OPCODE;
         break;

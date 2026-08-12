@@ -145,14 +145,16 @@ class DeviceViewModel @Inject constructor(
             runStep(Opcode.GET_LED_STATE) { frame ->
                 _uiState.update { it.copy(status = it.status.copy(ledOn = frame.payload[0] == 1.toByte())) }
             }
-            runStep(Opcode.GET_CLIENT_STATES) { frame ->
-                val text = String(frame.payload, Charsets.UTF_8)
-                val autoStates = parseProfileAutoStates(text)
-                val connectedSlots = parseSlotToConnId(text).keys
+            runStep(Opcode.GET_CLIENT_SUMMARY) { frame ->
+                val summaries = parseClientSummary(frame.payload)
                 _uiState.update { s ->
-                    s.copy(profiles = s.profiles.map { p ->
-                        val withAuto = autoStates[p.index]?.let { p.copy(autospin = it.autospin, autocatch = it.autocatch) } ?: p
-                        withAuto.copy(connected = p.index in connectedSlots)
+                    s.copy(profiles = s.profiles.mapIndexed { i, p ->
+                        val summary = summaries[i]
+                        p.copy(
+                            connected = summary.connected,
+                            autospin = summary.autospin ?: p.autospin,
+                            autocatch = summary.autocatch ?: p.autocatch,
+                        )
                     })
                 }
             }
@@ -211,30 +213,32 @@ class DeviceViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isBusy = true, errorMessage = null) }
 
-            val slotToConnId = repository.sendCommand(Opcode.GET_CLIENT_STATES, ByteArray(0))
-                .getOrNull()
-                ?.takeIf { it.isOk }
-                ?.let { parseSlotToConnId(String(it.payload, Charsets.UTF_8)) }
-                ?: emptyMap()
-
             repository.sendCommand(Opcode.GET_RUNTIME_STATS, ByteArray(0)).fold(
                 onSuccess = { frame ->
                     if (frame.isOk) {
                         val text = String(frame.payload, Charsets.UTF_8)
-                        val connStats = parseConnStats(text)
+                        _uiState.update { it.copy(diagnostics = it.diagnostics.copy(runtimeStats = text)) }
+                    } else {
+                        _uiState.update { it.copy(errorMessage = "device returned status ${frame.status}") }
+                    }
+                },
+                onFailure = { e -> _uiState.update { it.copy(errorMessage = e.message ?: "command failed") } },
+            )
+
+            repository.sendCommand(Opcode.GET_CLIENT_SUMMARY, ByteArray(0)).fold(
+                onSuccess = { frame ->
+                    if (frame.isOk) {
+                        val summaries = parseClientSummary(frame.payload)
                         _uiState.update { s ->
-                            s.copy(
-                                diagnostics = s.diagnostics.copy(runtimeStats = text),
-                                profiles = s.profiles.map { profile ->
-                                    val stat = slotToConnId[profile.index]?.let { connStats[it] }
-                                    profile.copy(
-                                        connected = profile.index in slotToConnId,
-                                        caught = stat?.caught,
-                                        fled = stat?.fled,
-                                        spin = stat?.spin,
-                                    )
-                                },
-                            )
+                            s.copy(profiles = s.profiles.mapIndexed { i, p ->
+                                val summary = summaries[i]
+                                p.copy(
+                                    connected = summary.connected,
+                                    caught = summary.caught,
+                                    fled = summary.fled,
+                                    spin = summary.spin,
+                                )
+                            })
                         }
                     } else {
                         _uiState.update { it.copy(errorMessage = "device returned status ${frame.status}") }
@@ -266,53 +270,35 @@ class DeviceViewModel @Inject constructor(
     }
 }
 
-private data class ConnRuntimeStats(val caught: Int, val fled: Int, val spin: Int)
-
-// Matches "<slot>: <conn_id in hex>" lines from GET_CLIENT_STATES's
-// conn_id_map section (pgp_handshake_multi.c: dump_client_states_format).
-// "ffff" is the firmware's empty-slot sentinel.
-private val CONN_ID_MAP_LINE = Regex("""^(\d+): ([0-9a-f]{4})$""")
-
-private fun parseSlotToConnId(text: String): Map<Int, Int> {
-    val result = mutableMapOf<Int, Int>()
-    for (line in text.lineSequence()) {
-        val match = CONN_ID_MAP_LINE.matchEntire(line.trim()) ?: continue
-        val connIdHex = match.groupValues[2]
-        if (connIdHex == "ffff") continue
-        result[match.groupValues[1].toInt()] = connIdHex.toInt(16)
-    }
-    return result
-}
-
-// Matches GET_RUNTIME_STATS blocks from stats.c: stats_format_runtime.
-private val RUNTIME_STATS_BLOCK = Regex(
-    "Connection (\\d+):\\n- Caught: (\\d+)\\n- Fled: (\\d+)\\n- Spin: (\\d+)",
+private data class ClientSummary(
+    val connected: Boolean,
+    val autospin: Boolean?,
+    val autocatch: Boolean?,
+    val caught: Int?,
+    val fled: Int?,
+    val spin: Int?,
 )
 
-private fun parseConnStats(text: String): Map<Int, ConnRuntimeStats> =
-    RUNTIME_STATS_BLOCK.findAll(text).associate { m ->
-        m.groupValues[1].toInt() to ConnRuntimeStats(
-            caught = m.groupValues[2].toInt(),
-            fled = m.groupValues[3].toInt(),
-            spin = m.groupValues[4].toInt(),
+private const val CLIENT_SUMMARY_RECORD_SIZE = 11
+
+// Decodes CONTROL_OP_GET_CLIENT_SUMMARY's fixed-layout binary payload —
+// DEVICE_PROFILE_COUNT records of CLIENT_SUMMARY_RECORD_SIZE bytes each,
+// see pgp_control.c's CONTROL_OP_GET_CLIENT_SUMMARY case for the layout.
+private fun parseClientSummary(payload: ByteArray): List<ClientSummary> =
+    (0 until DEVICE_PROFILE_COUNT).map { slot ->
+        val base = slot * CLIENT_SUMMARY_RECORD_SIZE
+        fun u16(offset: Int) = (payload[base + offset].toInt() and 0xFF) or
+            ((payload[base + offset + 1].toInt() and 0xFF) shl 8)
+        val connId = u16(0)
+        val flags = payload[base + 2].toInt() and 0xFF
+        val hasSettings = flags and 0x01 != 0
+        val hasStats = flags and 0x02 != 0
+        ClientSummary(
+            connected = connId != 0xFFFF,
+            autospin = if (hasSettings) payload[base + 3] == 1.toByte() else null,
+            autocatch = if (hasSettings) payload[base + 4] == 1.toByte() else null,
+            caught = if (hasStats) u16(5) else null,
+            fled = if (hasStats) u16(7) else null,
+            spin = if (hasStats) u16(9) else null,
         )
     }
-
-private data class ProfileAutoState(val autospin: Boolean, val autocatch: Boolean)
-
-// Matches a "[i] conn_id=... / handshake=... / autospin=on autocatch=off"
-// block from GET_CLIENT_STATES's client_states section
-// (pgp_handshake_multi.c: dump_client_states_format). The autospin/autocatch
-// line is only present when the firmware slot has settings attached
-// (entry->settings != NULL), so it's an optional group here too.
-private val CLIENT_STATE_AUTO_BLOCK = Regex(
-    """^\[(\d+)] conn_id=.*\n {2}handshake=.*\n(?: {2}autospin=(on|off) autocatch=(on|off)\n)?""",
-    RegexOption.MULTILINE,
-)
-
-private fun parseProfileAutoStates(text: String): Map<Int, ProfileAutoState> =
-    CLIENT_STATE_AUTO_BLOCK.findAll(text).mapNotNull { m ->
-        val spin = m.groups[2]?.value ?: return@mapNotNull null
-        val catch = m.groups[3]?.value ?: return@mapNotNull null
-        m.groupValues[1].toInt() to ProfileAutoState(spin == "on", catch == "on")
-    }.toMap()

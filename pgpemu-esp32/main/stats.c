@@ -35,6 +35,16 @@ StatsForConn* get_conn_entry(uint16_t conn_id) {
     return NULL;
 }
 
+bool stats_get_for_conn(uint16_t conn_id, Stats* out) {
+    for (size_t i = 0; i < stats_len; i++) {
+        if (stats[i].conn_id == conn_id) {
+            *out = stats[i].stats;
+            return true;
+        }
+    }
+    return false;
+}
+
 void delete_conn_entry(uint16_t conn_id) {
     for (size_t i = 0; i < stats_len; i++) {
         if (stats[i].conn_id == conn_id) {

@@ -1,6 +1,7 @@
 #ifndef STATS_H
 #define STATS_H
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -24,5 +25,9 @@ typedef struct {
     uint16_t conn_id;
     Stats stats;
 } StatsForConn;
+
+// Returns true and fills *out if a stats entry exists for conn_id.
+// Unlike the internal get_conn_entry(), never creates a new entry.
+bool stats_get_for_conn(uint16_t conn_id, Stats* out);
 
 #endif /* STATS_H */

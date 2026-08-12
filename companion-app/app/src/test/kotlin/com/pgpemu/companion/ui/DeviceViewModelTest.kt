@@ -18,6 +18,34 @@ import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 
+private fun clientSummarySlotBytes(
+    connId: Int,
+    hasSettings: Boolean = false,
+    autospin: Boolean = false,
+    autocatch: Boolean = false,
+    hasStats: Boolean = false,
+    caught: Int = 0,
+    fled: Int = 0,
+    spin: Int = 0,
+): ByteArray {
+    val flags = (if (hasSettings) 0x01 else 0) or (if (hasStats) 0x02 else 0)
+    return byteArrayOf(
+        (connId and 0xFF).toByte(),
+        ((connId shr 8) and 0xFF).toByte(),
+        flags.toByte(),
+        (if (autospin) 1 else 0).toByte(),
+        (if (autocatch) 1 else 0).toByte(),
+        (caught and 0xFF).toByte(),
+        ((caught shr 8) and 0xFF).toByte(),
+        (fled and 0xFF).toByte(),
+        ((fled shr 8) and 0xFF).toByte(),
+        (spin and 0xFF).toByte(),
+        ((spin shr 8) and 0xFF).toByte(),
+    )
+}
+
+private fun emptyClientSummarySlot(): ByteArray = clientSummarySlotBytes(connId = 0xFFFF)
+
 @OptIn(ExperimentalCoroutinesApi::class)
 class DeviceViewModelTest {
 
@@ -56,30 +84,17 @@ class DeviceViewModelTest {
             Result.success(ResponseFrame(StatusCode.OK, Opcode.GET_LED_STATE.toByte(), byteArrayOf(1))),
         )
         repository.stubResponse(
-            Opcode.GET_CLIENT_STATES,
+            Opcode.GET_CLIENT_SUMMARY,
             Result.success(
                 ResponseFrame(
                     StatusCode.OK,
-                    Opcode.GET_CLIENT_STATES.toByte(),
+                    Opcode.GET_CLIENT_SUMMARY.toByte(),
                     (
-                        "active_connections: 1\n" +
-                            "conn_id_map:\n" +
-                            "0: 0001\n" +
-                            "1: ffff\n" +
-                            "2: ffff\n" +
-                            "3: ffff\n" +
-                            "client_states:\n" +
-                            "[0] conn_id=1 cert_state=2 reconn_key=0 notify=1\n" +
-                            "  handshake=0 reconnection=0 conn_start=0 conn_end=0\n" +
-                            "  autospin=on autocatch=off\n" +
-                            "[1] conn_id=0 cert_state=0 reconn_key=0 notify=0\n" +
-                            "  handshake=0 reconnection=0 conn_start=0 conn_end=0\n" +
-                            "[2] conn_id=0 cert_state=0 reconn_key=0 notify=0\n" +
-                            "  handshake=0 reconnection=0 conn_start=0 conn_end=0\n" +
-                            "  autospin=off autocatch=on\n" +
-                            "[3] conn_id=0 cert_state=0 reconn_key=0 notify=0\n" +
-                            "  handshake=0 reconnection=0 conn_start=0 conn_end=0\n"
-                        ).toByteArray(),
+                        clientSummarySlotBytes(connId = 1, hasSettings = true, autospin = true, autocatch = false) +
+                            emptyClientSummarySlot() +
+                            clientSummarySlotBytes(connId = 5, hasSettings = true, autospin = false, autocatch = true) +
+                            emptyClientSummarySlot()
+                        ),
                 ),
             ),
         )
@@ -167,35 +182,27 @@ class DeviceViewModelTest {
     fun `refreshRuntimeStats attributes caught fled spin to the right profile slot`() = runTest {
         val repository = FakeBleControlRepository()
         repository.stubResponse(
-            Opcode.GET_CLIENT_STATES,
-            Result.success(
-                ResponseFrame(
-                    StatusCode.OK,
-                    Opcode.GET_CLIENT_STATES.toByte(),
-                    (
-                        "active_connections: 1\n" +
-                            "conn_id_map:\n" +
-                            "0: 0003\n" +
-                            "1: ffff\n" +
-                            "2: ffff\n" +
-                            "3: ffff\n"
-                        ).toByteArray(),
-                ),
-            ),
-        )
-        repository.stubResponse(
             Opcode.GET_RUNTIME_STATS,
             Result.success(
                 ResponseFrame(
                     StatusCode.OK,
                     Opcode.GET_RUNTIME_STATS.toByte(),
+                    "---STATS---\nConnection 3:\n- Caught: 5\n- Fled: 2\n- Spin: 7\n".toByteArray(),
+                ),
+            ),
+        )
+        repository.stubResponse(
+            Opcode.GET_CLIENT_SUMMARY,
+            Result.success(
+                ResponseFrame(
+                    StatusCode.OK,
+                    Opcode.GET_CLIENT_SUMMARY.toByte(),
                     (
-                        "---STATS---\n" +
-                            "Connection 3:\n" +
-                            "- Caught: 5\n" +
-                            "- Fled: 2\n" +
-                            "- Spin: 7\n"
-                        ).toByteArray(),
+                        clientSummarySlotBytes(connId = 3, hasStats = true, caught = 5, fled = 2, spin = 7) +
+                            emptyClientSummarySlot() +
+                            emptyClientSummarySlot() +
+                            emptyClientSummarySlot()
+                        ),
                 ),
             ),
         )
@@ -210,7 +217,7 @@ class DeviceViewModelTest {
         assertEquals(7, profiles[0].spin)
         assertNull(profiles[1].caught)
         assertEquals(
-            listOf(Opcode.GET_CLIENT_STATES, Opcode.GET_RUNTIME_STATS),
+            listOf(Opcode.GET_RUNTIME_STATS, Opcode.GET_CLIENT_SUMMARY),
             repository.sentCommands.map { it.first },
         )
     }

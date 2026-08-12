@@ -28,6 +28,7 @@ typedef enum {
     CONTROL_OP_SET_MAX_CONNECTIONS = 0x0F,
     CONTROL_OP_TOGGLE_AUTOSPIN = 0x10,
     CONTROL_OP_TOGGLE_AUTOCATCH = 0x11,
+    CONTROL_OP_GET_CLIENT_SUMMARY = 0x12,
 } control_opcode_t;
 
 // Mirrors pgp_control.h's status table
@@ -96,15 +97,16 @@ static void test_opcode_constants() {
         CONTROL_OP_RESET_CLIENT_STATES,
         CONTROL_OP_SET_MAX_CONNECTIONS,
         CONTROL_OP_TOGGLE_AUTOSPIN,
-        CONTROL_OP_TOGGLE_AUTOCATCH };
+        CONTROL_OP_TOGGLE_AUTOCATCH,
+        CONTROL_OP_GET_CLIENT_SUMMARY };
     size_t count = sizeof(opcodes) / sizeof(opcodes[0]);
-    assert(count == 0x11);
-    printf("✓ Table has 17 opcodes (0x01-0x11)\n");
+    assert(count == 0x12);
+    printf("✓ Table has 18 opcodes (0x01-0x12)\n");
 
     for (size_t i = 0; i < count; i++) {
         assert((uint8_t)opcodes[i] == (uint8_t)(i + 1));
     }
-    printf("✓ Opcodes are 0x01..0x11, no gaps\n");
+    printf("✓ Opcodes are 0x01..0x12, no gaps\n");
 
     for (size_t i = 0; i < count; i++) {
         for (size_t j = i + 1; j < count; j++) {
@@ -202,6 +204,59 @@ static void test_parse_request() {
     printf("✓ len >= 1 correctly splits value[0] / value+1\n");
 }
 
+// Mirrors CONTROL_OP_GET_CLIENT_SUMMARY's per-slot record layout from pgp_control.c
+static void encode_client_summary_slot(uint16_t conn_id,
+    bool has_settings,
+    bool autospin,
+    bool autocatch,
+    bool has_stats,
+    uint16_t caught,
+    uint16_t fled,
+    uint16_t spin,
+    uint8_t* out) {
+    uint8_t flags = (has_settings ? 0x01 : 0) | (has_stats ? 0x02 : 0);
+    out[0] = (uint8_t)(conn_id & 0xFF);
+    out[1] = (uint8_t)(conn_id >> 8);
+    out[2] = flags;
+    out[3] = autospin ? 1 : 0;
+    out[4] = autocatch ? 1 : 0;
+    out[5] = (uint8_t)(caught & 0xFF);
+    out[6] = (uint8_t)(caught >> 8);
+    out[7] = (uint8_t)(fled & 0xFF);
+    out[8] = (uint8_t)(fled >> 8);
+    out[9] = (uint8_t)(spin & 0xFF);
+    out[10] = (uint8_t)(spin >> 8);
+}
+
+static void test_client_summary_record_layout() {
+    printf("\n=== Test: GET_CLIENT_SUMMARY Record Layout ===\n");
+
+    uint8_t rec[11];
+
+    // Empty slot: 0xFFFF sentinel, no flags
+    encode_client_summary_slot(0xffff, false, false, false, false, 0, 0, 0, rec);
+    uint8_t expected_empty[11] = { 0xff, 0xff, 0x00, 0, 0, 0, 0, 0, 0, 0, 0 };
+    assert(memcmp(rec, expected_empty, 11) == 0);
+    printf("✓ Empty slot encodes as 0xFFFF conn_id with flags 0\n");
+
+    // Connected, settings attached, no stats yet
+    encode_client_summary_slot(1, true, true, false, false, 0, 0, 0, rec);
+    uint8_t expected_settings[11] = { 0x01, 0x00, 0x01, 0x01, 0x00, 0, 0, 0, 0, 0, 0 };
+    assert(memcmp(rec, expected_settings, 11) == 0);
+    printf("✓ Settings-only slot sets flags bit0, leaves stats bytes zero\n");
+
+    // Connected, stats present, no settings
+    encode_client_summary_slot(3, false, false, false, true, 5, 2, 7, rec);
+    uint8_t expected_stats[11] = { 0x03, 0x00, 0x02, 0x00, 0x00, 0x05, 0x00, 0x02, 0x00, 0x07, 0x00 };
+    assert(memcmp(rec, expected_stats, 11) == 0);
+    printf("✓ Stats-only slot sets flags bit1 with little-endian uint16 fields\n");
+
+    // conn_id above 0xFF exercises the little-endian high byte
+    encode_client_summary_slot(0x0102, false, false, false, false, 0, 0, 0, rec);
+    assert(rec[0] == 0x02 && rec[1] == 0x01);
+    printf("✓ conn_id is little-endian (low byte first)\n");
+}
+
 int main() {
     printf("========================================\n");
     printf("Control Service Protocol Unit Tests\n");
@@ -212,6 +267,7 @@ int main() {
     test_build_frame_layout();
     test_build_frame_truncation();
     test_parse_request();
+    test_client_summary_record_layout();
 
     printf("\n========================================\n");
     printf("✓ All control protocol tests passed!\n");

@@ -41,6 +41,7 @@ typedef enum {
     CONTROL_OP_SET_MAX_CONNECTIONS = 0x0F,
     CONTROL_OP_TOGGLE_AUTOSPIN = 0x10,
     CONTROL_OP_TOGGLE_AUTOCATCH = 0x11,
+    CONTROL_OP_GET_CLIENT_SUMMARY = 0x12,
 } control_opcode_t;
 
 typedef enum {

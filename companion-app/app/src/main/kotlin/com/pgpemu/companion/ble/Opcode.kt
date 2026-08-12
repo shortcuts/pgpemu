@@ -18,4 +18,5 @@ object Opcode {
     const val SET_MAX_CONNECTIONS: Int = 0x0F
     const val TOGGLE_AUTOSPIN: Int = 0x10
     const val TOGGLE_AUTOCATCH: Int = 0x11
+    const val GET_CLIENT_SUMMARY: Int = 0x12
 }
