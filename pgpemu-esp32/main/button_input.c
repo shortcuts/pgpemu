@@ -14,15 +14,6 @@
 
 static const int CONFIG_GPIO_INPUT_BUTTON1 = GPIO_NUM_9;
 
-typedef enum {
-    BUTTON_EVENT_BUTTON1 = 0,
-} button_event_type_t;
-
-typedef struct {
-    button_event_type_t type;
-    uint32_t gpio_num;
-} button_event_t;
-
 static void button_input_task(void* pvParameters);
 static QueueHandle_t button_input_queue;
 
@@ -32,18 +23,12 @@ int get_button_gpio() {
 
 static void IRAM_ATTR gpio_isr_handler(void* arg) {
     uint32_t gpio_num = (uint32_t)arg;
-    button_event_t event = { 0 };
 
-    if (gpio_num == CONFIG_GPIO_INPUT_BUTTON1) {
-        event.type = BUTTON_EVENT_BUTTON1;
-    }
-    event.gpio_num = gpio_num;
-
-    xQueueSendFromISR(button_input_queue, &event, NULL);
+    xQueueSendFromISR(button_input_queue, &gpio_num, NULL);
 }
 
 void init_button_input() {
-    button_input_queue = xQueueCreate(1, sizeof(button_event_t));
+    button_input_queue = xQueueCreate(1, sizeof(uint32_t));
 
     gpio_config_t io_conf = {};
     io_conf.intr_type = GPIO_INTR_NEGEDGE;
@@ -59,13 +44,13 @@ void init_button_input() {
 }
 
 static void button_input_task(void* pvParameters) {
-    button_event_t button_event;
+    uint32_t gpio_num;
 
     ESP_LOGI(BUTTON_INPUT_TAG, "task start");
 
     while (true) {
-        if (xQueueReceive(button_input_queue, &button_event, portMAX_DELAY)) {
-            if (button_event.type == BUTTON_EVENT_BUTTON1) {
+        if (xQueueReceive(button_input_queue, &gpio_num, portMAX_DELAY)) {
+            if (gpio_num == CONFIG_GPIO_INPUT_BUTTON1) {
                 ESP_LOGV(BUTTON_INPUT_TAG, "button1 down");
 
                 vTaskDelay(200 / portTICK_PERIOD_MS);
