@@ -29,6 +29,10 @@ make companion-lint   # if companion-app/ changed (enforces stringResource() for
 make companion-build-release  # if R8/proguard rules changed (minified release APK)
 ```
 
+`make companion-build-release` signs the APK when `KEYSTORE_PATH`, `STORE_PASSWORD`,
+`KEY_ALIAS` and `KEY_PASSWORD` are set in the environment. Without `KEYSTORE_PATH` the
+release APK stays unsigned.
+
 Fix all errors. Never suppress without an inline comment explaining the false positive.
 
 ## Reference Docs
