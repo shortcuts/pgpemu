@@ -121,6 +121,16 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
+      - name: verify user-facing changelog entry
+        if: ${{ steps.release.outputs.release_created == 'true' }}
+        env:
+          TAG: ${{ steps.release.outputs.tag_name }}
+        run: |
+          if ! grep -qF "releases/tag/${TAG}\"" docs/wiki/changelog.html; then
+            echo "::error::docs/wiki/changelog.html has no entry for ${TAG}. Add one (see docs/wiki/CONTRIBUTING.md) before this release ships."
+            exit 1
+          fi
+
       - name: tag stable versions
         if: ${{ steps.release.outputs.release_created }}
         run: |

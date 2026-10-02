@@ -69,6 +69,7 @@ Each version is an `<h3>` whose text is a link to the GitHub release, followed b
 </ul>
 ```
 
+- CI fails the release if no heading links to `releases/tag/vX.Y.Z`, so the entry must be in the release PR before it is merged.
 - Versions appear in descending order (newest first).
 - The release URL pattern is `https://github.com/shortcuts/pgpemu/releases/tag/vX.Y.Z`.
 - Date format: `Month DD, YYYY` (e.g. `June 13, 2026`). Derive from the CHANGELOG.md heading date `(YYYY-MM-DD)`.
