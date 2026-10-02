@@ -5,6 +5,11 @@ plugins {
     alias(libs.plugins.hilt.android) apply false
     alias(libs.plugins.ksp) apply false
     alias(libs.plugins.ktlint)
+    alias(libs.plugins.kover)
+}
+
+dependencies {
+    kover(project(":app"))
 }
 
 subprojects {
