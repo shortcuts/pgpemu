@@ -67,9 +67,102 @@ class DeviceViewModelTest {
         val viewModel = DeviceViewModel(repository)
 
         repository.setConnectionState(ConnectionState.Ready)
-        dispatcher.scheduler.advanceUntilIdle()
+        // Not advanceUntilIdle(): once Ready, the status-poll loop reschedules itself
+        // forever via delay(), so advanceUntilIdle() would never find an idle point.
+        dispatcher.scheduler.runCurrent()
 
         assertEquals(ConnectionState.Ready, viewModel.uiState.value.connectionState)
+
+        // runTest drains the scheduler on exit; stop the poll loop so it can finish.
+        repository.setConnectionState(ConnectionState.Disconnected("done"))
+        dispatcher.scheduler.runCurrent()
+    }
+
+    @Test
+    fun `polls status on an interval while connected and stops when disconnected`() = runTest {
+        val repository = FakeBleControlRepository()
+        repository.stubResponse(
+            Opcode.GET_GLOBAL_SETTINGS,
+            Result.success(ResponseFrame(StatusCode.OK, Opcode.GET_GLOBAL_SETTINGS.toByte(), byteArrayOf(0, 0, 1, 4))),
+        )
+        repository.stubResponse(
+            Opcode.GET_LED_STATE,
+            Result.success(ResponseFrame(StatusCode.OK, Opcode.GET_LED_STATE.toByte(), byteArrayOf(0))),
+        )
+        repository.stubResponse(
+            Opcode.GET_CLIENT_SUMMARY,
+            Result.success(
+                ResponseFrame(
+                    StatusCode.OK,
+                    Opcode.GET_CLIENT_SUMMARY.toByte(),
+                    emptyClientSummarySlot() + emptyClientSummarySlot() + emptyClientSummarySlot() + emptyClientSummarySlot(),
+                ),
+            ),
+        )
+        DeviceViewModel(repository)
+
+        repository.setConnectionState(ConnectionState.Ready)
+        dispatcher.scheduler.runCurrent() // initial refreshStatus() on connect
+
+        val countAfterConnect = repository.sentCommands.count { it.first == Opcode.GET_GLOBAL_SETTINGS }
+        dispatcher.scheduler.advanceTimeBy(STATUS_POLL_INTERVAL_MS + 1)
+        dispatcher.scheduler.runCurrent()
+
+        assertEquals(
+            countAfterConnect + 1,
+            repository.sentCommands.count { it.first == Opcode.GET_GLOBAL_SETTINGS },
+        )
+
+        repository.setConnectionState(ConnectionState.Disconnected("gone"))
+        dispatcher.scheduler.runCurrent()
+        val countAfterDisconnect = repository.sentCommands.count { it.first == Opcode.GET_GLOBAL_SETTINGS }
+
+        dispatcher.scheduler.advanceTimeBy(STATUS_POLL_INTERVAL_MS * 3)
+        dispatcher.scheduler.runCurrent()
+
+        assertEquals(
+            countAfterDisconnect,
+            repository.sentCommands.count { it.first == Opcode.GET_GLOBAL_SETTINGS },
+        )
+    }
+
+    @Test
+    fun `background poll does not clear an existing error message`() = runTest {
+        val repository = FakeBleControlRepository()
+        repository.stubResponse(Opcode.CYCLE_LOG_LEVEL, Result.failure(IOException("boom")))
+        repository.stubResponse(
+            Opcode.GET_GLOBAL_SETTINGS,
+            Result.success(ResponseFrame(StatusCode.OK, Opcode.GET_GLOBAL_SETTINGS.toByte(), byteArrayOf(0, 0, 1, 4))),
+        )
+        repository.stubResponse(
+            Opcode.GET_LED_STATE,
+            Result.success(ResponseFrame(StatusCode.OK, Opcode.GET_LED_STATE.toByte(), byteArrayOf(0))),
+        )
+        repository.stubResponse(
+            Opcode.GET_CLIENT_SUMMARY,
+            Result.success(
+                ResponseFrame(
+                    StatusCode.OK,
+                    Opcode.GET_CLIENT_SUMMARY.toByte(),
+                    emptyClientSummarySlot() + emptyClientSummarySlot() + emptyClientSummarySlot() + emptyClientSummarySlot(),
+                ),
+            ),
+        )
+        val viewModel = DeviceViewModel(repository)
+        repository.setConnectionState(ConnectionState.Ready)
+        dispatcher.scheduler.runCurrent()
+
+        viewModel.cycleLogLevel()
+        dispatcher.scheduler.runCurrent()
+        assertEquals("boom", viewModel.uiState.value.errorMessage)
+
+        dispatcher.scheduler.advanceTimeBy(STATUS_POLL_INTERVAL_MS + 1)
+        dispatcher.scheduler.runCurrent()
+
+        assertEquals("boom", viewModel.uiState.value.errorMessage)
+
+        repository.setConnectionState(ConnectionState.Disconnected("done"))
+        dispatcher.scheduler.runCurrent()
     }
 
     @Test

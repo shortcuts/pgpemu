@@ -7,10 +7,13 @@ import com.pgpemu.companion.ble.ConnectionState
 import com.pgpemu.companion.ble.Opcode
 import com.pgpemu.companion.ble.ResponseFrame
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -19,6 +22,10 @@ import javax.inject.Inject
 // here, bump both sides together if the firmware value ever changes.
 const val DEVICE_PROFILE_COUNT = 4
 const val MAX_CONNECTIONS_LIMIT = 4
+
+// Poll interval while connected — other phones can connect/disconnect and
+// toggle profiles without this app knowing, so state can go stale otherwise.
+const val STATUS_POLL_INTERVAL_MS = 5000L
 
 data class DeviceUiState(
     val connectionState: ConnectionState = ConnectionState.Idle,
@@ -87,13 +94,37 @@ class DeviceViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(DeviceUiState())
     val uiState: StateFlow<DeviceUiState> = _uiState.asStateFlow()
 
+    private var pollJob: Job? = null
+
     init {
         viewModelScope.launch {
             repository.connectionState.collect { newState ->
                 _uiState.update { it.copy(connectionState = newState) }
-                if (newState is ConnectionState.Ready) refreshStatus()
+                if (newState is ConnectionState.Ready) {
+                    refreshStatus()
+                    startPolling()
+                } else {
+                    stopPolling()
+                }
             }
         }
+    }
+
+    /** Keeps connection count / active profile state fresh while connected — other
+     * phones can connect or toggle profiles without this app being told directly. */
+    private fun startPolling() {
+        if (pollJob?.isActive == true) return
+        pollJob = viewModelScope.launch {
+            while (isActive) {
+                delay(STATUS_POLL_INTERVAL_MS)
+                refreshStatus(clearError = false)
+            }
+        }
+    }
+
+    private fun stopPolling() {
+        pollJob?.cancel()
+        pollJob = null
     }
 
     fun connect() {
@@ -125,10 +156,10 @@ class DeviceViewModel @Inject constructor(
 
     /** Requests current device state after connect — runs its GET commands sequentially,
      * since NordicBleControlRepository only has one pendingResponse slot at a time. */
-    fun refreshStatus() {
+    fun refreshStatus(clearError: Boolean = true) {
         if (_uiState.value.isBusy) return
         viewModelScope.launch {
-            _uiState.update { it.copy(isBusy = true, errorMessage = null) }
+            _uiState.update { it.copy(isBusy = true, errorMessage = if (clearError) null else it.errorMessage) }
             runStep(Opcode.GET_GLOBAL_SETTINGS) { frame ->
                 val p = frame.payload
                 _uiState.update {
