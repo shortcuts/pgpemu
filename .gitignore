@@ -7,3 +7,4 @@ pgpemu-esp32/main/pc
 .claude/settings.local.json
 .scratch/**/.omc/
 .claude/.radin/
+.opencode*
