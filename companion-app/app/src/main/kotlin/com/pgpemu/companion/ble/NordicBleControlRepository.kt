@@ -118,7 +118,12 @@ class NordicBleControlRepository
             } finally {
                 // Cancelled by stopScan()/connect: that path already moved state on, don't clobber it.
                 val stillOurs = activeScanCallback === callback
-                runCatching { scanner.stopScan(callback) }
+                // Best-effort stop; may race permission revocation or Bluetooth turning off.
+                try {
+                    scanner.stopScan(callback)
+                } catch (_: SecurityException) {
+                } catch (_: Exception) {
+                }
                 if (stillOurs) {
                     activeScanCallback = null
                     if (_connectionState.value is ConnectionState.Scanning) {
@@ -131,7 +136,12 @@ class NordicBleControlRepository
         override fun stopScan() {
             val callback = activeScanCallback ?: return
             activeScanCallback = null
-            runCatching { bluetoothAdapter.bluetoothLeScanner?.stopScan(callback) }
+            // Best-effort stop; may race permission revocation or Bluetooth turning off.
+            try {
+                bluetoothAdapter.bluetoothLeScanner?.stopScan(callback)
+            } catch (_: SecurityException) {
+            } catch (_: Exception) {
+            }
             if (_connectionState.value is ConnectionState.Scanning) {
                 _connectionState.value = ConnectionState.Idle
             }
@@ -294,7 +304,13 @@ class NordicBleControlRepository
                         // already-bonded device; the library reads that as a stale bond and force
                         // removes+recreates it, killing an already-working connection. Only ask for
                         // it when there's no bond yet.
-                        if (bluetoothDevice?.bondState != BluetoothDevice.BOND_BONDED) {
+                        val bonded =
+                            try {
+                                bluetoothDevice?.bondState == BluetoothDevice.BOND_BONDED
+                            } catch (_: SecurityException) {
+                                false
+                            }
+                        if (!bonded) {
                             ensureBond()
                                 .fail { _, status ->
                                     _connectionState.value =

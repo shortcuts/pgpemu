@@ -75,6 +75,7 @@ make build
 make test              # PC unit tests
 make companion-format  # when companion-app/ changed
 make companion-test    # when companion-app/ changed
+make companion-lint    # when companion-app/ changed
 ```
 
 * Fix every error at its root cause. Suppress only genuine false positives, with an inline comment explaining why.
@@ -101,7 +102,7 @@ Architecture details: docs/architecture.md. Domain vocabulary: CONTEXT.md.
 
 The `companion-app/` directory is a separate Kotlin/Jetpack Compose Gradle project (package `com.pgpemu.companion`). Use `make companion-*` targets (see Makefile) to build, install, format, and test it.
 
-* Work is NOT complete until `make companion-test` passes. Run it after every set of edits, not just at the end.
+* Work is NOT complete until `make companion-test` and `make companion-lint` pass. Run it after every set of edits, not just at the end.
 * Fix every lint/build error before declaring done. Never suppress lint errors; if a rule is a genuine false positive, add an inline comment explaining why.
 * Doc changes go in the same commit as the code change, not a follow-up.
 * Never add co-authoring or "Claude-Sessions" trailers to commits.

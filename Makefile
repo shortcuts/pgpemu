@@ -1,4 +1,4 @@
-.PHONY: build clean menuconfig flash monitor run install format test companion-build companion-install companion-reinstall companion-start companion-log companion-test companion-format companion-clean wiki-serve
+.PHONY: build clean menuconfig flash monitor run install format test companion-build companion-install companion-reinstall companion-start companion-log companion-test companion-lint companion-format companion-clean wiki-serve
 .DEFAULT_GOAL := install-deps
 
 IDF_EXPORT := . $(HOME)/esp/v5.4.1/esp-idf/export.sh >/dev/null
@@ -69,6 +69,9 @@ companion-log: ## Tails the companion app's logcat on a connected phone
 
 companion-test: ## Runs the companion app's unit tests
 	cd ./companion-app && ./gradlew test
+
+companion-lint: ## Runs Android lint (lintRelease) on the companion app
+	cd ./companion-app && ./gradlew :app:lintRelease
 
 companion-format: ## Formats the companion app's Kotlin sources
 	cd ./companion-app && ./gradlew ktlintFormat

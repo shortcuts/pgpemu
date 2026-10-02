@@ -64,6 +64,10 @@ jobs:
       working-directory: companion-app
       run: ./gradlew :app:assembleDebug
 
+    - name: gradle lint companion-app
+      working-directory: companion-app
+      run: ./gradlew :app:lintRelease
+
   release:
     if: ${{ github.ref == 'refs/heads/main' }}
     needs:
