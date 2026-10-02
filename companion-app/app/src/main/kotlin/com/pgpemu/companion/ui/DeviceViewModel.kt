@@ -6,6 +6,7 @@ import com.pgpemu.companion.ble.BleControlRepository
 import com.pgpemu.companion.ble.ConnectionState
 import com.pgpemu.companion.ble.Opcode
 import com.pgpemu.companion.ble.ResponseFrame
+import com.pgpemu.companion.ble.ScannedDevice
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -29,6 +30,8 @@ const val STATUS_POLL_INTERVAL_MS = 5000L
 
 data class DeviceUiState(
     val connectionState: ConnectionState = ConnectionState.Idle,
+    val discoveredDevices: List<ScannedDevice> = emptyList(),
+    val hasScanned: Boolean = false,
     val status: StatusState = StatusState(),
     val profiles: List<ProfileState> = List(DEVICE_PROFILE_COUNT) { ProfileState(index = it) },
     val settings: SettingsState = SettingsState(),
@@ -98,6 +101,11 @@ class DeviceViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
+            repository.discoveredDevices.collect { devices ->
+                _uiState.update { it.copy(discoveredDevices = devices) }
+            }
+        }
+        viewModelScope.launch {
             repository.connectionState.collect { newState ->
                 _uiState.update { it.copy(connectionState = newState) }
                 if (newState is ConnectionState.Ready) {
@@ -127,8 +135,16 @@ class DeviceViewModel @Inject constructor(
         pollJob = null
     }
 
-    fun connect() {
-        viewModelScope.launch { repository.connect() }
+    fun startScan() {
+        _uiState.update { it.copy(hasScanned = true) }
+        viewModelScope.launch { repository.startScan() }
+    }
+
+    fun connectTo(address: String) {
+        viewModelScope.launch {
+            repository.stopScan()
+            repository.connect(address)
+        }
     }
 
     fun disconnect() {

@@ -13,7 +13,7 @@ The two characteristics on the Control Service. The app writes an opcode+payload
 _Avoid_: request/reply characteristic
 
 **Companion App**:
-The standalone Android (Kotlin, Jetpack Compose) app that replaces the UART/USB-console as the only way to read or change device state. Connects to one device at a time; no saved multi-device list.
+The standalone Android (Kotlin, Jetpack Compose) app that replaces the UART/USB-console as the only way to read or change device state. Scans for nearby devices and lists them; the user picks one to connect to. Connects to one device at a time; no saved multi-device list.
 _Avoid_: config app, control app, mobile app
 
 **Device Profile**:

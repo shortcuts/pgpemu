@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -57,6 +58,7 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pgpemu.companion.ble.ConnectionState
+import com.pgpemu.companion.ble.ScannedDevice
 import com.pgpemu.companion.ui.theme.LocalPgpColors
 
 // API 31+ (Android 12+) uses the dedicated BLUETOOTH_SCAN/CONNECT runtime permissions.
@@ -79,17 +81,17 @@ fun DeviceScreen(viewModel: DeviceViewModel = hiltViewModel()) {
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
         if (result.values.all { it }) {
             permissionDenied = false
-            viewModel.connect()
+            viewModel.startScan()
         } else {
             permissionDenied = true
         }
     }
 
-    fun requestConnect() {
+    fun requestScan() {
         val granted = BLE_PERMISSIONS.all { ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED }
         if (granted) {
             permissionDenied = false
-            viewModel.connect()
+            viewModel.startScan()
         } else {
             permissionLauncher.launch(BLE_PERMISSIONS)
         }
@@ -144,7 +146,10 @@ fun DeviceScreen(viewModel: DeviceViewModel = hiltViewModel()) {
                 connectionState = uiState.connectionState,
                 errorMessage = uiState.errorMessage,
                 permissionDenied = permissionDenied,
-                onConnect = ::requestConnect,
+                devices = uiState.discoveredDevices,
+                hasScanned = uiState.hasScanned,
+                onScan = ::requestScan,
+                onConnect = viewModel::connectTo,
             )
         }
     }
@@ -206,11 +211,14 @@ private fun ConnectPanel(
     connectionState: ConnectionState,
     errorMessage: String?,
     permissionDenied: Boolean,
-    onConnect: () -> Unit,
+    devices: List<ScannedDevice>,
+    hasScanned: Boolean,
+    onScan: () -> Unit,
+    onConnect: (String) -> Unit,
 ) {
     val colors = LocalPgpColors.current
-    val transitioning = connectionState is ConnectionState.Scanning ||
-        connectionState is ConnectionState.Connecting ||
+    val scanning = connectionState is ConnectionState.Scanning
+    val connecting = connectionState is ConnectionState.Connecting ||
         connectionState is ConnectionState.Bonding ||
         connectionState is ConnectionState.DiscoveringServices
 
@@ -219,34 +227,94 @@ private fun ConnectPanel(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        if (transitioning) {
+        if (connecting) {
             CircularProgressIndicator(color = colors.accent)
             Spacer(modifier = Modifier.height(16.dp))
-            Text(text = "Looking for your Pokémon GO Plus clone…", color = colors.muted, textAlign = TextAlign.Center)
-        } else {
+            Text(text = "Connecting…", color = colors.muted, textAlign = TextAlign.Center)
+            return@Column
+        }
+
+        if (scanning) {
+            CircularProgressIndicator(color = colors.accent)
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(text = "Scanning for devices…", color = colors.muted, textAlign = TextAlign.Center)
+        } else if (!hasScanned) {
             Text(text = "Not connected", color = colors.text, fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
             Spacer(modifier = Modifier.height(6.dp))
             Text(
-                text = "Pair with the device over Bluetooth Low Energy to view status and change settings.",
+                text = "Scan for your device, then pick it from the list to view status and change settings.",
                 color = colors.muted,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.padding(bottom = 20.dp),
             )
-            Button(
-                onClick = onConnect,
-                colors = ButtonDefaults.buttonColors(containerColor = colors.accent, contentColor = colors.bg),
-                shape = RoundedCornerShape(10.dp),
-            ) { Text("Connect") }
+        } else if (devices.isEmpty()) {
+            Text(
+                text = "No devices found. Make sure the device is powered on and nearby.",
+                color = colors.muted,
+                textAlign = TextAlign.Center,
+            )
+        }
 
-            if (permissionDenied) {
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(text = "Bluetooth permission is required to scan for the device.", color = colors.danger, textAlign = TextAlign.Center)
-            }
-            (errorMessage ?: (connectionState as? ConnectionState.Error)?.reason)?.let {
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(text = it, color = colors.danger, textAlign = TextAlign.Center)
+        if (devices.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = "Found ${devices.size} ${if (devices.size == 1) "device" else "devices"}",
+                color = colors.text,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            LazyColumn(
+                modifier = Modifier.weight(1f, fill = false),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                items(devices, key = { it.address }) { device -> DeviceRow(device, onClick = { onConnect(device.address) }) }
             }
         }
+
+        if (!scanning) {
+            Spacer(modifier = Modifier.height(20.dp))
+            Button(
+                onClick = onScan,
+                colors = ButtonDefaults.buttonColors(containerColor = colors.accent, contentColor = colors.bg),
+                shape = RoundedCornerShape(10.dp),
+            ) { Text(if (hasScanned) "Scan again" else "Scan for devices") }
+        }
+
+        if (permissionDenied) {
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(text = "Bluetooth permission is required to scan for the device.", color = colors.danger, textAlign = TextAlign.Center)
+        }
+        (errorMessage ?: (connectionState as? ConnectionState.Error)?.reason)?.let {
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(text = it, color = colors.danger, textAlign = TextAlign.Center)
+        }
+    }
+}
+
+private fun signalLabel(rssi: Int) = when {
+    rssi >= -60 -> "Strong"
+    rssi >= -75 -> "Medium"
+    else -> "Weak"
+}
+
+@Composable
+private fun DeviceRow(device: ScannedDevice, onClick: () -> Unit) {
+    val colors = LocalPgpColors.current
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .background(colors.surface, RoundedCornerShape(10.dp))
+            .border(1.dp, colors.border, RoundedCornerShape(10.dp))
+            .clickable(onClickLabel = "Connect to ${device.name} ${device.address}", onClick = onClick)
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Column {
+            Text(text = device.name, color = colors.text, fontWeight = FontWeight.Medium)
+            Text(text = device.address, color = colors.muted, fontSize = 12.sp)
+        }
+        Text(text = "${signalLabel(device.rssi)} · ${device.rssi} dBm", color = colors.muted, fontSize = 12.sp)
     }
 }
 

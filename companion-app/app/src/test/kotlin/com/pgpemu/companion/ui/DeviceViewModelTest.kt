@@ -3,6 +3,7 @@ package com.pgpemu.companion.ui
 import com.pgpemu.companion.ble.ConnectionState
 import com.pgpemu.companion.ble.Opcode
 import com.pgpemu.companion.ble.ResponseFrame
+import com.pgpemu.companion.ble.ScannedDevice
 import com.pgpemu.companion.ble.StatusCode
 import com.pgpemu.companion.core.testing.FakeBleControlRepository
 import java.io.IOException
@@ -14,7 +15,9 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -59,6 +62,43 @@ class DeviceViewModelTest {
     @After
     fun tearDown() {
         Dispatchers.resetMain()
+    }
+
+    @Test
+    fun `uiState reflects discovered devices and hasScanned is false before any scan`() = runTest {
+        val repository = FakeBleControlRepository()
+        val viewModel = DeviceViewModel(repository)
+        val devices = listOf(ScannedDevice("AA:BB:CC:DD:EE:01", "Pokemon GO Plus", -50))
+
+        repository.setDiscoveredDevices(devices)
+        dispatcher.scheduler.runCurrent()
+
+        assertEquals(devices, viewModel.uiState.value.discoveredDevices)
+        assertFalse(viewModel.uiState.value.hasScanned)
+    }
+
+    @Test
+    fun `startScan sets hasScanned and starts repository scan once`() = runTest {
+        val repository = FakeBleControlRepository()
+        val viewModel = DeviceViewModel(repository)
+
+        viewModel.startScan()
+        dispatcher.scheduler.runCurrent()
+
+        assertTrue(viewModel.uiState.value.hasScanned)
+        assertEquals(1, repository.startScanCalls)
+    }
+
+    @Test
+    fun `connectTo stops scan then connects to the tapped address`() = runTest {
+        val repository = FakeBleControlRepository()
+        val viewModel = DeviceViewModel(repository)
+
+        viewModel.connectTo("AA:BB:CC:DD:EE:02")
+        dispatcher.scheduler.runCurrent()
+
+        assertEquals(1, repository.stopScanCalls)
+        assertEquals(listOf("AA:BB:CC:DD:EE:02"), repository.connectedAddresses)
     }
 
     @Test

@@ -10,7 +10,6 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
 import no.nordicsemi.android.ble.BleManager
 import no.nordicsemi.android.ble.callback.FailCallback
@@ -22,8 +21,6 @@ import no.nordicsemi.android.ble.observer.ConnectionObserver
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.util.UUID
 import javax.inject.Inject
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
 
 // Same 128-bit vendor UUIDs as pgp_control.c's GATTS_SERVICE_UUID_CONTROL /
 // GATTS_CHAR_UUID_CONTROL_COMMAND / GATTS_CHAR_UUID_CONTROL_RESPONSE
@@ -69,16 +66,74 @@ class NordicBleControlRepository @Inject constructor(
     private val manager = ControlBleManager(context)
     private val bluetoothAdapter = (context.getSystemService(Context.BLUETOOTH_SERVICE) as android.bluetooth.BluetoothManager).adapter
 
-    override suspend fun connect() {
-        _connectionState.value = ConnectionState.Scanning
-        val device = try {
-            withTimeoutOrNull(SCAN_TIMEOUT_MS) { scanForDevice() }
-                ?: run { _connectionState.value = ConnectionState.Error("scan timed out"); return }
-        } catch (e: Exception) {
-            _connectionState.value = ConnectionState.Error("scan failed: ${e.message}")
+    private val _discoveredDevices = MutableStateFlow<List<ScannedDevice>>(emptyList())
+    override val discoveredDevices: StateFlow<List<ScannedDevice>> = _discoveredDevices.asStateFlow()
+
+    private var activeScanCallback: ScanCallback? = null
+
+    /**
+     * Filters by [PGP_ADVERTISED_NAME] — the existing PGP advertised name, unchanged. Devices are
+     * upserted by address as they are (re)seen; the list is sorted strongest signal first.
+     * Finding nothing before [SCAN_TIMEOUT_MS] is not an error: state returns to Idle.
+     */
+    override suspend fun startScan() {
+        stopScan()
+        _discoveredDevices.value = emptyList()
+        val scanner = bluetoothAdapter.bluetoothLeScanner
+        if (scanner == null) {
+            _connectionState.value = ConnectionState.Error("scan failed: bluetooth adapter has no LE scanner (BT off?)")
             return
         }
+        val found = LinkedHashMap<String, ScannedDevice>()
+        val failed = CompletableDeferred<Int>()
+        val callback = object : ScanCallback() {
+            override fun onScanResult(callbackType: Int, result: ScanResult) {
+                val address = result.device.address
+                found[address] = ScannedDevice(address, result.scanRecord?.deviceName ?: PGP_ADVERTISED_NAME, result.rssi)
+                _discoveredDevices.value = found.values.sortedByDescending { it.rssi }
+            }
+            override fun onScanFailed(errorCode: Int) {
+                failed.complete(errorCode)
+            }
+        }
+        val filter = ScanFilter.Builder().setDeviceName(PGP_ADVERTISED_NAME).build()
+        val settings = ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build()
+        _connectionState.value = ConnectionState.Scanning
+        activeScanCallback = callback
         try {
+            scanner.startScan(listOf(filter), settings, callback)
+            val errorCode = withTimeoutOrNull(SCAN_TIMEOUT_MS) { failed.await() }
+            if (errorCode != null) {
+                _connectionState.value = ConnectionState.Error("scan failed: $errorCode")
+            }
+        } catch (e: Exception) {
+            _connectionState.value = ConnectionState.Error("scan failed: ${e.message}")
+        } finally {
+            // Cancelled by stopScan()/connect: that path already moved state on, don't clobber it.
+            val stillOurs = activeScanCallback === callback
+            runCatching { scanner.stopScan(callback) }
+            if (stillOurs) {
+                activeScanCallback = null
+                if (_connectionState.value is ConnectionState.Scanning) {
+                    _connectionState.value = ConnectionState.Idle
+                }
+            }
+        }
+    }
+
+    override fun stopScan() {
+        val callback = activeScanCallback ?: return
+        activeScanCallback = null
+        runCatching { bluetoothAdapter.bluetoothLeScanner?.stopScan(callback) }
+        if (_connectionState.value is ConnectionState.Scanning) {
+            _connectionState.value = ConnectionState.Idle
+        }
+    }
+
+    override suspend fun connect(address: String) {
+        stopScan()
+        try {
+            val device = bluetoothAdapter.getRemoteDevice(address)
             manager.connect(device)
                 .retry(3, 100)
                 .useAutoConnect(false)
@@ -89,31 +144,12 @@ class NordicBleControlRepository @Inject constructor(
             // (mapping "service not supported" to "device not migrated") before this rethrows,
             // but connect() can also throw synchronously without that callback firing (e.g. the
             // manager still holding a stale GATT from a prior unexpected disconnect) — leaving
-            // the UI stuck on the Scanning/Connecting spinner forever. Fall back to Error so the
-            // Connect button always comes back.
+            // the UI stuck on the Connecting spinner forever. Fall back to Error so the
+            // device list always comes back.
             if (_connectionState.value !is ConnectionState.Error) {
                 _connectionState.value = ConnectionState.Error(e.message ?: "connect failed")
             }
         }
-    }
-
-    /** Filters by [PGP_ADVERTISED_NAME] — the existing PGP advertised name, unchanged per ticket 06/the map. */
-    private suspend fun scanForDevice(): BluetoothDevice = suspendCancellableCoroutine { cont ->
-        val scanner = bluetoothAdapter.bluetoothLeScanner
-            ?: run { cont.resumeWithException(IllegalStateException("bluetooth adapter has no LE scanner (BT off?)")); return@suspendCancellableCoroutine }
-        val filter = ScanFilter.Builder().setDeviceName(PGP_ADVERTISED_NAME).build()
-        val settings = ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build()
-        val callback = object : ScanCallback() {
-            override fun onScanResult(callbackType: Int, result: ScanResult) {
-                scanner.stopScan(this)
-                cont.resume(result.device)
-            }
-            override fun onScanFailed(errorCode: Int) {
-                cont.resumeWithException(IllegalStateException("scan failed: $errorCode"))
-            }
-        }
-        cont.invokeOnCancellation { scanner.stopScan(callback) }
-        scanner.startScan(listOf(filter), settings, callback)
     }
 
     override suspend fun disconnect() {
