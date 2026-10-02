@@ -49,5 +49,7 @@ Fix all errors. Never suppress without an inline comment explaining the false po
 |-------|------|
 | Agent rules and module table | [AGENTS.md](AGENTS.md) |
 | Architecture | [docs/architecture.md](docs/architecture.md) |
+| Companion app code style | [docs/companion-code-style.md](docs/companion-code-style.md) |
+| Companion app testing | [docs/companion-testing.md](docs/companion-testing.md) |
 | Domain vocabulary | [CONTEXT.md](CONTEXT.md) |
 | Wiki writing rules | [docs/wiki/CONTRIBUTING.md](docs/wiki/CONTRIBUTING.md) |

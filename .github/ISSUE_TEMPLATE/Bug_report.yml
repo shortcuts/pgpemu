@@ -23,11 +23,32 @@ body:
       description: Write down the steps to reproduce the bug, please include any information that seems relevant for us to reproduce it properly
     validations:
       required: true
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - Firmware
+        - Companion app
+        - Both
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Firmware / app version
+      description: Release tag or commit.
+    validations:
+      required: true
+  - type: input
+    id: android
+    attributes:
+      label: Android version and phone model
   - type: textarea
     id: logs
     attributes:
       label: Relevant log output
-      description: Please copy and paste any relevant log output. You can set `debug = true` in your neovim-plugin-boilerplate config and then use `:message<CR>` in order to see the logs.
+      description: Paste relevant log output. For firmware issues use `make monitor`; for companion app issues use the Diagnostics dumps in the app.
       render: shell
   - type: checkboxes
     attributes:
