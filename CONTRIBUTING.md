@@ -26,6 +26,7 @@ make test
 make companion-format  # if companion-app/ changed
 make companion-test   # if companion-app/ changed
 make companion-lint   # if companion-app/ changed (enforces stringResource() for Compose text)
+make companion-build-release  # if R8/proguard rules changed (minified release APK)
 ```
 
 Fix all errors. Never suppress without an inline comment explaining the false positive.

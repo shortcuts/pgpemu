@@ -1,4 +1,4 @@
-.PHONY: build clean menuconfig flash monitor run install format test companion-build companion-install companion-reinstall companion-start companion-log companion-test companion-coverage companion-coverage-open companion-lint companion-format companion-clean wiki-serve
+.PHONY: build clean menuconfig flash monitor run install format test companion-build companion-build-release companion-install companion-reinstall companion-start companion-log companion-test companion-coverage companion-coverage-open companion-lint companion-format companion-clean wiki-serve
 .DEFAULT_GOAL := install-deps
 
 IDF_EXPORT := . $(HOME)/esp/v5.4.1/esp-idf/export.sh >/dev/null
@@ -53,6 +53,9 @@ APP_ID := com.pgpemu.companion
 
 companion-build: ## Builds the companion app (debug APK)
 	cd ./companion-app && ./gradlew assembleDebug
+
+companion-build-release: ## Builds the companion app (R8-minified release APK, unsigned)
+	cd ./companion-app && ./gradlew :app:assembleRelease
 
 companion-install: ## Installs the companion app on a connected phone
 	cd ./companion-app && ./gradlew installDebug
