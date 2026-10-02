@@ -26,7 +26,7 @@ android {
         applicationId = "com.pgpemu.companion"
         minSdk = 28
         targetSdk = 37
-        val appVersion = "1.0.1" // x-release-please-version
+        val appVersion = "2.0.0" // x-release-please-version
         val (maj, min, pat) = appVersion.substringBefore("-").split(".").map { it.toInt() }
         versionName = appVersion
         versionCode = maj * 10000 + min * 100 + pat
