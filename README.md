@@ -158,7 +158,9 @@ removed.
 
 #### Install
 
-The app isn't published; build and install it from source:
+Download the signed APK (`pgpemu-companion-<tag>.apk`) from the latest
+[GitHub Release](https://github.com/shortcuts/pgpemu/releases/latest) and install it,
+or build and install from source:
 
 1. Open `companion-app/` in Android Studio (or run Gradle directly:
    `cd companion-app && ./gradlew installDebug`).

@@ -31,7 +31,9 @@ make companion-build-release  # if R8/proguard rules changed (minified release A
 
 `make companion-build-release` signs the APK when `KEYSTORE_PATH`, `STORE_PASSWORD`,
 `KEY_ALIAS` and `KEY_PASSWORD` are set in the environment. Without `KEYSTORE_PATH` the
-release APK stays unsigned.
+release APK stays unsigned. The release workflow signs the APK and attaches it to the
+GitHub Release using the repo secrets `KEYSTORE_BASE64`, `STORE_PASSWORD`, `KEY_ALIAS`
+and `KEY_PASSWORD`.
 
 The firmware and companion app share one version managed by release-please. Never edit the `x-release-please-version` line in `companion-app/app/build.gradle.kts` by hand.
 
