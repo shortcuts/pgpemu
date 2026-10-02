@@ -1,0 +1,64 @@
+name: Alpha Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        ref: main
+
+    - uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - uses: android-actions/setup-android@v4
+
+    - name: Cache Gradle
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('companion-app/**/*.gradle*', 'companion-app/gradle/libs.versions.toml', 'companion-app/gradle/wrapper/gradle-wrapper.properties') }}
+        restore-keys: ${{ runner.os }}-gradle-
+
+    - name: compute alpha version
+      id: version
+      run: |
+        BASE=$(grep -oP '(?<=val appVersion = ")[^"]+' companion-app/app/build.gradle.kts)
+        ALPHA="${BASE}-alpha.${{ github.run_number }}"
+        sed -i "s/val appVersion = \"${BASE}\"/val appVersion = \"${ALPHA}\"/" companion-app/app/build.gradle.kts
+        echo "alpha_version=${ALPHA}" >> "$GITHUB_OUTPUT"
+
+    - name: decode keystore
+      env:
+        KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+      run: echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.keystore"
+
+    - name: gradle build signed release apk
+      working-directory: companion-app
+      env:
+        KEYSTORE_PATH: ${{ runner.temp }}/release.keystore
+        STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+        KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+      run: ./gradlew :app:assembleRelease
+
+    - name: rename apk
+      run: mv companion-app/app/build/outputs/apk/release/app-release.apk "pgpemu-companion-v${{ steps.version.outputs.alpha_version }}.apk"
+
+    - uses: softprops/action-gh-release@v2
+      with:
+        tag_name: v${{ steps.version.outputs.alpha_version }}
+        name: v${{ steps.version.outputs.alpha_version }}
+        prerelease: true
+        target_commitish: main
+        files: pgpemu-companion-v${{ steps.version.outputs.alpha_version }}.apk

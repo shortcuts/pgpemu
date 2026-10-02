@@ -35,6 +35,10 @@ release APK stays unsigned. The release workflow signs the APK and attaches it t
 GitHub Release using the repo secrets `KEYSTORE_BASE64`, `STORE_PASSWORD`, `KEY_ALIAS`
 and `KEY_PASSWORD`.
 
+The manual **Alpha Release** workflow (Actions tab, `workflow_dispatch`) builds `main` and publishes a signed
+prerelease tagged `v<base>-alpha.<run_number>`, reusing the same signing secrets. Alphas share the base
+version's `versionCode`, so an alpha cannot be installed over the same-base stable build: uninstall first.
+
 The firmware and companion app share one version managed by release-please. Never edit the `x-release-please-version` line in `companion-app/app/build.gradle.kts` by hand.
 
 Fix all errors. Never suppress without an inline comment explaining the false positive.
