@@ -1,4 +1,5 @@
 [versions]
+ktlint-gradle = "14.2.0"
 agp = "9.1.1"
 kotlin = "2.3.20"
 composeBom = "2026.06.01"
@@ -37,4 +38,5 @@ kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-cor
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 hilt-android = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
+ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint-gradle" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }

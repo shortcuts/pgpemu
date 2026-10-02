@@ -31,7 +31,10 @@ class FakeBleControlRepository : BleControlRepository {
         _discoveredDevices.value = devices
     }
 
-    fun stubResponse(opcode: Int, result: Result<ResponseFrame>) {
+    fun stubResponse(
+        opcode: Int,
+        result: Result<ResponseFrame>,
+    ) {
         responses[opcode] = result
     }
 
@@ -49,7 +52,10 @@ class FakeBleControlRepository : BleControlRepository {
 
     override suspend fun disconnect() = Unit
 
-    override suspend fun sendCommand(opcode: Int, payload: ByteArray): Result<ResponseFrame> {
+    override suspend fun sendCommand(
+        opcode: Int,
+        payload: ByteArray,
+    ): Result<ResponseFrame> {
         sentCommands.add(opcode to payload)
         return responses[opcode] ?: Result.failure(UnsupportedOperationException("not stubbed: opcode=$opcode"))
     }

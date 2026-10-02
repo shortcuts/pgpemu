@@ -78,14 +78,15 @@ fun DeviceScreen(viewModel: DeviceViewModel = hiltViewModel()) {
     val context = LocalContext.current
     var permissionDenied by remember { mutableStateOf(false) }
 
-    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
-        if (result.values.all { it }) {
-            permissionDenied = false
-            viewModel.startScan()
-        } else {
-            permissionDenied = true
+    val permissionLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
+            if (result.values.all { it }) {
+                permissionDenied = false
+                viewModel.startScan()
+            } else {
+                permissionDenied = true
+            }
         }
-    }
 
     fun requestScan() {
         val granted = BLE_PERMISSIONS.all { ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED }
@@ -168,10 +169,11 @@ fun DeviceScreen(viewModel: DeviceViewModel = hiltViewModel()) {
 private fun TopBar(connectionState: ConnectionState) {
     val colors = LocalPgpColors.current
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(width = 1.dp, color = colors.border)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .border(width = 1.dp, color = colors.border)
+                .padding(horizontal = 16.dp, vertical = 14.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -183,21 +185,23 @@ private fun TopBar(connectionState: ConnectionState) {
 @Composable
 private fun StatusPill(connectionState: ConnectionState) {
     val colors = LocalPgpColors.current
-    val (label, dotColor) = when (connectionState) {
-        is ConnectionState.Ready -> "Ready" to colors.accent
-        is ConnectionState.Scanning -> "Scanning" to colors.warn
-        is ConnectionState.Connecting -> "Connecting" to colors.warn
-        is ConnectionState.Bonding -> "Bonding" to colors.warn
-        is ConnectionState.DiscoveringServices -> "Discovering" to colors.warn
-        is ConnectionState.Error -> "Error" to colors.danger
-        is ConnectionState.Disconnected -> "Disconnected" to colors.muted
-        is ConnectionState.Idle -> "Idle" to colors.muted
-    }
+    val (label, dotColor) =
+        when (connectionState) {
+            is ConnectionState.Ready -> "Ready" to colors.accent
+            is ConnectionState.Scanning -> "Scanning" to colors.warn
+            is ConnectionState.Connecting -> "Connecting" to colors.warn
+            is ConnectionState.Bonding -> "Bonding" to colors.warn
+            is ConnectionState.DiscoveringServices -> "Discovering" to colors.warn
+            is ConnectionState.Error -> "Error" to colors.danger
+            is ConnectionState.Disconnected -> "Disconnected" to colors.muted
+            is ConnectionState.Idle -> "Idle" to colors.muted
+        }
     val dimColor = dotColor.copy(alpha = 0.16f)
     Row(
-        modifier = Modifier
-            .background(color = dimColor, shape = RoundedCornerShape(99.dp))
-            .padding(horizontal = 10.dp, vertical = 4.dp),
+        modifier =
+            Modifier
+                .background(color = dimColor, shape = RoundedCornerShape(99.dp))
+                .padding(horizontal = 10.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
@@ -218,9 +222,10 @@ private fun ConnectPanel(
 ) {
     val colors = LocalPgpColors.current
     val scanning = connectionState is ConnectionState.Scanning
-    val connecting = connectionState is ConnectionState.Connecting ||
-        connectionState is ConnectionState.Bonding ||
-        connectionState is ConnectionState.DiscoveringServices
+    val connecting =
+        connectionState is ConnectionState.Connecting ||
+            connectionState is ConnectionState.Bonding ||
+            connectionState is ConnectionState.DiscoveringServices
 
     Column(
         modifier = Modifier.fillMaxSize().padding(32.dp),
@@ -290,23 +295,28 @@ private fun ConnectPanel(
     }
 }
 
-private fun signalLabel(rssi: Int) = when {
-    rssi >= -60 -> "Strong"
-    rssi >= -75 -> "Medium"
-    else -> "Weak"
-}
+private fun signalLabel(rssi: Int) =
+    when {
+        rssi >= -60 -> "Strong"
+        rssi >= -75 -> "Medium"
+        else -> "Weak"
+    }
 
 @Composable
-private fun DeviceRow(device: ScannedDevice, onClick: () -> Unit) {
+private fun DeviceRow(
+    device: ScannedDevice,
+    onClick: () -> Unit,
+) {
     val colors = LocalPgpColors.current
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 48.dp)
-            .background(colors.surface, RoundedCornerShape(10.dp))
-            .border(1.dp, colors.border, RoundedCornerShape(10.dp))
-            .clickable(onClickLabel = "Connect to ${device.name} ${device.address}", onClick = onClick)
-            .padding(12.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .heightIn(min = 48.dp)
+                .background(colors.surface, RoundedCornerShape(10.dp))
+                .border(1.dp, colors.border, RoundedCornerShape(10.dp))
+                .clickable(onClickLabel = "Connect to ${device.name} ${device.address}", onClick = onClick)
+                .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
@@ -340,7 +350,12 @@ private fun StatusSection(status: StatusState) {
     }
 }
 
-private fun logLevelName(level: Int) = when (level) { 3 -> "Verbose"; 2 -> "Info"; else -> "Debug" }
+private fun logLevelName(level: Int) =
+    when (level) {
+        3 -> "Verbose"
+        2 -> "Info"
+        else -> "Debug"
+    }
 
 @Composable
 private fun DeviceProfilesSection(
@@ -377,10 +392,11 @@ private fun RowScope.ProfileChip(
 ) {
     val colors = LocalPgpColors.current
     Column(
-        modifier = modifier
-            .background(color = colors.surface2, shape = RoundedCornerShape(10.dp))
-            .border(width = 1.dp, color = colors.border, shape = RoundedCornerShape(10.dp))
-            .padding(8.dp),
+        modifier =
+            modifier
+                .background(color = colors.surface2, shape = RoundedCornerShape(10.dp))
+                .border(width = 1.dp, color = colors.border, shape = RoundedCornerShape(10.dp))
+                .padding(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(text = "#${profile.index}", color = colors.muted, fontSize = 11.sp)
@@ -398,7 +414,11 @@ private fun RowScope.ProfileChip(
 }
 
 @Composable
-private fun FlagDot(label: String, active: Boolean, onClick: () -> Unit) {
+private fun FlagDot(
+    label: String,
+    active: Boolean,
+    onClick: () -> Unit,
+) {
     val colors = LocalPgpColors.current
     val tint = if (active) colors.accent else colors.muted
     Row(
@@ -433,7 +453,12 @@ private fun SettingsSection(
         Divider()
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
             Text(text = "Max connections", color = colors.text, modifier = Modifier.weight(1f))
-            Text(text = "${settings.maxConnections ?: "—"}", color = colors.muted, fontFamily = FontFamily.Monospace, modifier = Modifier.padding(end = 8.dp))
+            Text(
+                text = "${settings.maxConnections ?: "—"}",
+                color = colors.muted,
+                fontFamily = FontFamily.Monospace,
+                modifier = Modifier.padding(end = 8.dp),
+            )
             StepperButton("−") { onSetMaxConnections((settings.maxConnections ?: 1) - 1) }
             Spacer(modifier = Modifier.width(6.dp))
             StepperButton("+") { onSetMaxConnections((settings.maxConnections ?: 1) + 1) }
@@ -451,14 +476,18 @@ private fun SettingsSection(
 }
 
 @Composable
-private fun StepperButton(symbol: String, onClick: () -> Unit) {
+private fun StepperButton(
+    symbol: String,
+    onClick: () -> Unit,
+) {
     val colors = LocalPgpColors.current
     Box(
-        modifier = Modifier
-            .size(32.dp)
-            .background(color = colors.surface2, shape = RoundedCornerShape(8.dp))
-            .border(width = 1.dp, color = colors.border, shape = RoundedCornerShape(8.dp))
-            .clickableNoRipple(onClick),
+        modifier =
+            Modifier
+                .size(32.dp)
+                .background(color = colors.surface2, shape = RoundedCornerShape(8.dp))
+                .border(width = 1.dp, color = colors.border, shape = RoundedCornerShape(8.dp))
+                .clickableNoRipple(onClick),
         contentAlignment = Alignment.Center,
     ) { Text(text = symbol, color = colors.text) }
 }
@@ -481,7 +510,10 @@ private fun DiagnosticsSection(
 }
 
 @Composable
-private fun DangerZoneSection(onResetSecrets: () -> Unit, onRestart: () -> Unit) {
+private fun DangerZoneSection(
+    onResetSecrets: () -> Unit,
+    onRestart: () -> Unit,
+) {
     val colors = LocalPgpColors.current
     SectionCard(title = "Danger zone", titleColor = colors.danger) {
         DangerButton("Reset session secrets", onResetSecrets)
@@ -491,14 +523,18 @@ private fun DangerZoneSection(onResetSecrets: () -> Unit, onRestart: () -> Unit)
 }
 
 @Composable
-private fun DangerButton(label: String, onClick: () -> Unit) {
+private fun DangerButton(
+    label: String,
+    onClick: () -> Unit,
+) {
     val colors = LocalPgpColors.current
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(color = colors.dangerDim, shape = RoundedCornerShape(10.dp))
-            .clickableNoRipple(onClick)
-            .padding(horizontal = 14.dp, vertical = 12.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .background(color = colors.dangerDim, shape = RoundedCornerShape(10.dp))
+                .clickableNoRipple(onClick)
+                .padding(horizontal = 14.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -508,14 +544,19 @@ private fun DangerButton(label: String, onClick: () -> Unit) {
 }
 
 @Composable
-private fun SectionCard(title: String, titleColor: Color? = null, content: @Composable ColumnScope.() -> Unit) {
+private fun SectionCard(
+    title: String,
+    titleColor: Color? = null,
+    content: @Composable ColumnScope.() -> Unit,
+) {
     val colors = LocalPgpColors.current
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(color = colors.surface, shape = RoundedCornerShape(14.dp))
-            .border(width = 1.dp, color = colors.border, shape = RoundedCornerShape(14.dp))
-            .padding(14.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .background(color = colors.surface, shape = RoundedCornerShape(14.dp))
+                .border(width = 1.dp, color = colors.border, shape = RoundedCornerShape(14.dp))
+                .padding(14.dp),
     ) {
         Text(
             text = title.uppercase(),
@@ -529,7 +570,11 @@ private fun SectionCard(title: String, titleColor: Color? = null, content: @Comp
 }
 
 @Composable
-private fun LabeledValue(label: String, value: String, isLast: Boolean = false) {
+private fun LabeledValue(
+    label: String,
+    value: String,
+    isLast: Boolean = false,
+) {
     val colors = LocalPgpColors.current
     Row(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
         Text(text = label, color = colors.text, modifier = Modifier.weight(1f))
@@ -539,7 +584,11 @@ private fun LabeledValue(label: String, value: String, isLast: Boolean = false) 
 }
 
 @Composable
-private fun TextRow(label: String, onClick: () -> Unit, isLast: Boolean = false) {
+private fun TextRow(
+    label: String,
+    onClick: () -> Unit,
+    isLast: Boolean = false,
+) {
     val colors = LocalPgpColors.current
     Row(
         modifier = Modifier.fillMaxWidth().clickableNoRipple(onClick).padding(vertical = 8.dp),
@@ -553,7 +602,11 @@ private fun TextRow(label: String, onClick: () -> Unit, isLast: Boolean = false)
 }
 
 @Composable
-private fun DiagnosticDump(label: String, text: String?, onRefresh: () -> Unit) {
+private fun DiagnosticDump(
+    label: String,
+    text: String?,
+    onRefresh: () -> Unit,
+) {
     val colors = LocalPgpColors.current
     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
@@ -562,12 +615,13 @@ private fun DiagnosticDump(label: String, text: String?, onRefresh: () -> Unit) 
         }
         SelectionContainer {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 140.dp)
-                    .background(color = colors.surface2, shape = RoundedCornerShape(8.dp))
-                    .verticalScroll(rememberScrollState())
-                    .padding(10.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 140.dp)
+                        .background(color = colors.surface2, shape = RoundedCornerShape(8.dp))
+                        .verticalScroll(rememberScrollState())
+                        .padding(10.dp),
             ) {
                 Text(text = text ?: "—", color = colors.muted, fontFamily = FontFamily.Monospace, fontSize = 11.sp)
             }

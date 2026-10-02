@@ -5,7 +5,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class DescribeConnectFailureTest {
-
     @Test
     fun `known negative reason maps to human text with code in parens`() {
         assertEquals(

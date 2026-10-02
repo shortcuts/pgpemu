@@ -55,15 +55,19 @@ fun ConfirmActionSheet(
                 onValueChange = { typed = it },
                 label = { Text("Type ${action.confirmWord} to confirm") },
                 singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = colors.accent,
-                    unfocusedBorderColor = colors.border,
-                    focusedTextColor = colors.text,
-                    unfocusedTextColor = colors.text,
-                ),
+                colors =
+                    OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = colors.accent,
+                        unfocusedBorderColor = colors.border,
+                        focusedTextColor = colors.text,
+                        unfocusedTextColor = colors.text,
+                    ),
                 modifier = Modifier.fillMaxWidth(),
             )
-            Row(modifier = Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
                 OutlinedButton(
                     onClick = onDismiss,
                     modifier = Modifier.weight(1f),

@@ -23,6 +23,7 @@ Never flash or open a monitor in automated/agent sessions unless explicitly aske
 make format
 make build
 make test
+make companion-format  # if companion-app/ changed
 make companion-test   # if companion-app/ changed
 ```
 

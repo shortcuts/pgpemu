@@ -8,11 +8,12 @@ data class ResponseFrame(
     val isOk: Boolean get() = status == StatusCode.OK
 
     override fun equals(other: Any?): Boolean =
-        other is ResponseFrame && status == other.status && opcode == other.opcode &&
+        other is ResponseFrame &&
+            status == other.status &&
+            opcode == other.opcode &&
             payload.contentEquals(other.payload)
 
-    override fun hashCode(): Int =
-        31 * (31 * status + opcode) + payload.contentHashCode()
+    override fun hashCode(): Int = 31 * (31 * status + opcode) + payload.contentHashCode()
 }
 
 object StatusCode {

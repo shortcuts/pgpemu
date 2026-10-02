@@ -73,6 +73,7 @@ Work is NOT complete until format, build, and tests pass. Run after every set of
 make format
 make build
 make test              # PC unit tests
+make companion-format  # when companion-app/ changed
 make companion-test    # when companion-app/ changed
 ```
 
@@ -98,7 +99,7 @@ Architecture details: docs/architecture.md. Domain vocabulary: CONTEXT.md.
 
 ## Companion App (Kotlin/Android)
 
-The `companion-app/` directory is a separate Kotlin/Jetpack Compose Gradle project (package `com.pgpemu.companion`). Use `make companion-*` targets (see Makefile) to build, install, and test it.
+The `companion-app/` directory is a separate Kotlin/Jetpack Compose Gradle project (package `com.pgpemu.companion`). Use `make companion-*` targets (see Makefile) to build, install, format, and test it.
 
 * Work is NOT complete until `make companion-test` passes. Run it after every set of edits, not just at the end.
 * Fix every lint/build error before declaring done. Never suppress lint errors; if a rule is a genuine false positive, add an inline comment explaining why.

@@ -17,5 +17,8 @@ interface BleControlRepository {
 
     suspend fun disconnect()
 
-    suspend fun sendCommand(opcode: Int, payload: ByteArray = ByteArray(0)): Result<ResponseFrame>
+    suspend fun sendCommand(
+        opcode: Int,
+        payload: ByteArray = ByteArray(0),
+    ): Result<ResponseFrame>
 }

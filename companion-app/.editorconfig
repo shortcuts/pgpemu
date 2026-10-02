@@ -1,0 +1,8 @@
+root = true
+
+[*.{kt,kts}]
+ktlint_function_naming_ignore_when_annotated_with = Composable
+
+# Exclude generated code and build artifacts
+[{build,\.gradle}/**.{kt,kts}]
+disabled_rules = *

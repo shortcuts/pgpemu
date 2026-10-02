@@ -90,232 +90,266 @@ sealed interface ConfirmAction {
 }
 
 @HiltViewModel
-class DeviceViewModel @Inject constructor(
-    private val repository: BleControlRepository,
-) : ViewModel() {
+class DeviceViewModel
+    @Inject
+    constructor(
+        private val repository: BleControlRepository,
+    ) : ViewModel() {
+        private val _uiState = MutableStateFlow(DeviceUiState())
+        val uiState: StateFlow<DeviceUiState> = _uiState.asStateFlow()
 
-    private val _uiState = MutableStateFlow(DeviceUiState())
-    val uiState: StateFlow<DeviceUiState> = _uiState.asStateFlow()
+        private var pollJob: Job? = null
 
-    private var pollJob: Job? = null
-
-    init {
-        viewModelScope.launch {
-            repository.discoveredDevices.collect { devices ->
-                _uiState.update { it.copy(discoveredDevices = devices) }
+        init {
+            viewModelScope.launch {
+                repository.discoveredDevices.collect { devices ->
+                    _uiState.update { it.copy(discoveredDevices = devices) }
+                }
             }
-        }
-        viewModelScope.launch {
-            repository.connectionState.collect { newState ->
-                _uiState.update { it.copy(connectionState = newState) }
-                if (newState is ConnectionState.Ready) {
-                    refreshStatus()
-                    startPolling()
-                } else {
-                    stopPolling()
+            viewModelScope.launch {
+                repository.connectionState.collect { newState ->
+                    _uiState.update { it.copy(connectionState = newState) }
+                    if (newState is ConnectionState.Ready) {
+                        refreshStatus()
+                        startPolling()
+                    } else {
+                        stopPolling()
+                    }
                 }
             }
         }
-    }
 
-    /** Keeps connection count / active profile state fresh while connected — other
-     * phones can connect or toggle profiles without this app being told directly. */
-    private fun startPolling() {
-        if (pollJob?.isActive == true) return
-        pollJob = viewModelScope.launch {
-            while (isActive) {
-                delay(STATUS_POLL_INTERVAL_MS)
-                refreshStatus(clearError = false)
-            }
-        }
-    }
-
-    private fun stopPolling() {
-        pollJob?.cancel()
-        pollJob = null
-    }
-
-    fun startScan() {
-        _uiState.update { it.copy(hasScanned = true) }
-        viewModelScope.launch { repository.startScan() }
-    }
-
-    fun connectTo(address: String) {
-        viewModelScope.launch {
-            repository.stopScan()
-            repository.connect(address)
-        }
-    }
-
-    fun disconnect() {
-        viewModelScope.launch { repository.disconnect() }
-    }
-
-    private suspend fun runStep(opcode: Int, payload: ByteArray = ByteArray(0), onOk: (ResponseFrame) -> Unit) {
-        val result = repository.sendCommand(opcode, payload)
-        result.fold(
-            onSuccess = { frame ->
-                if (frame.isOk) onOk(frame) else _uiState.update { it.copy(errorMessage = "device returned status ${frame.status}") }
-            },
-            onFailure = { e -> _uiState.update { it.copy(errorMessage = e.message ?: "command failed") } },
-        )
-    }
-
-    private fun runCommand(opcode: Int, payload: ByteArray = ByteArray(0), onOk: (ResponseFrame) -> Unit) {
-        if (_uiState.value.isBusy) return // one in-flight command at a time — NordicBleControlRepository has a single pendingResponse slot
-        viewModelScope.launch {
-            _uiState.update { it.copy(isBusy = true, errorMessage = null) }
-            runStep(opcode, payload, onOk)
-            _uiState.update { it.copy(isBusy = false) }
-        }
-    }
-
-    /** Requests current device state after connect — runs its GET commands sequentially,
-     * since NordicBleControlRepository only has one pendingResponse slot at a time. */
-    fun refreshStatus(clearError: Boolean = true) {
-        if (_uiState.value.isBusy) return
-        viewModelScope.launch {
-            _uiState.update { it.copy(isBusy = true, errorMessage = if (clearError) null else it.errorMessage) }
-            runStep(Opcode.GET_GLOBAL_SETTINGS) { frame ->
-                val p = frame.payload
-                _uiState.update {
-                    it.copy(
-                        status = it.status.copy(
-                            logLevel = p[0].toInt(),
-                            advertisingEnabled = p[1] == 1.toByte(),
-                            activeConnections = p[2].toInt() and 0xFF,
-                        ),
-                        settings = it.settings.copy(maxConnections = p[3].toInt() and 0xFF),
-                    )
+        /** Keeps connection count / active profile state fresh while connected — other
+         * phones can connect or toggle profiles without this app being told directly. */
+        private fun startPolling() {
+            if (pollJob?.isActive == true) return
+            pollJob =
+                viewModelScope.launch {
+                    while (isActive) {
+                        delay(STATUS_POLL_INTERVAL_MS)
+                        refreshStatus(clearError = false)
+                    }
                 }
+        }
+
+        private fun stopPolling() {
+            pollJob?.cancel()
+            pollJob = null
+        }
+
+        fun startScan() {
+            _uiState.update { it.copy(hasScanned = true) }
+            viewModelScope.launch { repository.startScan() }
+        }
+
+        fun connectTo(address: String) {
+            viewModelScope.launch {
+                repository.stopScan()
+                repository.connect(address)
             }
-            runStep(Opcode.GET_LED_STATE) { frame ->
-                _uiState.update { it.copy(status = it.status.copy(ledOn = frame.payload[0] == 1.toByte())) }
+        }
+
+        fun disconnect() {
+            viewModelScope.launch { repository.disconnect() }
+        }
+
+        private suspend fun runStep(
+            opcode: Int,
+            payload: ByteArray = ByteArray(0),
+            onOk: (ResponseFrame) -> Unit,
+        ) {
+            val result = repository.sendCommand(opcode, payload)
+            result.fold(
+                onSuccess = { frame ->
+                    if (frame.isOk) onOk(frame) else _uiState.update { it.copy(errorMessage = "device returned status ${frame.status}") }
+                },
+                onFailure = { e -> _uiState.update { it.copy(errorMessage = e.message ?: "command failed") } },
+            )
+        }
+
+        private fun runCommand(
+            opcode: Int,
+            payload: ByteArray = ByteArray(0),
+            onOk: (ResponseFrame) -> Unit,
+        ) {
+            // one in-flight command at a time — NordicBleControlRepository has a single pendingResponse slot
+            if (_uiState.value.isBusy) return
+            viewModelScope.launch {
+                _uiState.update { it.copy(isBusy = true, errorMessage = null) }
+                runStep(opcode, payload, onOk)
+                _uiState.update { it.copy(isBusy = false) }
             }
-            runStep(Opcode.GET_CLIENT_SUMMARY) { frame ->
-                val summaries = parseClientSummary(frame.payload)
-                _uiState.update { s ->
-                    s.copy(profiles = s.profiles.mapIndexed { i, p ->
-                        val summary = summaries[i]
-                        p.copy(
-                            connected = summary.connected,
-                            autospin = summary.autospin ?: p.autospin,
-                            autocatch = summary.autocatch ?: p.autocatch,
+        }
+
+        /** Requests current device state after connect — runs its GET commands sequentially,
+         * since NordicBleControlRepository only has one pendingResponse slot at a time. */
+        fun refreshStatus(clearError: Boolean = true) {
+            if (_uiState.value.isBusy) return
+            viewModelScope.launch {
+                _uiState.update { it.copy(isBusy = true, errorMessage = if (clearError) null else it.errorMessage) }
+                runStep(Opcode.GET_GLOBAL_SETTINGS) { frame ->
+                    val p = frame.payload
+                    _uiState.update {
+                        it.copy(
+                            status =
+                                it.status.copy(
+                                    logLevel = p[0].toInt(),
+                                    advertisingEnabled = p[1] == 1.toByte(),
+                                    activeConnections = p[2].toInt() and 0xFF,
+                                ),
+                            settings = it.settings.copy(maxConnections = p[3].toInt() and 0xFF),
                         )
-                    })
+                    }
                 }
+                runStep(Opcode.GET_LED_STATE) { frame ->
+                    _uiState.update { it.copy(status = it.status.copy(ledOn = frame.payload[0] == 1.toByte())) }
+                }
+                runStep(Opcode.GET_CLIENT_SUMMARY) { frame ->
+                    val summaries = parseClientSummary(frame.payload)
+                    _uiState.update { s ->
+                        s.copy(
+                            profiles =
+                                s.profiles.mapIndexed { i, p ->
+                                    val summary = summaries[i]
+                                    p.copy(
+                                        connected = summary.connected,
+                                        autospin = summary.autospin ?: p.autospin,
+                                        autocatch = summary.autocatch ?: p.autocatch,
+                                    )
+                                },
+                        )
+                    }
+                }
+                _uiState.update { it.copy(isBusy = false) }
             }
-            _uiState.update { it.copy(isBusy = false) }
         }
-    }
 
-    fun toggleAdvertising() {
-        val turningOn = _uiState.value.status.advertisingEnabled != true
-        val opcode = if (turningOn) Opcode.ADVERTISE_START else Opcode.ADVERTISE_STOP
-        runCommand(opcode) { _uiState.update { it.copy(status = it.status.copy(advertisingEnabled = turningOn)) } }
-    }
-
-    fun setMaxConnections(value: Int) {
-        val clamped = value.coerceIn(1, MAX_CONNECTIONS_LIMIT)
-        runCommand(Opcode.SET_MAX_CONNECTIONS, byteArrayOf(clamped.toByte())) {
-            _uiState.update { it.copy(settings = it.settings.copy(maxConnections = clamped)) }
+        fun toggleAdvertising() {
+            val turningOn = _uiState.value.status.advertisingEnabled != true
+            val opcode = if (turningOn) Opcode.ADVERTISE_START else Opcode.ADVERTISE_STOP
+            runCommand(opcode) { _uiState.update { it.copy(status = it.status.copy(advertisingEnabled = turningOn)) } }
         }
-    }
 
-    fun cycleLogLevel() {
-        runCommand(Opcode.CYCLE_LOG_LEVEL) { frame ->
-            _uiState.update { it.copy(status = it.status.copy(logLevel = frame.payload[0].toInt())) }
+        fun setMaxConnections(value: Int) {
+            val clamped = value.coerceIn(1, MAX_CONNECTIONS_LIMIT)
+            runCommand(Opcode.SET_MAX_CONNECTIONS, byteArrayOf(clamped.toByte())) {
+                _uiState.update { it.copy(settings = it.settings.copy(maxConnections = clamped)) }
+            }
         }
-    }
 
-    fun saveSettings() {
-        runCommand(Opcode.SAVE_SETTINGS) { /* no payload; status OK is the confirmation */ }
-    }
-
-    fun toggleAutospin(index: Int) {
-        runCommand(Opcode.TOGGLE_AUTOSPIN, byteArrayOf(index.toByte())) { frame ->
-            updateProfile(index) { it.copy(autospin = frame.payload[0] == 1.toByte()) }
+        fun cycleLogLevel() {
+            runCommand(Opcode.CYCLE_LOG_LEVEL) { frame ->
+                _uiState.update { it.copy(status = it.status.copy(logLevel = frame.payload[0].toInt())) }
+            }
         }
-    }
 
-    fun toggleAutocatch(index: Int) {
-        runCommand(Opcode.TOGGLE_AUTOCATCH, byteArrayOf(index.toByte())) { frame ->
-            updateProfile(index) { it.copy(autocatch = frame.payload[0] == 1.toByte()) }
+        fun saveSettings() {
+            runCommand(Opcode.SAVE_SETTINGS) { /* no payload; status OK is the confirmation */ }
         }
-    }
 
-    private fun updateProfile(index: Int, transform: (ProfileState) -> ProfileState) {
-        _uiState.update { s -> s.copy(profiles = s.profiles.map { if (it.index == index) transform(it) else it }) }
-    }
-
-    private fun refreshDiagnostic(opcode: Int, apply: (DiagnosticsState, String) -> DiagnosticsState) {
-        runCommand(opcode) { frame ->
-            val text = String(frame.payload, Charsets.UTF_8)
-            _uiState.update { it.copy(diagnostics = apply(it.diagnostics, text)) }
+        fun toggleAutospin(index: Int) {
+            runCommand(Opcode.TOGGLE_AUTOSPIN, byteArrayOf(index.toByte())) { frame ->
+                updateProfile(index) { it.copy(autospin = frame.payload[0] == 1.toByte()) }
+            }
         }
-    }
 
-    fun refreshRuntimeStats() {
-        if (_uiState.value.isBusy) return
-        viewModelScope.launch {
-            _uiState.update { it.copy(isBusy = true, errorMessage = null) }
+        fun toggleAutocatch(index: Int) {
+            runCommand(Opcode.TOGGLE_AUTOCATCH, byteArrayOf(index.toByte())) { frame ->
+                updateProfile(index) { it.copy(autocatch = frame.payload[0] == 1.toByte()) }
+            }
+        }
 
-            repository.sendCommand(Opcode.GET_RUNTIME_STATS, ByteArray(0)).fold(
-                onSuccess = { frame ->
-                    if (frame.isOk) {
-                        val text = String(frame.payload, Charsets.UTF_8)
-                        _uiState.update { it.copy(diagnostics = it.diagnostics.copy(runtimeStats = text)) }
-                    } else {
-                        _uiState.update { it.copy(errorMessage = "device returned status ${frame.status}") }
-                    }
-                },
-                onFailure = { e -> _uiState.update { it.copy(errorMessage = e.message ?: "command failed") } },
-            )
+        private fun updateProfile(
+            index: Int,
+            transform: (ProfileState) -> ProfileState,
+        ) {
+            _uiState.update { s -> s.copy(profiles = s.profiles.map { if (it.index == index) transform(it) else it }) }
+        }
 
-            repository.sendCommand(Opcode.GET_CLIENT_SUMMARY, ByteArray(0)).fold(
-                onSuccess = { frame ->
-                    if (frame.isOk) {
-                        val summaries = parseClientSummary(frame.payload)
-                        _uiState.update { s ->
-                            s.copy(profiles = s.profiles.mapIndexed { i, p ->
-                                val summary = summaries[i]
-                                p.copy(
-                                    connected = summary.connected,
-                                    caught = summary.caught,
-                                    fled = summary.fled,
-                                    spin = summary.spin,
-                                )
-                            })
+        private fun refreshDiagnostic(
+            opcode: Int,
+            apply: (DiagnosticsState, String) -> DiagnosticsState,
+        ) {
+            runCommand(opcode) { frame ->
+                val text = String(frame.payload, Charsets.UTF_8)
+                _uiState.update { it.copy(diagnostics = apply(it.diagnostics, text)) }
+            }
+        }
+
+        fun refreshRuntimeStats() {
+            if (_uiState.value.isBusy) return
+            viewModelScope.launch {
+                _uiState.update { it.copy(isBusy = true, errorMessage = null) }
+
+                repository.sendCommand(Opcode.GET_RUNTIME_STATS, ByteArray(0)).fold(
+                    onSuccess = { frame ->
+                        if (frame.isOk) {
+                            val text = String(frame.payload, Charsets.UTF_8)
+                            _uiState.update { it.copy(diagnostics = it.diagnostics.copy(runtimeStats = text)) }
+                        } else {
+                            _uiState.update { it.copy(errorMessage = "device returned status ${frame.status}") }
                         }
-                    } else {
-                        _uiState.update { it.copy(errorMessage = "device returned status ${frame.status}") }
-                    }
-                },
-                onFailure = { e -> _uiState.update { it.copy(errorMessage = e.message ?: "command failed") } },
-            )
+                    },
+                    onFailure = { e -> _uiState.update { it.copy(errorMessage = e.message ?: "command failed") } },
+                )
 
-            _uiState.update { it.copy(isBusy = false) }
+                repository.sendCommand(Opcode.GET_CLIENT_SUMMARY, ByteArray(0)).fold(
+                    onSuccess = { frame ->
+                        if (frame.isOk) {
+                            val summaries = parseClientSummary(frame.payload)
+                            _uiState.update { s ->
+                                s.copy(
+                                    profiles =
+                                        s.profiles.mapIndexed { i, p ->
+                                            val summary = summaries[i]
+                                            p.copy(
+                                                connected = summary.connected,
+                                                caught = summary.caught,
+                                                fled = summary.fled,
+                                                spin = summary.spin,
+                                            )
+                                        },
+                                )
+                            }
+                        } else {
+                            _uiState.update { it.copy(errorMessage = "device returned status ${frame.status}") }
+                        }
+                    },
+                    onFailure = { e -> _uiState.update { it.copy(errorMessage = e.message ?: "command failed") } },
+                )
+
+                _uiState.update { it.copy(isBusy = false) }
+            }
+        }
+
+        fun refreshTaskList() = refreshDiagnostic(Opcode.GET_TASK_LIST) { d, text -> d.copy(taskList = text) }
+
+        fun refreshClientStates() = refreshDiagnostic(Opcode.GET_CLIENT_STATES) { d, text -> d.copy(clientStates = text) }
+
+        fun disconnectAllClients() {
+            runCommand(Opcode.RESET_CLIENT_STATES) { refreshClientStates() }
+        }
+
+        fun requestResetSecrets() {
+            _uiState.update { it.copy(pendingConfirmation = ConfirmAction.ResetSecrets) }
+        }
+
+        fun requestRestart() {
+            _uiState.update { it.copy(pendingConfirmation = ConfirmAction.Restart) }
+        }
+
+        fun dismissConfirmation() {
+            _uiState.update { it.copy(pendingConfirmation = null) }
+        }
+
+        fun confirmPendingAction() {
+            when (_uiState.value.pendingConfirmation) {
+                ConfirmAction.ResetSecrets -> runCommand(Opcode.RESET_SECRETS) { dismissConfirmation() }
+                ConfirmAction.Restart -> runCommand(Opcode.RESTART) { dismissConfirmation() }
+                null -> Unit
+            }
         }
     }
-    fun refreshTaskList() = refreshDiagnostic(Opcode.GET_TASK_LIST) { d, text -> d.copy(taskList = text) }
-    fun refreshClientStates() = refreshDiagnostic(Opcode.GET_CLIENT_STATES) { d, text -> d.copy(clientStates = text) }
-
-    fun disconnectAllClients() {
-        runCommand(Opcode.RESET_CLIENT_STATES) { refreshClientStates() }
-    }
-
-    fun requestResetSecrets() { _uiState.update { it.copy(pendingConfirmation = ConfirmAction.ResetSecrets) } }
-    fun requestRestart() { _uiState.update { it.copy(pendingConfirmation = ConfirmAction.Restart) } }
-    fun dismissConfirmation() { _uiState.update { it.copy(pendingConfirmation = null) } }
-
-    fun confirmPendingAction() {
-        when (_uiState.value.pendingConfirmation) {
-            ConfirmAction.ResetSecrets -> runCommand(Opcode.RESET_SECRETS) { dismissConfirmation() }
-            ConfirmAction.Restart -> runCommand(Opcode.RESTART) { dismissConfirmation() }
-            null -> Unit
-        }
-    }
-}
 
 private data class ClientSummary(
     val connected: Boolean,
@@ -334,8 +368,10 @@ private const val CLIENT_SUMMARY_RECORD_SIZE = 11
 private fun parseClientSummary(payload: ByteArray): List<ClientSummary> =
     (0 until DEVICE_PROFILE_COUNT).map { slot ->
         val base = slot * CLIENT_SUMMARY_RECORD_SIZE
-        fun u16(offset: Int) = (payload[base + offset].toInt() and 0xFF) or
-            ((payload[base + offset + 1].toInt() and 0xFF) shl 8)
+
+        fun u16(offset: Int) =
+            (payload[base + offset].toInt() and 0xFF) or
+                ((payload[base + offset + 1].toInt() and 0xFF) shl 8)
         val connId = u16(0)
         val flags = payload[base + 2].toInt() and 0xFF
         val hasSettings = flags and 0x01 != 0

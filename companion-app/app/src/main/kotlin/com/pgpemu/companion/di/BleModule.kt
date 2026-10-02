@@ -11,7 +11,6 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class BleModule {
-
     @Binds
     @Singleton
     abstract fun bindBleControlRepository(impl: NordicBleControlRepository): BleControlRepository

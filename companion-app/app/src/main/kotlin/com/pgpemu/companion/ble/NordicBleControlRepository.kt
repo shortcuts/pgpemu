@@ -6,6 +6,7 @@ import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
 import android.content.Context
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,7 +19,6 @@ import no.nordicsemi.android.ble.exception.RequestFailedException
 import no.nordicsemi.android.ble.ktx.suspend
 import no.nordicsemi.android.ble.observer.BondingObserver
 import no.nordicsemi.android.ble.observer.ConnectionObserver
-import dagger.hilt.android.qualifiers.ApplicationContext
 import java.util.UUID
 import javax.inject.Inject
 
@@ -39,258 +39,298 @@ private const val CONNECT_TIMEOUT_MS = 15_000L
  * Negative codes are [FailCallback.REASON_*][FailCallback]; positive codes are GATT status codes.
  */
 internal fun describeConnectFailure(reason: Int): String {
-    val description = when (reason) {
-        FailCallback.REASON_DEVICE_DISCONNECTED -> "device disconnected before connecting"
-        FailCallback.REASON_TIMEOUT -> "connection timed out"
-        FailCallback.REASON_CANCELLED -> "connection cancelled"
-        FailCallback.REASON_NOT_ENABLED -> "Bluetooth adapter is off"
-        FailCallback.REASON_BLUETOOTH_DISABLED -> "Bluetooth is disabled"
-        FailCallback.REASON_NULL_ATTRIBUTE -> "device is missing a required attribute"
-        FailCallback.REASON_REQUEST_FAILED -> "connection request failed"
-        FailCallback.REASON_VALIDATION -> "invalid connection request"
-        FailCallback.REASON_UNSUPPORTED_CONFIGURATION -> "unsupported Bluetooth configuration"
-        else -> if (reason > 0) GattError.parse(reason) else "unknown error"
-    }
+    val description =
+        when (reason) {
+            FailCallback.REASON_DEVICE_DISCONNECTED -> "device disconnected before connecting"
+            FailCallback.REASON_TIMEOUT -> "connection timed out"
+            FailCallback.REASON_CANCELLED -> "connection cancelled"
+            FailCallback.REASON_NOT_ENABLED -> "Bluetooth adapter is off"
+            FailCallback.REASON_BLUETOOTH_DISABLED -> "Bluetooth is disabled"
+            FailCallback.REASON_NULL_ATTRIBUTE -> "device is missing a required attribute"
+            FailCallback.REASON_REQUEST_FAILED -> "connection request failed"
+            FailCallback.REASON_VALIDATION -> "invalid connection request"
+            FailCallback.REASON_UNSUPPORTED_CONFIGURATION -> "unsupported Bluetooth configuration"
+            else -> if (reason > 0) GattError.parse(reason) else "unknown error"
+        }
     return "$description ($reason)"
 }
 
-class NordicBleControlRepository @Inject constructor(
-    @ApplicationContext context: Context,
-) : BleControlRepository {
+class NordicBleControlRepository
+    @Inject
+    constructor(
+        @ApplicationContext context: Context,
+    ) : BleControlRepository {
+        private val _connectionState = MutableStateFlow<ConnectionState>(ConnectionState.Idle)
+        override val connectionState: StateFlow<ConnectionState> = _connectionState.asStateFlow()
 
-    private val _connectionState = MutableStateFlow<ConnectionState>(ConnectionState.Idle)
-    override val connectionState: StateFlow<ConnectionState> = _connectionState.asStateFlow()
+        private var pendingResponse: CompletableDeferred<ResponseFrame>? = null
 
-    private var pendingResponse: CompletableDeferred<ResponseFrame>? = null
+        private val manager = ControlBleManager(context)
+        private val bluetoothAdapter = (context.getSystemService(Context.BLUETOOTH_SERVICE) as android.bluetooth.BluetoothManager).adapter
 
-    private val manager = ControlBleManager(context)
-    private val bluetoothAdapter = (context.getSystemService(Context.BLUETOOTH_SERVICE) as android.bluetooth.BluetoothManager).adapter
+        private val _discoveredDevices = MutableStateFlow<List<ScannedDevice>>(emptyList())
+        override val discoveredDevices: StateFlow<List<ScannedDevice>> = _discoveredDevices.asStateFlow()
 
-    private val _discoveredDevices = MutableStateFlow<List<ScannedDevice>>(emptyList())
-    override val discoveredDevices: StateFlow<List<ScannedDevice>> = _discoveredDevices.asStateFlow()
+        private var activeScanCallback: ScanCallback? = null
 
-    private var activeScanCallback: ScanCallback? = null
-
-    /**
-     * Filters by [PGP_ADVERTISED_NAME] — the existing PGP advertised name, unchanged. Devices are
-     * upserted by address as they are (re)seen; the list is sorted strongest signal first.
-     * Finding nothing before [SCAN_TIMEOUT_MS] is not an error: state returns to Idle.
-     */
-    override suspend fun startScan() {
-        stopScan()
-        _discoveredDevices.value = emptyList()
-        val scanner = bluetoothAdapter.bluetoothLeScanner
-        if (scanner == null) {
-            _connectionState.value = ConnectionState.Error("scan failed: bluetooth adapter has no LE scanner (BT off?)")
-            return
-        }
-        val found = LinkedHashMap<String, ScannedDevice>()
-        val failed = CompletableDeferred<Int>()
-        val callback = object : ScanCallback() {
-            override fun onScanResult(callbackType: Int, result: ScanResult) {
-                val address = result.device.address
-                found[address] = ScannedDevice(address, result.scanRecord?.deviceName ?: PGP_ADVERTISED_NAME, result.rssi)
-                _discoveredDevices.value = found.values.sortedByDescending { it.rssi }
+        /**
+         * Filters by [PGP_ADVERTISED_NAME] — the existing PGP advertised name, unchanged. Devices are
+         * upserted by address as they are (re)seen; the list is sorted strongest signal first.
+         * Finding nothing before [SCAN_TIMEOUT_MS] is not an error: state returns to Idle.
+         */
+        override suspend fun startScan() {
+            stopScan()
+            _discoveredDevices.value = emptyList()
+            val scanner = bluetoothAdapter.bluetoothLeScanner
+            if (scanner == null) {
+                _connectionState.value = ConnectionState.Error("scan failed: bluetooth adapter has no LE scanner (BT off?)")
+                return
             }
-            override fun onScanFailed(errorCode: Int) {
-                failed.complete(errorCode)
-            }
-        }
-        val filter = ScanFilter.Builder().setDeviceName(PGP_ADVERTISED_NAME).build()
-        val settings = ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build()
-        _connectionState.value = ConnectionState.Scanning
-        activeScanCallback = callback
-        try {
-            scanner.startScan(listOf(filter), settings, callback)
-            val errorCode = withTimeoutOrNull(SCAN_TIMEOUT_MS) { failed.await() }
-            if (errorCode != null) {
-                _connectionState.value = ConnectionState.Error("scan failed: $errorCode")
-            }
-        } catch (e: Exception) {
-            _connectionState.value = ConnectionState.Error("scan failed: ${e.message}")
-        } finally {
-            // Cancelled by stopScan()/connect: that path already moved state on, don't clobber it.
-            val stillOurs = activeScanCallback === callback
-            runCatching { scanner.stopScan(callback) }
-            if (stillOurs) {
-                activeScanCallback = null
-                if (_connectionState.value is ConnectionState.Scanning) {
-                    _connectionState.value = ConnectionState.Idle
+            val found = LinkedHashMap<String, ScannedDevice>()
+            val failed = CompletableDeferred<Int>()
+            val callback =
+                object : ScanCallback() {
+                    override fun onScanResult(
+                        callbackType: Int,
+                        result: ScanResult,
+                    ) {
+                        val address = result.device.address
+                        found[address] = ScannedDevice(address, result.scanRecord?.deviceName ?: PGP_ADVERTISED_NAME, result.rssi)
+                        _discoveredDevices.value = found.values.sortedByDescending { it.rssi }
+                    }
+
+                    override fun onScanFailed(errorCode: Int) {
+                        failed.complete(errorCode)
+                    }
                 }
-            }
-        }
-    }
-
-    override fun stopScan() {
-        val callback = activeScanCallback ?: return
-        activeScanCallback = null
-        runCatching { bluetoothAdapter.bluetoothLeScanner?.stopScan(callback) }
-        if (_connectionState.value is ConnectionState.Scanning) {
-            _connectionState.value = ConnectionState.Idle
-        }
-    }
-
-    override suspend fun connect(address: String) {
-        stopScan()
-        try {
-            val device = bluetoothAdapter.getRemoteDevice(address)
-            manager.connect(device)
-                .retry(3, 100)
-                .useAutoConnect(false)
-                .timeout(CONNECT_TIMEOUT_MS)
-                .suspend()
-        } catch (e: Exception) {
-            // ControlBleManager.onDeviceFailedToConnect usually sets ConnectionState.Error
-            // (mapping "service not supported" to "device not migrated") before this rethrows,
-            // but connect() can also throw synchronously without that callback firing (e.g. the
-            // manager still holding a stale GATT from a prior unexpected disconnect) — leaving
-            // the UI stuck on the Connecting spinner forever. Fall back to Error so the
-            // device list always comes back.
-            if (_connectionState.value !is ConnectionState.Error) {
-                _connectionState.value = ConnectionState.Error(e.message ?: "connect failed")
-            }
-        }
-    }
-
-    override suspend fun disconnect() {
-        manager.disconnect().suspend()
-        _connectionState.value = ConnectionState.Disconnected("user requested")
-    }
-
-    override suspend fun sendCommand(opcode: Int, payload: ByteArray): Result<ResponseFrame> =
-        runCatching {
-            val deferred = CompletableDeferred<ResponseFrame>()
-            pendingResponse = deferred
-            val request = byteArrayOf(opcode.toByte(), *payload)
+            val filter = ScanFilter.Builder().setDeviceName(PGP_ADVERTISED_NAME).build()
+            val settings = ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build()
+            _connectionState.value = ConnectionState.Scanning
+            activeScanCallback = callback
             try {
-                manager.writeCommand(request).suspend()
-            } catch (e: RequestFailedException) {
-                if (e.status in setOf(GattError.GATT_INSUF_AUTHENTICATION, GattError.GATT_INSUF_AUTHORIZATION,
-                        GattError.GATT_INSUF_ENCRYPTION, GattError.GATT_AUTH_FAIL)) {
-                    // Android still thinks the device is bonded, but the peripheral rejected
-                    // encryption with our stored key (e.g. its keys were reset by a reflash).
-                    // Drop the stale bond so the next connect re-pairs instead of hitting this
-                    // same failure forever.
-                    manager.forgetBond()
+                scanner.startScan(listOf(filter), settings, callback)
+                val errorCode = withTimeoutOrNull(SCAN_TIMEOUT_MS) { failed.await() }
+                if (errorCode != null) {
+                    _connectionState.value = ConnectionState.Error("scan failed: $errorCode")
                 }
-                throw IllegalStateException("command write failed: ${GattError.parse(e.status)} (status ${e.status})", e)
+            } catch (e: Exception) {
+                _connectionState.value = ConnectionState.Error("scan failed: ${e.message}")
+            } finally {
+                // Cancelled by stopScan()/connect: that path already moved state on, don't clobber it.
+                val stillOurs = activeScanCallback === callback
+                runCatching { scanner.stopScan(callback) }
+                if (stillOurs) {
+                    activeScanCallback = null
+                    if (_connectionState.value is ConnectionState.Scanning) {
+                        _connectionState.value = ConnectionState.Idle
+                    }
+                }
             }
-            withTimeoutOrNull(COMMAND_TIMEOUT_MS) { deferred.await() }
-                ?: throw java.util.concurrent.TimeoutException("no response for opcode $opcode")
-        }.also {
+        }
+
+        override fun stopScan() {
+            val callback = activeScanCallback ?: return
+            activeScanCallback = null
+            runCatching { bluetoothAdapter.bluetoothLeScanner?.stopScan(callback) }
+            if (_connectionState.value is ConnectionState.Scanning) {
+                _connectionState.value = ConnectionState.Idle
+            }
+        }
+
+        override suspend fun connect(address: String) {
+            stopScan()
+            try {
+                val device = bluetoothAdapter.getRemoteDevice(address)
+                manager
+                    .connect(device)
+                    .retry(3, 100)
+                    .useAutoConnect(false)
+                    .timeout(CONNECT_TIMEOUT_MS)
+                    .suspend()
+            } catch (e: Exception) {
+                // ControlBleManager.onDeviceFailedToConnect usually sets ConnectionState.Error
+                // (mapping "service not supported" to "device not migrated") before this rethrows,
+                // but connect() can also throw synchronously without that callback firing (e.g. the
+                // manager still holding a stale GATT from a prior unexpected disconnect) — leaving
+                // the UI stuck on the Connecting spinner forever. Fall back to Error so the
+                // device list always comes back.
+                if (_connectionState.value !is ConnectionState.Error) {
+                    _connectionState.value = ConnectionState.Error(e.message ?: "connect failed")
+                }
+            }
+        }
+
+        override suspend fun disconnect() {
+            manager.disconnect().suspend()
+            _connectionState.value = ConnectionState.Disconnected("user requested")
+        }
+
+        override suspend fun sendCommand(
+            opcode: Int,
+            payload: ByteArray,
+        ): Result<ResponseFrame> =
+            runCatching {
+                val deferred = CompletableDeferred<ResponseFrame>()
+                pendingResponse = deferred
+                val request = byteArrayOf(opcode.toByte(), *payload)
+                try {
+                    manager.writeCommand(request).suspend()
+                } catch (e: RequestFailedException) {
+                    if (e.status in
+                        setOf(
+                            GattError.GATT_INSUF_AUTHENTICATION,
+                            GattError.GATT_INSUF_AUTHORIZATION,
+                            GattError.GATT_INSUF_ENCRYPTION,
+                            GattError.GATT_AUTH_FAIL,
+                        )
+                    ) {
+                        // Android still thinks the device is bonded, but the peripheral rejected
+                        // encryption with our stored key (e.g. its keys were reset by a reflash).
+                        // Drop the stale bond so the next connect re-pairs instead of hitting this
+                        // same failure forever.
+                        manager.forgetBond()
+                    }
+                    throw IllegalStateException("command write failed: ${GattError.parse(e.status)} (status ${e.status})", e)
+                }
+                withTimeoutOrNull(COMMAND_TIMEOUT_MS) { deferred.await() }
+                    ?: throw java.util.concurrent.TimeoutException("no response for opcode $opcode")
+            }.also {
+                pendingResponse = null
+            }
+
+        private fun onDisconnected() {
+            pendingResponse?.let { deferred ->
+                if (!deferred.isCompleted) {
+                    deferred.completeExceptionally(IllegalStateException("disconnected mid-command"))
+                }
+            }
             pendingResponse = null
         }
 
-    private fun onDisconnected() {
-        pendingResponse?.let { deferred ->
-            if (!deferred.isCompleted) {
-                deferred.completeExceptionally(IllegalStateException("disconnected mid-command"))
-            }
-        }
-        pendingResponse = null
-    }
+        /**
+         * Nordic BleManager subclass — owns the GATT callback, service discovery,
+         * and the Command/Response characteristic pair. API surface (`.suspend()`
+         * on `WriteRequest`/`ConnectRequest`, `setIndicationCallback().with { }`,
+         * `FailCallback.REASON_DEVICE_NOT_SUPPORTED`) verified against the
+         * no.nordicsemi.android:ble / ble-ktx 2.11.0 sources.
+         */
+        private inner class ControlBleManager(
+            context: Context,
+        ) : BleManager(context) {
+            init {
+                connectionObserver =
+                    object : ConnectionObserver {
+                        override fun onDeviceConnecting(device: android.bluetooth.BluetoothDevice) {
+                            _connectionState.value = ConnectionState.Connecting
+                        }
 
-    /**
-     * Nordic BleManager subclass — owns the GATT callback, service discovery,
-     * and the Command/Response characteristic pair. API surface (`.suspend()`
-     * on `WriteRequest`/`ConnectRequest`, `setIndicationCallback().with { }`,
-     * `FailCallback.REASON_DEVICE_NOT_SUPPORTED`) verified against the
-     * no.nordicsemi.android:ble / ble-ktx 2.11.0 sources.
-     */
-    private inner class ControlBleManager(context: Context) : BleManager(context) {
-        init {
-            connectionObserver = object : ConnectionObserver {
-                override fun onDeviceConnecting(device: android.bluetooth.BluetoothDevice) {
-                    _connectionState.value = ConnectionState.Connecting
-                }
-                override fun onDeviceConnected(device: android.bluetooth.BluetoothDevice) {
-                    _connectionState.value = ConnectionState.DiscoveringServices
-                }
-                override fun onDeviceReady(device: android.bluetooth.BluetoothDevice) {
-                    _connectionState.value = ConnectionState.Ready
-                }
-                override fun onDeviceFailedToConnect(device: android.bluetooth.BluetoothDevice, reason: Int) {
-                    // FailCallback.REASON_DEVICE_NOT_SUPPORTED (isRequiredServiceSupported() returned
-                    // false, i.e. Control Service UUID absent post-discovery); confirmed against the
-                    // ble-ktx 2.11.0 sources.
-                    _connectionState.value = if (reason == FailCallback.REASON_DEVICE_NOT_SUPPORTED) {
-                        ConnectionState.Error("device not migrated")
-                    } else {
-                        ConnectionState.Error("connect failed: ${describeConnectFailure(reason)}")
+                        override fun onDeviceConnected(device: android.bluetooth.BluetoothDevice) {
+                            _connectionState.value = ConnectionState.DiscoveringServices
+                        }
+
+                        override fun onDeviceReady(device: android.bluetooth.BluetoothDevice) {
+                            _connectionState.value = ConnectionState.Ready
+                        }
+
+                        override fun onDeviceFailedToConnect(
+                            device: android.bluetooth.BluetoothDevice,
+                            reason: Int,
+                        ) {
+                            // FailCallback.REASON_DEVICE_NOT_SUPPORTED (isRequiredServiceSupported() returned
+                            // false, i.e. Control Service UUID absent post-discovery); confirmed against the
+                            // ble-ktx 2.11.0 sources.
+                            _connectionState.value =
+                                if (reason == FailCallback.REASON_DEVICE_NOT_SUPPORTED) {
+                                    ConnectionState.Error("device not migrated")
+                                } else {
+                                    ConnectionState.Error("connect failed: ${describeConnectFailure(reason)}")
+                                }
+                        }
+
+                        override fun onDeviceDisconnecting(device: android.bluetooth.BluetoothDevice) {}
+
+                        override fun onDeviceDisconnected(
+                            device: android.bluetooth.BluetoothDevice,
+                            reason: Int,
+                        ) {
+                            onDisconnected()
+                            _connectionState.value = ConnectionState.Disconnected(reason.toString())
+                        }
+                    }
+                bondingObserver =
+                    object : BondingObserver {
+                        override fun onBondingRequired(device: android.bluetooth.BluetoothDevice) {
+                            _connectionState.value = ConnectionState.Bonding
+                        }
+
+                        // next observer/init callback advances state
+                        override fun onBonded(device: android.bluetooth.BluetoothDevice) {}
+
+                        override fun onBondingFailed(device: android.bluetooth.BluetoothDevice) {
+                            _connectionState.value = ConnectionState.Error("bonding failed")
+                        }
+                    }
+            }
+
+            private var commandCharacteristic: android.bluetooth.BluetoothGattCharacteristic? = null
+            private var responseCharacteristic: android.bluetooth.BluetoothGattCharacteristic? = null
+
+            override fun getGattCallback(): BleManagerGattCallback =
+                object : BleManagerGattCallback() {
+                    override fun isRequiredServiceSupported(gatt: android.bluetooth.BluetoothGatt): Boolean {
+                        val service = gatt.getService(CONTROL_SERVICE_UUID) ?: return false
+                        commandCharacteristic = service.getCharacteristic(COMMAND_CHARACTERISTIC_UUID)
+                        responseCharacteristic = service.getCharacteristic(RESPONSE_CHARACTERISTIC_UUID)
+                        return commandCharacteristic != null && responseCharacteristic != null
+                    }
+
+                    override fun initialize() {
+                        // Default ATT MTU is 23 bytes (20-byte payload). GET_CLIENT_SUMMARY alone
+                        // needs 44; GET_SECRETS needs 294. Request the max before anything else so
+                        // every later indication arrives whole instead of silently truncated.
+                        requestMtu(517).enqueue()
+
+                        // ensureBond() calls Android's createBond(), which returns false for an
+                        // already-bonded device; the library reads that as a stale bond and force
+                        // removes+recreates it, killing an already-working connection. Only ask for
+                        // it when there's no bond yet.
+                        if (bluetoothDevice?.bondState != BluetoothDevice.BOND_BONDED) {
+                            ensureBond()
+                                .fail { _, status ->
+                                    _connectionState.value =
+                                        ConnectionState.Error("bonding failed: ${GattError.parse(status)} ($status)")
+                                }.enqueue()
+                        }
+                        setIndicationCallback(responseCharacteristic).with { _, data ->
+                            val bytes = data.value ?: return@with
+                            if (bytes.size >= 2) {
+                                val frame =
+                                    ResponseFrame(
+                                        status = bytes[0],
+                                        opcode = bytes[1],
+                                        payload = bytes.copyOfRange(2, bytes.size),
+                                    )
+                                pendingResponse?.complete(frame)
+                            }
+                        }
+                        enableIndications(responseCharacteristic).enqueue()
+                    }
+
+                    override fun onServicesInvalidated() {
+                        commandCharacteristic = null
+                        responseCharacteristic = null
                     }
                 }
-                override fun onDeviceDisconnecting(device: android.bluetooth.BluetoothDevice) {}
-                override fun onDeviceDisconnected(device: android.bluetooth.BluetoothDevice, reason: Int) {
-                    onDisconnected()
-                    _connectionState.value = ConnectionState.Disconnected(reason.toString())
-                }
-            }
-            bondingObserver = object : BondingObserver {
-                override fun onBondingRequired(device: android.bluetooth.BluetoothDevice) {
-                    _connectionState.value = ConnectionState.Bonding
-                }
-                override fun onBonded(device: android.bluetooth.BluetoothDevice) { /* next observer/init callback advances state */ }
-                override fun onBondingFailed(device: android.bluetooth.BluetoothDevice) {
-                    _connectionState.value = ConnectionState.Error("bonding failed")
-                }
-            }
+
+            fun writeCommand(bytes: ByteArray) =
+                writeCharacteristic(
+                    commandCharacteristic,
+                    bytes,
+                    android.bluetooth.BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT,
+                )
+
+            // removeBond() is protected on BleManager; expose it for the stale-bond recovery
+            // in sendCommand(), which holds a ControlBleManager reference, not a subclass of it.
+            fun forgetBond() = removeBond().enqueue()
         }
-
-        private var commandCharacteristic: android.bluetooth.BluetoothGattCharacteristic? = null
-        private var responseCharacteristic: android.bluetooth.BluetoothGattCharacteristic? = null
-
-        override fun getGattCallback(): BleManagerGattCallback = object : BleManagerGattCallback() {
-            override fun isRequiredServiceSupported(gatt: android.bluetooth.BluetoothGatt): Boolean {
-                val service = gatt.getService(CONTROL_SERVICE_UUID) ?: return false
-                commandCharacteristic = service.getCharacteristic(COMMAND_CHARACTERISTIC_UUID)
-                responseCharacteristic = service.getCharacteristic(RESPONSE_CHARACTERISTIC_UUID)
-                return commandCharacteristic != null && responseCharacteristic != null
-            }
-
-            override fun initialize() {
-                // Default ATT MTU is 23 bytes (20-byte payload). GET_CLIENT_SUMMARY alone
-                // needs 44; GET_SECRETS needs 294. Request the max before anything else so
-                // every later indication arrives whole instead of silently truncated.
-                requestMtu(517).enqueue()
-
-                // ensureBond() calls Android's createBond(), which returns false for an
-                // already-bonded device; the library reads that as a stale bond and force
-                // removes+recreates it, killing an already-working connection. Only ask for
-                // it when there's no bond yet.
-                if (bluetoothDevice?.bondState != BluetoothDevice.BOND_BONDED) {
-                    ensureBond()
-                        .fail { _, status -> _connectionState.value = ConnectionState.Error("bonding failed: ${GattError.parse(status)} ($status)") }
-                        .enqueue()
-                }
-                setIndicationCallback(responseCharacteristic).with { _, data ->
-                    val bytes = data.value ?: return@with
-                    if (bytes.size >= 2) {
-                        val frame = ResponseFrame(
-                            status = bytes[0],
-                            opcode = bytes[1],
-                            payload = bytes.copyOfRange(2, bytes.size),
-                        )
-                        pendingResponse?.complete(frame)
-                    }
-                }
-                enableIndications(responseCharacteristic).enqueue()
-            }
-
-            override fun onServicesInvalidated() {
-                commandCharacteristic = null
-                responseCharacteristic = null
-            }
-        }
-
-        fun writeCommand(bytes: ByteArray) =
-            writeCharacteristic(
-                commandCharacteristic,
-                bytes,
-                android.bluetooth.BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT,
-            )
-
-        // removeBond() is protected on BleManager; expose it for the stale-bond recovery
-        // in sendCommand(), which holds a ControlBleManager reference, not a subclass of it.
-        fun forgetBond() = removeBond().enqueue()
     }
-}
