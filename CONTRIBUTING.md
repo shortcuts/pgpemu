@@ -33,6 +33,8 @@ make companion-build-release  # if R8/proguard rules changed (minified release A
 `KEY_ALIAS` and `KEY_PASSWORD` are set in the environment. Without `KEYSTORE_PATH` the
 release APK stays unsigned.
 
+The firmware and companion app share one version managed by release-please. Never edit the `x-release-please-version` line in `companion-app/app/build.gradle.kts` by hand.
+
 Fix all errors. Never suppress without an inline comment explaining the false positive.
 
 ## Reference Docs

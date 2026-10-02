@@ -105,8 +105,8 @@ jobs:
       - uses: google-github-actions/release-please-action@v4
         id: release
         with:
-          release-type: simple
-          package-name: pgpemu
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
 
       - name: tag stable versions
         if: ${{ steps.release.outputs.release_created }}
