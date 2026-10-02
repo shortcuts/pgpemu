@@ -49,6 +49,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -57,6 +58,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.pgpemu.companion.R
 import com.pgpemu.companion.ble.ConnectionState
 import com.pgpemu.companion.ble.ScannedDevice
 import com.pgpemu.companion.ui.theme.LocalPgpColors
@@ -177,7 +179,7 @@ private fun TopBar(connectionState: ConnectionState) {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(text = "PGP Companion", color = colors.text, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+        Text(text = stringResource(R.string.device_title), color = colors.text, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
         StatusPill(connectionState)
     }
 }
@@ -235,25 +237,30 @@ private fun ConnectPanel(
         if (connecting) {
             CircularProgressIndicator(color = colors.accent)
             Spacer(modifier = Modifier.height(16.dp))
-            Text(text = "Connecting…", color = colors.muted, textAlign = TextAlign.Center)
+            Text(text = stringResource(R.string.device_connecting), color = colors.muted, textAlign = TextAlign.Center)
             return@Column
         }
 
         if (scanning) {
             CircularProgressIndicator(color = colors.accent)
             Spacer(modifier = Modifier.height(16.dp))
-            Text(text = "Scanning for devices…", color = colors.muted, textAlign = TextAlign.Center)
+            Text(text = stringResource(R.string.device_scanning), color = colors.muted, textAlign = TextAlign.Center)
         } else if (!hasScanned) {
-            Text(text = "Not connected", color = colors.text, fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
+            Text(
+                text = stringResource(R.string.device_not_connected),
+                color = colors.text,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 18.sp,
+            )
             Spacer(modifier = Modifier.height(6.dp))
             Text(
-                text = "Scan for your device, then pick it from the list to view status and change settings.",
+                text = stringResource(R.string.device_scan_hint),
                 color = colors.muted,
                 textAlign = TextAlign.Center,
             )
         } else if (devices.isEmpty()) {
             Text(
-                text = "No devices found. Make sure the device is powered on and nearby.",
+                text = stringResource(R.string.device_none_found),
                 color = colors.muted,
                 textAlign = TextAlign.Center,
             )
@@ -281,12 +288,12 @@ private fun ConnectPanel(
                 onClick = onScan,
                 colors = ButtonDefaults.buttonColors(containerColor = colors.accent, contentColor = colors.bg),
                 shape = RoundedCornerShape(10.dp),
-            ) { Text(if (hasScanned) "Scan again" else "Scan for devices") }
+            ) { Text(if (hasScanned) stringResource(R.string.device_scan_again) else stringResource(R.string.device_scan)) }
         }
 
         if (permissionDenied) {
             Spacer(modifier = Modifier.height(16.dp))
-            Text(text = "Bluetooth permission is required to scan for the device.", color = colors.danger, textAlign = TextAlign.Center)
+            Text(text = stringResource(R.string.device_permission_required), color = colors.danger, textAlign = TextAlign.Center)
         }
         (errorMessage ?: (connectionState as? ConnectionState.Error)?.reason)?.let {
             Spacer(modifier = Modifier.height(16.dp))
@@ -337,16 +344,19 @@ private fun DisconnectRow(onDisconnect: () -> Unit) {
         colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.muted),
         border = androidx.compose.foundation.BorderStroke(1.dp, colors.border),
         shape = RoundedCornerShape(10.dp),
-    ) { Text("Disconnect") }
+    ) { Text(stringResource(R.string.device_disconnect)) }
 }
 
 @Composable
 private fun StatusSection(status: StatusState) {
     SectionCard(title = "Status") {
-        LabeledValue("LED", status.ledOn?.let { if (it) "On" else "Off" } ?: "—")
-        LabeledValue("Advertising", status.advertisingEnabled?.let { if (it) "Enabled" else "Disabled" } ?: "—")
-        LabeledValue("Connections", status.activeConnections?.toString() ?: "—")
-        LabeledValue("Log level", status.logLevel?.let { logLevelName(it) } ?: "—", isLast = true)
+        LabeledValue(stringResource(R.string.status_led), status.ledOn?.let { if (it) "On" else "Off" } ?: "—")
+        LabeledValue(
+            stringResource(R.string.status_advertising),
+            status.advertisingEnabled?.let { if (it) "Enabled" else "Disabled" } ?: "—",
+        )
+        LabeledValue(stringResource(R.string.status_connections), status.activeConnections?.toString() ?: "—")
+        LabeledValue(stringResource(R.string.status_log_level), status.logLevel?.let { logLevelName(it) } ?: "—", isLast = true)
     }
 }
 
@@ -367,7 +377,7 @@ private fun DeviceProfilesSection(
     val active = profiles.filter { it.connected }.let { conn -> maxConnections?.let { conn.take(it) } ?: conn }
     SectionCard(title = "Device profiles") {
         if (active.isEmpty()) {
-            Text(text = "No devices connected", color = LocalPgpColors.current.muted, fontSize = 12.sp)
+            Text(text = stringResource(R.string.device_no_devices_connected), color = LocalPgpColors.current.muted, fontSize = 12.sp)
         } else {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 active.forEach { profile ->
@@ -401,9 +411,9 @@ private fun RowScope.ProfileChip(
     ) {
         Text(text = "#${profile.index}", color = colors.muted, fontSize = 11.sp)
         Spacer(modifier = Modifier.height(6.dp))
-        FlagDot(label = "SPIN", active = profile.autospin == true, onClick = onToggleAutospin)
+        FlagDot(label = stringResource(R.string.profile_spin), active = profile.autospin == true, onClick = onToggleAutospin)
         Spacer(modifier = Modifier.height(4.dp))
-        FlagDot(label = "CATCH", active = profile.autocatch == true, onClick = onToggleAutocatch)
+        FlagDot(label = stringResource(R.string.profile_catch), active = profile.autocatch == true, onClick = onToggleAutocatch)
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = "C:${profile.caught ?: "—"} F:${profile.fled ?: "—"} S:${profile.spin ?: "—"}",
@@ -443,7 +453,7 @@ private fun SettingsSection(
     val colors = LocalPgpColors.current
     SectionCard(title = "Settings") {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
-            Text(text = "Advertising", color = colors.text, modifier = Modifier.weight(1f))
+            Text(text = stringResource(R.string.settings_advertising), color = colors.text, modifier = Modifier.weight(1f))
             Switch(
                 checked = status.advertisingEnabled == true,
                 onCheckedChange = { onToggleAdvertising() },
@@ -452,7 +462,7 @@ private fun SettingsSection(
         }
         Divider()
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
-            Text(text = "Max connections", color = colors.text, modifier = Modifier.weight(1f))
+            Text(text = stringResource(R.string.settings_max_connections), color = colors.text, modifier = Modifier.weight(1f))
             Text(
                 text = "${settings.maxConnections ?: "—"}",
                 color = colors.muted,
@@ -471,7 +481,7 @@ private fun SettingsSection(
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(containerColor = colors.accent, contentColor = colors.bg),
             shape = RoundedCornerShape(10.dp),
-        ) { Text("Save to device") }
+        ) { Text(stringResource(R.string.settings_save)) }
     }
 }
 
@@ -501,11 +511,11 @@ private fun DiagnosticsSection(
     onDisconnectAll: () -> Unit,
 ) {
     SectionCard(title = "Diagnostics") {
-        DiagnosticDump("Runtime stats", diagnostics.runtimeStats, onRefreshStats)
-        DiagnosticDump("Task list", diagnostics.taskList, onRefreshTasks)
-        DiagnosticDump("Client states", diagnostics.clientStates, onRefreshClientStates)
+        DiagnosticDump(stringResource(R.string.diag_runtime_stats), diagnostics.runtimeStats, onRefreshStats)
+        DiagnosticDump(stringResource(R.string.diag_task_list), diagnostics.taskList, onRefreshTasks)
+        DiagnosticDump(stringResource(R.string.diag_client_states), diagnostics.clientStates, onRefreshClientStates)
         Spacer(modifier = Modifier.height(6.dp))
-        TextRow(label = "Disconnect all clients", onClick = onDisconnectAll, isLast = true)
+        TextRow(label = stringResource(R.string.diag_disconnect_all), onClick = onDisconnectAll, isLast = true)
     }
 }
 
@@ -516,9 +526,9 @@ private fun DangerZoneSection(
 ) {
     val colors = LocalPgpColors.current
     SectionCard(title = "Danger zone", titleColor = colors.danger) {
-        DangerButton("Reset session secrets", onResetSecrets)
+        DangerButton(stringResource(R.string.danger_reset_secrets), onResetSecrets)
         Spacer(modifier = Modifier.height(8.dp))
-        DangerButton("Restart device", onRestart)
+        DangerButton(stringResource(R.string.danger_restart), onRestart)
     }
 }
 
@@ -539,7 +549,7 @@ private fun DangerButton(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(text = label, color = colors.danger, fontWeight = FontWeight.Medium)
-        Text(text = "→", color = colors.danger)
+        Text(text = stringResource(R.string.arrow), color = colors.danger)
     }
 }
 
@@ -596,7 +606,7 @@ private fun TextRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(text = label, color = colors.text)
-        Text(text = "→", color = colors.muted)
+        Text(text = stringResource(R.string.arrow), color = colors.muted)
     }
     if (!isLast) Divider()
 }
@@ -611,7 +621,7 @@ private fun DiagnosticDump(
     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
             Text(text = label, color = colors.text, modifier = Modifier.weight(1f))
-            TextButton(onClick = onRefresh) { Text("Refresh", color = colors.accent) }
+            TextButton(onClick = onRefresh) { Text(stringResource(R.string.diag_refresh), color = colors.accent) }
         }
         SelectionContainer {
             Column(
@@ -623,7 +633,12 @@ private fun DiagnosticDump(
                         .verticalScroll(rememberScrollState())
                         .padding(10.dp),
             ) {
-                Text(text = text ?: "—", color = colors.muted, fontFamily = FontFamily.Monospace, fontSize = 11.sp)
+                Text(
+                    text = text ?: stringResource(R.string.dash),
+                    color = colors.muted,
+                    fontFamily = FontFamily.Monospace,
+                    fontSize = 11.sp,
+                )
             }
         }
     }

@@ -15,3 +15,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "companion-app"
 include(":app")
+include(":lint:checks")

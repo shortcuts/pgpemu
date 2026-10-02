@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="device_title">PGP Companion</string>
+    <string name="device_connecting">Connecting…</string>
+    <string name="device_scanning">Scanning for devices…</string>
+    <string name="device_not_connected">Not connected</string>
+    <string name="device_scan_hint">Scan for your device, then pick it from the list to view status and change settings.</string>
+    <string name="device_none_found">No devices found. Make sure the device is powered on and nearby.</string>
+    <string name="device_permission_required">Bluetooth permission is required to scan for the device.</string>
+    <string name="device_disconnect">Disconnect</string>
+    <string name="status_led">LED</string>
+    <string name="status_advertising">Advertising</string>
+    <string name="status_connections">Connections</string>
+    <string name="status_log_level">Log level</string>
+    <string name="device_no_devices_connected">No devices connected</string>
+    <string name="profile_spin">SPIN</string>
+    <string name="profile_catch">CATCH</string>
+    <string name="settings_advertising">Advertising</string>
+    <string name="settings_max_connections">Max connections</string>
+    <string name="settings_save">Save to device</string>
+    <string name="diag_runtime_stats">Runtime stats</string>
+    <string name="diag_task_list">Task list</string>
+    <string name="diag_client_states">Client states</string>
+    <string name="diag_disconnect_all">Disconnect all clients</string>
+    <string name="danger_reset_secrets">Reset session secrets</string>
+    <string name="danger_restart">Restart device</string>
+    <string name="arrow">→</string>
+    <string name="diag_refresh">Refresh</string>
+    <string name="dash">—</string>
+    <string name="device_scan_again">Scan again</string>
+    <string name="device_scan">Scan for devices</string>
+    <string name="confirm_cancel">Cancel</string>
+</resources>

@@ -28,6 +28,10 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+    lint {
+        error += "HardcodedComposeString"
+    }
+
     buildFeatures {
         compose = true
     }
@@ -51,6 +55,7 @@ dependencies {
     implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
     ksp(libs.hilt.android.compiler)
     ksp(libs.androidx.hilt.compiler)
+    lintChecks(project(":lint:checks"))
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
 }

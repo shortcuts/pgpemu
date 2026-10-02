@@ -22,9 +22,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.pgpemu.companion.R
 import com.pgpemu.companion.ui.theme.LocalPgpColors
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -74,7 +76,7 @@ fun ConfirmActionSheet(
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.text),
                     border = BorderStroke(1.dp, colors.border),
                     shape = RoundedCornerShape(10.dp),
-                ) { Text("Cancel") }
+                ) { Text(stringResource(R.string.confirm_cancel)) }
                 Button(
                     onClick = onConfirm,
                     enabled = typed == action.confirmWord && !isBusy,

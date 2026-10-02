@@ -103,6 +103,7 @@ Architecture details: docs/architecture.md. Domain vocabulary: CONTEXT.md.
 The `companion-app/` directory is a separate Kotlin/Jetpack Compose Gradle project (package `com.pgpemu.companion`). Use `make companion-*` targets (see Makefile) to build, install, format, and test it.
 
 * Work is NOT complete until `make companion-test` and `make companion-lint` pass. Run it after every set of edits, not just at the end.
+* User-facing Compose text must use `stringResource()`. The `HardcodedComposeString` lint rule (module `companion-app/lint/checks`) enforces it as an error.
 * Fix every lint/build error before declaring done. Never suppress lint errors; if a rule is a genuine false positive, add an inline comment explaining why.
 * Doc changes go in the same commit as the code change, not a follow-up.
 * Never add co-authoring or "Claude-Sessions" trailers to commits.
