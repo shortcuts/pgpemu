@@ -46,6 +46,56 @@ This repository targets **ESP32-C3** firmware built with **ESP-IDF v5.4.1**. The
 
 * The maintainer has final say. If a change risks BLE parity or Android stability, the answer is no.
 
+## Documentation Maintenance Policy
+
+Work is NOT complete until affected docs are updated. These files must stay in sync with the code:
+
+| File | Update when |
+|------|-------------|
+| `AGENTS.md` (this file) — Key Modules table | Adding, removing, or renaming a firmware module under `pgpemu-esp32/main/` |
+| `docs/architecture.md` | Changing module layering, the connection/handshake flow, or the Control Service protocol |
+| `README.md` — Features / Project Structure | Adding or removing a user-visible feature or firmware module |
+| `docs/wiki/<page>.html` | Adding or changing any user-visible companion app or device behavior |
+| `docs/wiki/changelog.html` | Any release with user-visible changes |
+| `CONTEXT.md` | Introducing or renaming a domain term (Control Service, Device Profile, ...) |
+
+Rules:
+
+* Doc changes go in the same commit as the code change, not a follow-up.
+* Deleted feature/module → remove it from every table above.
+* README.md and the wiki are user-facing. Developer detail (build steps, architecture, protocol) goes in `AGENTS.md`, `CONTRIBUTING.md`, or `docs/architecture.md`.
+
+## Pre-Commit Validation
+
+Work is NOT complete until format, build, and tests pass. Run after every set of edits, not just at the end.
+
+```bash
+make format
+make build
+make test              # PC unit tests
+make companion-test    # when companion-app/ changed
+```
+
+* Fix every error at its root cause. Suppress only genuine false positives, with an inline comment explaining why.
+* Never batch-suppress (no file-wide suppressions).
+* Never add co-authoring or "Claude-Sessions" trailers to commits.
+
+## Key Modules
+
+| Module | Responsibility |
+|--------|----------------|
+| `pgp_gatts.c` | BLE GATT server: Pokémon GO Plus services, handshake exchange, notifications |
+| `pgp_handshake_multi.c` | Up to 4 simultaneous connections: conn_id → profile map, cert/recon state, session-key cache |
+| `pgp_handshake.c` / `pgp_cert.c` | Handshake crypto and certificate handling |
+| `pgp_control.c` | Custom Control Service (Command/Response characteristics) for the Companion App, bonded link only |
+| `pgp_gap.c` / `pgp_bluetooth.c` | Advertising, pairing/bonding, BLE stack init |
+| `pgp_led_handler.c` | Parses LED patterns from the game into events |
+| `pgp_autobutton.c` | Per-profile autospin/autocatch button simulation |
+| `config_storage.c` / `config_secrets.c` / `nvs_helper.c` / `settings.c` | NVS persistence for Global/Device Settings and Session Secrets |
+| `stats.c` / `log_tags.c` | Runtime stats and log tags |
+
+Architecture details: docs/architecture.md. Domain vocabulary: CONTEXT.md.
+
 ## Companion App (Kotlin/Android)
 
 The `companion-app/` directory is a separate Kotlin/Jetpack Compose Gradle project (package `com.pgpemu.companion`). Use `make companion-*` targets (see Makefile) to build, install, and test it.
