@@ -89,6 +89,12 @@ workflow.
    Run this once per machine (not once per shell — `make build` and
    `make clean` source ESP-IDF's `export.sh` for you on every run).
 
+### Prebuilt firmware
+
+Each release includes `pgpemu-firmware-<tag>.zip` (app, bootloader, partition
+table). It is secret-free: you must build and flash your own NVS image from
+your `secrets.csv`. See `FLASHING.md` inside the zip.
+
 ### Build, Flash & Monitor
 
 ```bash
