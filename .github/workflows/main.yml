@@ -48,7 +48,24 @@ jobs:
         target: esp32c3
         path: 'pgpemu-esp32'
 
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      companion: ${{ steps.filter.outputs.companion }}
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: dorny/paths-filter@v3
+      id: filter
+      with:
+        filters: |
+          companion:
+            - 'companion-app/**'
+            - '.github/workflows/main.yml'
+
   companion-app-build:
+    needs: changes
+    if: ${{ needs.changes.outputs.companion == 'true' }}
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -59,6 +76,15 @@ jobs:
         java-version: '17'
 
     - uses: android-actions/setup-android@v4
+
+    - name: Cache Gradle
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('companion-app/**/*.gradle*', 'companion-app/gradle/libs.versions.toml', 'companion-app/gradle/wrapper/gradle-wrapper.properties') }}
+        restore-keys: ${{ runner.os }}-gradle-
 
     - name: gradle build companion-app
       working-directory: companion-app
