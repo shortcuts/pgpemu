@@ -70,7 +70,11 @@ void read_stored_global_settings(bool use_mutex) {
 
     esp_err_t err = nvs_get_u8(global_settings_handle, KEY_LOG_LEVEL, &log_level);
     if (nvs_read_check(CONFIG_STORAGE_TAG, err, KEY_LOG_LEVEL)) {
-        global_settings.log_level = log_level;
+        if (log_level >= 1 && log_level <= 3) {
+            global_settings.log_level = log_level;
+        } else {
+            ESP_LOGE(CONFIG_STORAGE_TAG, "invalid log level: %d (1-3 allowed)", log_level);
+        }
     }
     err = nvs_get_u8(global_settings_handle, KEY_CONNECTION_COUNT, &connection_count);
     if (nvs_read_check(CONFIG_STORAGE_TAG, err, KEY_CONNECTION_COUNT)) {

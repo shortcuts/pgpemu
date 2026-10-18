@@ -141,13 +141,11 @@ name,data,string,"PKLMGOPLUS"   # <- the name of your device
 mac,data,hex2bin,7c..........   # <- the mac address you've extracted - should be 12 char long
 dkey,data,hex2bin,9b.........   # <- the device key you've extracted - should be 32 char long
 blob,data,hex2bin,16.........   # <- the blob data you've extracted - should be 512 char long
-# Settings options              # this section is for flash-time settings, it can be overridden later from the uart menu
-user_settings,namespace,,       # /!\ do not edit this line
-catch,data,i8,1                 # enable autocatch - 1 = yes, 0 = no
-spin,data,i8,1                  # enable autospin - 1 = yes, 0 = no
-button,data,i8,1                # enable input button on pokemon encounter - 1 = yes, 0 = no
-llevel,data,i8,2                # esp monitor log level - 1 = debug, 2 = info, 3 = verbose
-maxcon,data,u8,2                # max allowed bluetooth connection to the device, up to 4
+# Settings options              # this section is for flash-time settings, the companion app can override them later
+global_settings,namespace,,     # /!\ do not edit this line
+llevel,data,u8,2                # esp monitor log level - 1 = debug, 2 = info, 3 = verbose
+maxcon,data,u8,2                # max allowed bluetooth connection to the device, 1 to 4
+adv,data,u8,1                   # advertise at boot - 1 = yes, 0 = no
 ```
 
 After updating `secrets.csv`, rebuild and flash your device.
