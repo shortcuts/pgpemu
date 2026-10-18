@@ -23,7 +23,6 @@
     <string name="profile_catch">CATCH</string>
     <string name="settings_advertising">Advertising</string>
     <string name="settings_max_connections">Max connections</string>
-    <string name="settings_save">Save to device</string>
     <string name="diag_runtime_stats">Runtime stats</string>
     <string name="diag_task_list">Task list</string>
     <string name="diag_client_states">Client states</string>
@@ -36,7 +35,6 @@
     <string name="device_scan_again">Scan again</string>
     <string name="device_scan">Scan for devices</string>
     <string name="confirm_cancel">Cancel</string>
-    <string name="msg_saved">Settings saved to device</string>
     <string name="msg_unexpected_reply">Device sent an unexpected reply</string>
     <string name="msg_command_failed">Command failed (%1$s)</string>
     <string name="msg_status_unknown_opcode">Device does not support this command (%1$d)</string>

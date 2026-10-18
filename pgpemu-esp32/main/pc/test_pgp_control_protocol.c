@@ -21,6 +21,7 @@ uint8_t PGP_BLOB[256] = { 0xb0 };
 static uint8_t sent[600];
 static uint16_t sent_len, sent_conn;
 static int sent_count, advertise_calls, reset_secrets_ok = 1, save_ok = 1;
+static int global_writes, device_writes, device_write_slot;
 
 int esp_ble_gatts_create_attr_tab(const esp_gatts_attr_db_t* db, esp_gatt_if_t i, uint8_t n, uint8_t inst) {
     (void)db, (void)i, (void)n, (void)inst;
@@ -56,6 +57,12 @@ bool clear_device_session(esp_bd_addr_t bda) {
     return true;
 }
 bool write_global_settings_to_nvs(void) {
+    global_writes++;
+    return save_ok;
+}
+bool write_device_settings_to_nvs(uint8_t slot) {
+    device_writes++;
+    device_write_slot = slot;
     return save_ok;
 }
 bool write_devices_settings_to_nvs(void) {
@@ -92,7 +99,7 @@ static void reset(void) {
     global_settings.target_active_connections = 1;
     global_settings.advertising_enabled = true;
     global_settings.log_level = 1;
-    sent_count = advertise_calls = 0;
+    sent_count = advertise_calls = global_writes = device_writes = 0;
     sent_len = 0;
     save_ok = reset_secrets_ok = 1;
     control_handle_table[IDX_CHAR_CONTROL_COMMAND_VAL] = 40;
@@ -307,6 +314,61 @@ static void test_set_log_level(void) {
     }
 }
 
+static void test_set_persists_only_on_change(void) {
+    reset();
+    client_state_t* e = get_or_create_client_state_entry(1);
+    e->has_settings = e->settings.autospin = e->settings.autocatch = true;
+    const struct {
+        uint8_t op, a, b;
+        int len;
+    } cmds[] = {
+        { CONTROL_OP_SET_LOG_LEVEL, 2, 0, 1 },
+        { CONTROL_OP_SET_MAX_CONNECTIONS, 3, 0, 1 },
+        { CONTROL_OP_ADVERTISE_STOP, 0, 0, 0 },
+    };
+    for (size_t k = 0; k < sizeof(cmds) / sizeof(cmds[0]); k++) {
+        for (int i = 0; i < 2; i++) {
+            global_writes = 0;
+            cmd1(cmds[k].op, cmds[k].a, cmds[k].len);
+            assert(sent[0] == CONTROL_STATUS_OK);
+            assert(global_writes == (i == 0 ? 1 : 0));
+            pgp_control_on_conf(0);
+        }
+    }
+    cmd1(CONTROL_OP_ADVERTISE_START, 0, 0);
+    assert(global_writes == 1);
+    pgp_control_on_conf(0);
+
+    for (uint8_t op = CONTROL_OP_SET_AUTOSPIN; op <= CONTROL_OP_SET_AUTOCATCH; op++) {
+        for (int i = 0; i < 2; i++) {
+            device_writes = 0;
+            uint8_t b[3] = { op, 0, 0 };  // both start on: 0 is a change
+            assert(write_cmd(0, b, 3));
+            assert(sent[0] == CONTROL_STATUS_OK && device_writes == (i == 0 ? 1 : 0) && device_write_slot == 0);
+            pgp_control_on_conf(0);
+        }
+    }
+}
+
+static void test_set_reports_persist_failure(void) {
+    reset();
+    client_state_t* e = get_or_create_client_state_entry(1);
+    e->has_settings = true;
+    e->settings.autospin = false;
+    save_ok = 0;
+    cmd1(CONTROL_OP_SET_LOG_LEVEL, 3, 1);
+    assert(sent_len == 2 && sent[0] == CONTROL_STATUS_ERR_INTERNAL && global_settings.log_level == 3);
+    pgp_control_on_conf(0);
+    cmd1(CONTROL_OP_SET_MAX_CONNECTIONS, 3, 1);
+    assert(sent[0] == CONTROL_STATUS_ERR_INTERNAL && global_settings.target_active_connections == 3);
+    pgp_control_on_conf(0);
+    cmd1(CONTROL_OP_ADVERTISE_STOP, 0, 0);
+    assert(sent[0] == CONTROL_STATUS_ERR_INTERNAL && !global_settings.advertising_enabled);
+    pgp_control_on_conf(0);
+    cmd2(CONTROL_OP_SET_AUTOSPIN, 0, 1);
+    assert(sent_len == 2 && sent[0] == CONTROL_STATUS_ERR_INTERNAL && e->settings.autospin);
+}
+
 int main(void) {
     test_unknown_opcode_and_empty_write();
     test_foreign_handles();
@@ -320,6 +382,8 @@ int main(void) {
     test_toggle_device_payload();
     test_set_device_payload();
     test_set_log_level();
+    test_set_persists_only_on_change();
+    test_set_reports_persist_failure();
     printf("test_pgp_control_protocol: all passed\n");
     return 0;
 }

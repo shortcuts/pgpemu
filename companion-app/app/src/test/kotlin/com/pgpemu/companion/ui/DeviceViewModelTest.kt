@@ -386,7 +386,7 @@ class DeviceViewModelTest {
             stubStatusReplies(repository)
             repository.stubResponse(
                 Opcode.GET_DEVICE_INFO,
-                Result.success(ResponseFrame(StatusCode.OK, Opcode.GET_DEVICE_INFO.toByte(), deviceInfoBytes(2, 2))),
+                Result.success(ResponseFrame(StatusCode.OK, Opcode.GET_DEVICE_INFO.toByte(), deviceInfoBytes(3, 2))),
             )
             repository.stubResponse(
                 Opcode.SET_MAX_CONNECTIONS,
@@ -416,7 +416,7 @@ class DeviceViewModelTest {
         }
 
     @Test
-    fun `unknown opcode and protocol 0 flag outdated firmware and keep default profiles, disconnect clears`() =
+    fun `unknown opcode and protocol 2 flag outdated firmware and keep default profiles, disconnect clears`() =
         runTest {
             val repository = FakeBleControlRepository()
             stubStatusReplies(repository)
@@ -438,7 +438,7 @@ class DeviceViewModelTest {
 
             repository.stubResponse(
                 Opcode.GET_DEVICE_INFO,
-                Result.success(ResponseFrame(StatusCode.OK, Opcode.GET_DEVICE_INFO.toByte(), deviceInfoBytes(0, 2))),
+                Result.success(ResponseFrame(StatusCode.OK, Opcode.GET_DEVICE_INFO.toByte(), deviceInfoBytes(2, 2))),
             )
             viewModel.refreshStatus()
             dispatcher.scheduler.advanceUntilIdle()
@@ -661,23 +661,5 @@ class DeviceViewModelTest {
                 listOf(Opcode.GET_RUNTIME_STATS, Opcode.GET_CLIENT_SUMMARY),
                 repository.sentCommands.map { it.first },
             )
-        }
-
-    @Test
-    fun `save settings confirms with Saved message`() =
-        runTest {
-            val repository = FakeBleControlRepository()
-            repository.stubResponse(
-                Opcode.SAVE_SETTINGS,
-                Result.success(ResponseFrame(StatusCode.OK, Opcode.SAVE_SETTINGS.toByte(), ByteArray(0))),
-            )
-            val viewModel = DeviceViewModel(repository)
-
-            viewModel.saveSettings()
-            dispatcher.scheduler.advanceUntilIdle()
-
-            assertEquals(UiMessage.Saved, viewModel.uiState.value.message)
-            viewModel.consumeMessage()
-            assertNull(viewModel.uiState.value.message)
         }
 }

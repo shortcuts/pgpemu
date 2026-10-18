@@ -17,6 +17,7 @@ void read_stored_global_settings(bool use_mutex);
 bool read_stored_device_settings(esp_bd_addr_t bda, DeviceSettings* out_settings);
 
 bool write_global_settings_to_nvs();
+bool write_device_settings_to_nvs(uint8_t slot);
 bool write_devices_settings_to_nvs();
 
 // Session key persistence for device reconnection

@@ -129,6 +129,26 @@ static void test_device_settings_defaults_and_invalid_bda(void) {
     assert(!read_stored_device_settings(BDA_A, NULL));
 }
 
+static void test_write_single_device_slot(void) {
+    DeviceSettings out = { 0 };
+    nvs_mem_reset();
+    memset(g_slots, 0, sizeof(g_slots));
+    for (int i = 0; i < 2; i++) {
+        memcpy(g_slots[i].remote_bda, i ? BDA_B : BDA_A, 6);
+        g_slots[i].has_settings = true;
+        g_slots[i].settings.mutex = xSemaphoreCreateMutex();
+        g_slots[i].settings.autospin = i == 1;
+    }
+    assert(write_device_settings_to_nvs(1));
+    assert(read_stored_device_settings(BDA_B, &out) && out.autospin);
+    // slot 0 holds autospin=false in RAM: a read that still yields the default true proves it was not written
+    assert(read_stored_device_settings(BDA_A, &out) && out.autospin);
+
+    g_slots[0].has_settings = false;
+    assert(!write_device_settings_to_nvs(0));
+    assert(!write_device_settings_to_nvs(5));
+}
+
 int main(void) {
     test_device_key_fits_nvs_and_differs();
     test_session_keys_round_trip_and_clear();
@@ -137,6 +157,7 @@ int main(void) {
     test_global_settings_reject_out_of_range();
     test_device_settings_round_trip();
     test_device_settings_defaults_and_invalid_bda();
+    test_write_single_device_slot();
     printf("test_config_storage: all passed\n");
     return 0;
 }

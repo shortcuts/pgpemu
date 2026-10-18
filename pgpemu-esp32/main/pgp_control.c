@@ -1,7 +1,7 @@
 #include "pgp_control.h"
 
 #include "config_secrets.h"  // reset_secrets()
-#include "config_storage.h"  // write_global_settings_to_nvs, write_devices_settings_to_nvs
+#include "config_storage.h"  // write_global_settings_to_nvs, write_device(s)_settings_to_nvs
 #include "esp_gap_ble_api.h"
 #include "esp_gatt_defs.h"
 #include "esp_log.h"
@@ -33,6 +33,15 @@ static void apply_log_level(uint8_t level) {
     } else {
         log_levels_debug();
     }
+}
+
+// Persists only on change to spare flash; a failed write keeps the RAM value so the radio behaves as asked.
+static control_status_t set_advertising_persisted(bool on) {
+    bool old = get_setting(&global_settings.advertising_enabled);
+    if (!set_setting_bool(&global_settings.advertising_enabled, on)) {
+        return CONTROL_STATUS_ERR_INTERNAL;
+    }
+    return (old != on && !write_global_settings_to_nvs()) ? CONTROL_STATUS_ERR_INTERNAL : CONTROL_STATUS_OK;
 }
 
 static void put_u32_le(uint8_t* out, uint32_t v) {
@@ -351,14 +360,12 @@ static void pgp_control_handle_command_write(esp_gatt_if_t gatts_if,
         break;
     }
     case CONTROL_OP_ADVERTISE_START: {
-        status = set_setting_bool(&global_settings.advertising_enabled, true) ? CONTROL_STATUS_OK
-                                                                              : CONTROL_STATUS_ERR_INTERNAL;
+        status = set_advertising_persisted(true);
         advertise_if_needed();
         break;
     }
     case CONTROL_OP_ADVERTISE_STOP: {
-        status = set_setting_bool(&global_settings.advertising_enabled, false) ? CONTROL_STATUS_OK
-                                                                               : CONTROL_STATUS_ERR_INTERNAL;
+        status = set_advertising_persisted(false);
         advertise_if_needed();
         break;
     }
@@ -375,7 +382,10 @@ static void pgp_control_handle_command_write(esp_gatt_if_t gatts_if,
             status = CONTROL_STATUS_ERR_MALFORMED_PAYLOAD;
             break;
         }
+        uint8_t old = get_setting_uint8(&global_settings.target_active_connections);
         if (!set_setting_uint8(&global_settings.target_active_connections, payload[0])) {
+            status = CONTROL_STATUS_ERR_INTERNAL;
+        } else if (old != payload[0] && !write_global_settings_to_nvs()) {
             status = CONTROL_STATUS_ERR_INTERNAL;
         }
         break;
@@ -411,9 +421,11 @@ static void pgp_control_handle_command_write(esp_gatt_if_t gatts_if,
             break;
         }
         bool val = payload[1] == 1;
+        bool old = opcode == CONTROL_OP_SET_AUTOSPIN ? entry->settings.autospin : entry->settings.autocatch;
         bool ok = opcode == CONTROL_OP_SET_AUTOSPIN ? set_device_autospin(payload[0], val)
                                                     : set_device_autocatch(payload[0], val);
-        if (!ok) {
+        // The new value stays applied on a failed write; the error says it will not survive a reboot.
+        if (!ok || (old != val && !write_device_settings_to_nvs(payload[0]))) {
             status = CONTROL_STATUS_ERR_INTERNAL;
             break;
         }
@@ -426,11 +438,16 @@ static void pgp_control_handle_command_write(esp_gatt_if_t gatts_if,
             status = CONTROL_STATUS_ERR_MALFORMED_PAYLOAD;
             break;
         }
+        uint8_t old = get_setting_uint8(&global_settings.log_level);
         if (!set_setting_uint8(&global_settings.log_level, payload[0])) {
             status = CONTROL_STATUS_ERR_INTERNAL;
             break;
         }
         apply_log_level(payload[0]);
+        if (old != payload[0] && !write_global_settings_to_nvs()) {
+            status = CONTROL_STATUS_ERR_INTERNAL;
+            break;
+        }
         resp[0] = payload[0];
         resp_len = 1;
         break;

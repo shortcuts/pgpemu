@@ -237,6 +237,57 @@ char* make_device_key_for_option(const char* key, const esp_bd_addr_t bda, char*
     return out;
 }
 
+bool write_device_settings_to_nvs(uint8_t slot) {
+    client_state_t* entry = get_client_state_entry_by_idx(slot);
+    if (entry == NULL || !entry->has_settings) {
+        return false;
+    }
+
+    if (!mutex_acquire_blocking(entry->settings.mutex)) {
+        ESP_LOGE(CONFIG_STORAGE_TAG, "[%d] cannot get device settings mutex", entry->conn_id);
+        return false;
+    }
+
+    nvs_handle_t device_settings_handle = {};
+    if (!nvs_open_readwrite(CONFIG_STORAGE_TAG, "device_settings", &device_settings_handle)) {
+        ESP_LOGE(CONFIG_STORAGE_TAG, "[%d] failed to open NVS", entry->conn_id);
+        mutex_release(entry->settings.mutex);
+        return false;
+    }
+
+    bool all_ok = true;
+    char key_out[NVS_KEY_MAX_LEN + 1];
+
+    make_device_key_for_option(KEY_AUTOSPIN, entry->remote_bda, key_out);
+    ESP_LOGD(CONFIG_STORAGE_TAG, "[%d] writing autospin to key: %s", entry->conn_id, key_out);
+    esp_err_t err = nvs_set_i8(device_settings_handle, key_out, entry->settings.autospin);
+    if (err != ESP_OK) {
+        ESP_LOGW(CONFIG_STORAGE_TAG, "[%d] failed to set autospin: %d", entry->conn_id, err);
+        all_ok = false;
+    }
+
+    make_device_key_for_option(KEY_AUTOCATCH, entry->remote_bda, key_out);
+    ESP_LOGD(CONFIG_STORAGE_TAG, "[%d] writing autocatch to key: %s", entry->conn_id, key_out);
+    err = nvs_set_i8(device_settings_handle, key_out, entry->settings.autocatch);
+    if (err != ESP_OK) {
+        ESP_LOGW(CONFIG_STORAGE_TAG, "[%d] failed to set autocatch: %d", entry->conn_id, err);
+        all_ok = false;
+    }
+
+    // give it back in any of the following cases
+    mutex_release(entry->settings.mutex);
+
+    if (!nvs_commit_and_close(CONFIG_STORAGE_TAG, device_settings_handle, "device_settings")) {
+        ESP_LOGE(CONFIG_STORAGE_TAG, "[%d] commit failed", entry->conn_id);
+        return false;
+    }
+
+    if (all_ok) {
+        ESP_LOGI(CONFIG_STORAGE_TAG, "[%d] device settings persisted successfully", entry->conn_id);
+    }
+    return all_ok;
+}
+
 bool write_devices_settings_to_nvs() {
     bool all_ok = true;
 
@@ -245,48 +296,7 @@ bool write_devices_settings_to_nvs() {
         if (entry == NULL || !entry->has_settings) {
             continue;
         }
-
-        if (!mutex_acquire_blocking(entry->settings.mutex)) {
-            ESP_LOGE(CONFIG_STORAGE_TAG, "[%d] cannot get device settings mutex", entry->conn_id);
-            continue;
-        }
-
-        nvs_handle_t device_settings_handle = {};
-        if (!nvs_open_readwrite(CONFIG_STORAGE_TAG, "device_settings", &device_settings_handle)) {
-            ESP_LOGE(CONFIG_STORAGE_TAG, "[%d] failed to open NVS", entry->conn_id);
-            mutex_release(entry->settings.mutex);
-            all_ok = false;
-            continue;
-        }
-
-        char key_out[NVS_KEY_MAX_LEN + 1];
-
-        make_device_key_for_option(KEY_AUTOSPIN, entry->remote_bda, key_out);
-        ESP_LOGD(CONFIG_STORAGE_TAG, "[%d] writing autospin to key: %s", entry->conn_id, key_out);
-        esp_err_t err = nvs_set_i8(device_settings_handle, key_out, entry->settings.autospin);
-        if (err != ESP_OK) {
-            ESP_LOGW(CONFIG_STORAGE_TAG, "[%d] failed to set autospin: %d", entry->conn_id, err);
-            all_ok = false;
-        }
-
-        make_device_key_for_option(KEY_AUTOCATCH, entry->remote_bda, key_out);
-        ESP_LOGD(CONFIG_STORAGE_TAG, "[%d] writing autocatch to key: %s", entry->conn_id, key_out);
-        err = nvs_set_i8(device_settings_handle, key_out, entry->settings.autocatch);
-        if (err != ESP_OK) {
-            ESP_LOGW(CONFIG_STORAGE_TAG, "[%d] failed to set autocatch: %d", entry->conn_id, err);
-            all_ok = false;
-        }
-
-        // give it back in any of the following cases
-        mutex_release(entry->settings.mutex);
-
-        if (!nvs_commit_and_close(CONFIG_STORAGE_TAG, device_settings_handle, "device_settings")) {
-            ESP_LOGE(CONFIG_STORAGE_TAG, "[%d] commit failed", entry->conn_id);
-            all_ok = false;
-            continue;
-        }
-
-        ESP_LOGI(CONFIG_STORAGE_TAG, "[%d] device settings persisted successfully", entry->conn_id);
+        all_ok = write_device_settings_to_nvs((uint8_t)i) && all_ok;
     }
 
     return all_ok;

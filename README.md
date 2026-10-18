@@ -183,7 +183,7 @@ The app is a single scrolling screen, ordered by risk/frequency:
 - **Device Profiles** — one row per device slot (0-3), each with
   **Autospin** and **Autocatch** toggle chips.
 - **Settings** — advertising on/off switch, max-connections stepper, a
-  **Cycle log level** button, and **Save settings** to persist to flash.
+  **Cycle log level** button. Changes persist to flash automatically.
 - **Diagnostics** — on-demand dumps (runtime stats, FreeRTOS task list,
   BLE client states), each with its own **Refresh** button, plus
   **Disconnect all** clients.
@@ -1040,8 +1040,7 @@ Use this checklist to track manual testing progress:
 - Check device is responding to other commands first
 
 **Settings not saving**
-- Use `S` command to explicitly save settings
-- Note: Settings auto-save on change, `S` may not be needed
+- Settings auto-save on change; a failed write shows as an error in the app
 - Verify NVS is not full (would prevent writes)
 - Check error messages in logs for NVS failures
 

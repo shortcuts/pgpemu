@@ -34,7 +34,7 @@ import javax.inject.Inject
 const val DEFAULT_PROFILE_COUNT = 4
 
 // Oldest GET_DEVICE_INFO layout version this app decodes.
-const val MIN_PROTOCOL_VERSION = 2
+const val MIN_PROTOCOL_VERSION = 3
 
 // Poll interval while connected — other phones can connect/disconnect and
 // toggle profiles without this app knowing, so state can go stale otherwise.
@@ -71,10 +71,6 @@ sealed interface UiMessage {
     data object UnexpectedReply : UiMessage
 
     data object FirmwareOutdated : UiMessage
-
-    data object Saved : UiMessage {
-        override val isError get() = false
-    }
 }
 
 data class StatusState(
@@ -354,10 +350,6 @@ class DeviceViewModel
                     _uiState.update { it.copy(status = it.status.copy(logLevel = level)) }
                 }
             }
-        }
-
-        fun saveSettings() {
-            runCommand(Opcode.SAVE_SETTINGS) { _uiState.update { it.copy(message = UiMessage.Saved) } }
         }
 
         fun toggleAutospin(index: Int) {

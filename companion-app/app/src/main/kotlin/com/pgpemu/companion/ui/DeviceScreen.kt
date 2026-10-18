@@ -172,7 +172,6 @@ fun DeviceScreen(viewModel: DeviceViewModel = hiltViewModel()) {
                             onToggleAdvertising = viewModel::toggleAdvertising,
                             onSetMaxConnections = viewModel::setMaxConnections,
                             onCycleLogLevel = viewModel::cycleLogLevel,
-                            onSave = viewModel::saveSettings,
                         )
                     }
                     item {
@@ -243,7 +242,6 @@ private fun messageText(message: UiMessage): String =
         is UiMessage.CommandFailed -> stringResource(R.string.msg_command_failed, message.detail ?: stringResource(R.string.dash))
         UiMessage.UnexpectedReply -> stringResource(R.string.msg_unexpected_reply)
         UiMessage.FirmwareOutdated -> stringResource(R.string.msg_firmware_outdated)
-        UiMessage.Saved -> stringResource(R.string.msg_saved)
     }
 
 // GATT 8 = supervision timeout, the usual out-of-range drop; 0 = clean local disconnect.
@@ -632,7 +630,6 @@ private fun SettingsSection(
     onToggleAdvertising: () -> Unit,
     onSetMaxConnections: (Int) -> Unit,
     onCycleLogLevel: () -> Unit,
-    onSave: () -> Unit,
 ) {
     val colors = LocalPgpColors.current
     SectionCard(title = stringResource(R.string.section_settings)) {
@@ -666,13 +663,6 @@ private fun SettingsSection(
                 ),
             onClick = onCycleLogLevel,
         )
-        Spacer(modifier = Modifier.height(10.dp))
-        Button(
-            onClick = onSave,
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = colors.accent, contentColor = colors.bg),
-            shape = RoundedCornerShape(10.dp),
-        ) { Text(stringResource(R.string.settings_save)) }
     }
 }
 

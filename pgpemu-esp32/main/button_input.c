@@ -1,5 +1,6 @@
 #include "button_input.h"
 
+#include "config_storage.h"
 #include "driver/gpio.h"
 #include "esp_err.h"
 #include "esp_log.h"
@@ -40,7 +41,7 @@ void init_button_input() {
     gpio_install_isr_service(0);
     gpio_isr_handler_add(CONFIG_GPIO_INPUT_BUTTON1, gpio_isr_handler, (void*)CONFIG_GPIO_INPUT_BUTTON1);
 
-    xTaskCreate(button_input_task, "button_input", 2048, NULL, 15, NULL);
+    xTaskCreate(button_input_task, "button_input", 4096, NULL, 15, NULL);
 }
 
 static void button_input_task(void* pvParameters) {
@@ -68,6 +69,9 @@ static void button_input_task(void* pvParameters) {
                 ESP_LOGI(BUTTON_INPUT_TAG,
                     "button1 -> advertising %s",
                     get_setting(&global_settings.advertising_enabled) ? "enabled" : "disabled");
+                if (!write_global_settings_to_nvs()) {
+                    ESP_LOGE(BUTTON_INPUT_TAG, "failed to persist advertising");
+                }
                 advertise_if_needed();
             }
         }
