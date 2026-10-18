@@ -1,3 +1,6 @@
+# -Os over the -Og default: smaller image (795760 vs 869232 bytes) for the 1500K factory slot.
+CONFIG_COMPILER_OPTIMIZATION_SIZE=y
+
 # Override some defaults so BT stack is enabled
 # in this example
 
