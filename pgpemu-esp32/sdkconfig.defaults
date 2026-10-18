@@ -11,3 +11,7 @@ CONFIG_BT_CONTROLLER_MODE_BLE_ONLY=y
 # runs NVS commits directly in BTC_TASK context for CONTROL_OP_SAVE_SETTINGS, which
 # blew the stack (Guru Meditation: Core 0 panic'ed (Stack protection fault) in BTC_TASK).
 CONFIG_BT_BTC_TASK_STACK_SIZE=6144
+
+# Panic reboots (unattended device) and keeps a core dump in the coredump partition.
+CONFIG_ESP_SYSTEM_PANIC_PRINT_REBOOT=y
+CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH=y
