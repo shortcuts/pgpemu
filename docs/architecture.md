@@ -28,6 +28,22 @@ Separate custom GATT service for the Companion App. One Command characteristic (
 
 `global_settings.advertising_enabled` is the only advertising intent. The button, ADVERTISE_START and ADVERTISE_STOP set it, then call `advertise_if_needed()`. That function computes `want = enabled && connections < target` and lets `adv_decide()` (`pgp_adv_state.c`) move the radio state `OFF -> STARTING -> ON -> STOPPING`. A failed start retries with a doubling delay, from 1 s up to 30 s, until the intent changes. GET_GLOBAL_SETTINGS returns 5 bytes: log level, enabled flag, active connections, target connections, radio state (0 off, 1 starting, 2 on, 3 stopping). Bluedroid sends no stop event on connect, so `pgp_adv_on_connect()` resets the state to OFF.
 
+## Flash layout
+
+4 MB flash, `pgpemu-esp32/partitions.csv`:
+
+| Partition | Offset | Size | Holds |
+|-----------|--------|------|-------|
+| `nvs` | 0x9000 | 128K | Bluedroid bonds, session keys, settings. Auto-erased on corruption. |
+| `pgpsecret` | 0x29000 | 16K | Session Secrets. Never auto-erased. |
+| `otadata` | 0x2d000 | 8K | OTA slot selection |
+| `phy_init` | 0x2f000 | 4K | RF calibration |
+| `coredump` | 0x30000 | 64K | Panic core dump |
+| `ota_0` | 0x40000 | 1792K | App |
+| `ota_1` | 0x200000 | 1792K | OTA target |
+
+Only `init_settings_nvs_partition()` erases flash, and only the default `nvs` partition. `init_secrets_partition()` logs a failure and leaves `pgpsecret` alone, so a firmware update (bootloader, partition table, app) keeps bonds and secrets.
+
 ## Companion App build
 
 The companion is `:app` (Android/Compose, package `com.pgpemu.companion`) plus `:lint:checks` (custom lint rules). It has no `build-logic` convention plugins and no `core/`/`feature/` api/impl split: there is one Android module and 16 source files, so a convention plugin would have a single consumer.

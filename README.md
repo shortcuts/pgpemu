@@ -92,8 +92,9 @@ workflow.
 ### Prebuilt firmware
 
 Each release includes `pgpemu-firmware-<tag>.zip` (app, bootloader, partition
-table). It is secret-free: you must build and flash your own NVS image from
-your `secrets.csv`. See `FLASHING.md` inside the zip.
+table). It is secret-free: you must build and flash your own secrets image from
+your `secrets.csv` once. Later firmware updates keep your pairings. See
+`FLASHING.md` inside the zip.
 
 ### Build, Flash & Monitor
 
@@ -141,14 +142,9 @@ name,data,string,"PKLMGOPLUS"   # <- the name of your device
 mac,data,hex2bin,7c..........   # <- the mac address you've extracted - should be 12 char long
 dkey,data,hex2bin,9b.........   # <- the device key you've extracted - should be 32 char long
 blob,data,hex2bin,16.........   # <- the blob data you've extracted - should be 512 char long
-# Settings options              # this section is for flash-time settings, the companion app can override them later
-global_settings,namespace,,     # /!\ do not edit this line
-llevel,data,u8,2                # esp monitor log level - 1 = debug, 2 = info, 3 = verbose
-maxcon,data,u8,2                # max allowed bluetooth connection to the device, 1 to 4
-adv,data,u8,1                   # advertise at boot - 1 = yes, 0 = no
 ```
 
-After updating `secrets.csv`, rebuild and flash your device.
+After updating `secrets.csv`, rebuild and flash your device. The secrets live in their own flash partition. Companion app settings (log level, max connections, advertising) start at their defaults.
 
 ---
 

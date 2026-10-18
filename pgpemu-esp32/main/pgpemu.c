@@ -26,6 +26,7 @@ void app_main() {
     }
 
     init_settings_nvs_partition();
+    init_secrets_partition();
 
     init_global_settings();
     read_stored_global_settings(false);

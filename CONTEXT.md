@@ -21,7 +21,7 @@ One of the firmware's four emulated-accessory slots (index 0–3), each with its
 _Avoid_: device, client, slot
 
 **Session Secrets**:
-The Pokémon-GO pairing material persisted per Device Profile in NVS (`pgpsecret` namespace): clone name, MAC, device key, blob. Readable/resettable through the Control Service once bonded.
+The Pokémon-GO pairing material persisted per Device Profile in the dedicated `pgpsecret` NVS partition, never auto-erased: clone name, MAC, device key, blob. Readable/resettable through the Control Service once bonded.
 _Avoid_: pairing data, credentials
 
 **Advertising state**:

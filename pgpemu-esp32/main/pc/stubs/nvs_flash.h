@@ -7,3 +7,4 @@ static inline esp_err_t nvs_flash_init(void) {
 static inline esp_err_t nvs_flash_erase(void) {
     return ESP_OK;
 }
+esp_err_t nvs_flash_init_partition(const char* part);

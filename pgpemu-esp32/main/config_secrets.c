@@ -1,7 +1,6 @@
 #include "config_secrets.h"
 
 #include "esp_log.h"
-#include "esp_rom_crc.h"
 #include "esp_system.h"
 #include "log_tags.h"
 #include "nvs.h"
@@ -17,6 +16,18 @@ static const char KEY_MAC[] = "mac";
 static const char KEY_DEVICE_KEY[] = "dkey";
 static const char KEY_BLOB[] = "blob";
 static const char namespace[] = "pgpsecret";
+// Own partition so the auto-erase of the default `nvs` partition never reaches the secrets.
+static const char partition[] = "pgpsecret";
+
+bool init_secrets_partition() {
+    esp_err_t err = nvs_flash_init_partition(partition);
+    if (err != ESP_OK) {
+        // never erase: only a USB reflash restores the secrets
+        ESP_LOGE(CONFIG_SECRETS_TAG, "cannot init %s partition: %s", partition, esp_err_to_name(err));
+        return false;
+    }
+    return true;
+}
 
 static bool open_secrets(nvs_open_mode_t openMode, nvs_handle_t* outHandle) {
     if (!outHandle) {
@@ -24,7 +35,7 @@ static bool open_secrets(nvs_open_mode_t openMode, nvs_handle_t* outHandle) {
         return false;
     }
 
-    esp_err_t err = nvs_open(namespace, openMode, outHandle);
+    esp_err_t err = nvs_open_from_partition(partition, namespace, openMode, outHandle);
     if (err != ESP_OK) {
         ESP_LOGE(CONFIG_SECRETS_TAG, "cannot open %s: %s", namespace, esp_err_to_name(err));
         return false;
@@ -35,23 +46,16 @@ static bool open_secrets(nvs_open_mode_t openMode, nvs_handle_t* outHandle) {
 
 void show_secrets() {
     nvs_handle_t handle;
-    esp_err_t err;
-
     char name[sizeof(PGP_CLONE_NAME)] = { 0 };
     char mac[sizeof(PGP_MAC)] = { 0 };
 
     bool gotData = false;
-    err = nvs_open(namespace, NVS_READONLY, &handle);
-    if (err == ESP_OK) {
-        bool all_ok = true;
-
+    if (open_secrets(NVS_READONLY, &handle)) {
         size_t size = sizeof(name);
-        err = nvs_get_str(handle, KEY_CLONE_NAME, name, &size);
-        all_ok = all_ok && (err == ESP_OK);
+        bool all_ok = nvs_get_str(handle, KEY_CLONE_NAME, name, &size) == ESP_OK;
 
         size = sizeof(PGP_MAC);
-        err = nvs_get_blob(handle, KEY_MAC, mac, &size);
-        all_ok = all_ok && (err == ESP_OK);
+        all_ok = all_ok && nvs_get_blob(handle, KEY_MAC, mac, &size) == ESP_OK;
 
         gotData = all_ok;
 
@@ -82,6 +86,7 @@ bool reset_secrets() {
 
     nvs_erase_all(handle);
     nvs_commit(handle);
+    nvs_close(handle);
 
     ESP_LOGI(CONFIG_SECRETS_TAG, "deleted secrets");
 

@@ -4,8 +4,8 @@ set(COMPONENT_ADD_INCLUDEDIRS ".")
 
 register_component()
 
-# Create a NVS image from the contents of the `nvs_data` CSV file
-# that fits the partition named 'nvs'. FLASH_IN_PROJECT indicates that
+# Create a NVS image from the contents of the `secrets.csv` file
+# that fits the partition named 'pgpsecret'. FLASH_IN_PROJECT indicates that
 # the generated image should be flashed when the entire project is flashed to
-# the target with 'idf.py -p PORT flash'.
-nvs_create_partition_image(nvs ../secrets.csv FLASH_IN_PROJECT)
+# the target with 'idf.py -p PORT flash'. The `nvs` partition (bonds) is never flashed.
+nvs_create_partition_image(pgpsecret ../secrets.csv FLASH_IN_PROJECT)

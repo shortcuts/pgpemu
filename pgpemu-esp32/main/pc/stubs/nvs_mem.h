@@ -8,20 +8,24 @@
 #define NVS_MEM_MAX 64
 static struct {
     char ns[16], key[16];
-    uint8_t val[64];
+    uint8_t val[256];
     size_t len;
     int used;
 } nvs_mem_entries[NVS_MEM_MAX];
 static char nvs_mem_namespaces[8][16];
 static char nvs_mem_handle_ns[8][16];
 static int nvs_mem_handle_rw[8];
-static int nvs_mem_fail_commit;  // test hook: nvs_commit returns ESP_FAIL
+static int nvs_mem_fail_commit;          // test hook: nvs_commit returns ESP_FAIL
+static esp_err_t nvs_mem_init_part_err;  // test hook: nvs_flash_init_partition returns this
+static char nvs_mem_last_partition[16];  // partition of the last nvs_open_from_partition
 
 static inline void nvs_mem_reset(void) {
     memset(nvs_mem_entries, 0, sizeof(nvs_mem_entries));
     memset(nvs_mem_namespaces, 0, sizeof(nvs_mem_namespaces));
     memset(nvs_mem_handle_ns, 0, sizeof(nvs_mem_handle_ns));
     nvs_mem_fail_commit = 0;
+    nvs_mem_init_part_err = ESP_OK;
+    nvs_mem_last_partition[0] = 0;
 }
 
 esp_err_t nvs_open(const char* ns, nvs_open_mode_t mode, nvs_handle_t* out) {
@@ -76,7 +80,7 @@ static int nvs_mem_find(nvs_handle_t h, const char* key, int create) {
     return -1;
 }
 esp_err_t nvs_set_blob(nvs_handle_t h, const char* key, const void* v, size_t len) {
-    if (!nvs_mem_handle_rw[h] || len > 64) {
+    if (!nvs_mem_handle_rw[h] || len > sizeof(nvs_mem_entries[0].val)) {
         return ESP_FAIL;
     }
     int i = nvs_mem_find(h, key, 1);
@@ -121,5 +125,24 @@ esp_err_t nvs_erase_key(nvs_handle_t h, const char* key) {
         return ESP_ERR_NVS_NOT_FOUND;
     }
     nvs_mem_entries[i].used = 0;
+    return ESP_OK;
+}
+esp_err_t nvs_open_from_partition(const char* part, const char* ns, nvs_open_mode_t mode, nvs_handle_t* out) {
+    strcpy(nvs_mem_last_partition, part);
+    return nvs_open(ns, mode, out);
+}
+esp_err_t nvs_flash_init_partition(const char* part) {
+    (void)part;
+    return nvs_mem_init_part_err;
+}
+esp_err_t nvs_get_str(nvs_handle_t h, const char* key, char* v, size_t* len) {
+    return nvs_get_blob(h, key, v, len);
+}
+esp_err_t nvs_erase_all(nvs_handle_t h) {
+    for (int i = 0; i < NVS_MEM_MAX; i++) {
+        if (nvs_mem_entries[i].used && !strcmp(nvs_mem_entries[i].ns, nvs_mem_handle_ns[h])) {
+            nvs_mem_entries[i].used = 0;
+        }
+    }
     return ESP_OK;
 }

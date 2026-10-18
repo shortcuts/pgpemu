@@ -4,6 +4,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+// init the dedicated secrets partition; never erases it
+bool init_secrets_partition();
 // log secrets
 void show_secrets();
 // read secrets from nvs
