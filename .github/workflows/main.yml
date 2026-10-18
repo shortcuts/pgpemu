@@ -10,16 +10,21 @@ concurrency:
   group: github.head_ref
   cancel-in-progress: true
 
+env:
+  # Single pin for every JDK setup step. Gradle toolchains pin 17 separately.
+  JAVA_VERSION: '17'
+
 jobs:
-  # lint:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #   - uses: actions/checkout@v4
-  #
-  #   - uses: jidicula/clang-format-action@v4.15.0
-  #     with:
-  #       clang-format-version: '20'
-  #       check-path: 'pgpemu-esp32'
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: jidicula/clang-format-action@v4.15.0
+      with:
+        clang-format-version: '23'
+        check-path: 'pgpemu-esp32'
+        exclude-regex: 'main/pc/aes\.c$'
 
   unit-tests:
     runs-on: ubuntu-latest
@@ -83,7 +88,7 @@ jobs:
     - uses: actions/setup-java@v4
       with:
         distribution: 'temurin'
-        java-version: '17'
+        java-version: ${{ env.JAVA_VERSION }}
 
     - uses: android-actions/setup-android@v4
 
@@ -99,6 +104,10 @@ jobs:
     - name: gradle build companion-app
       working-directory: companion-app
       run: ./gradlew :app:assembleDebug
+
+    - name: gradle test companion-app
+      working-directory: companion-app
+      run: ./gradlew test
 
     - name: gradle lint companion-app
       working-directory: companion-app
@@ -154,7 +163,7 @@ jobs:
     - uses: actions/setup-java@v4
       with:
         distribution: 'temurin'
-        java-version: '17'
+        java-version: ${{ env.JAVA_VERSION }}
 
     - uses: android-actions/setup-android@v4
 
