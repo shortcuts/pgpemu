@@ -705,14 +705,6 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
             read_stored_device_settings(conn_params.bda, settings);
             client_entry->has_settings = true;
             ESP_LOGI(BT_GATTS_TAG, "[%d] device settings loaded", param->connect.conn_id);
-
-            // Enable autospin and autocatch on every connection/reconnection
-            if (mutex_acquire_blocking(settings->mutex)) {
-                settings->autospin = true;
-                settings->autocatch = true;
-                mutex_release(settings->mutex);
-                ESP_LOGI(BT_GATTS_TAG, "[%d] autospin and autocatch enabled on connection", param->connect.conn_id);
-            }
         }
 
         // Only skip an explicit encryption request when this bda has a real BLE bond (LTK) on
