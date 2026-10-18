@@ -64,23 +64,23 @@ bool toggle_setting(bool* var) {
 
 bool toggle_device_autospin(uint8_t c) {
     client_state_t* entry = get_client_state_entry_by_idx(c);
-    if (entry == NULL || entry->settings == NULL) {
+    if (entry == NULL || !entry->has_settings) {
         return false;
     }
 
     bool new_value = false;
-    toggle_bool_locked(entry->settings->mutex, &entry->settings->autospin, &new_value);
+    toggle_bool_locked(entry->settings.mutex, &entry->settings.autospin, &new_value);
     return new_value;
 }
 
 bool toggle_device_autocatch(uint8_t c) {
     client_state_t* entry = get_client_state_entry_by_idx(c);
-    if (entry == NULL || entry->settings == NULL) {
+    if (entry == NULL || !entry->has_settings) {
         return false;
     }
 
     bool new_value = false;
-    toggle_bool_locked(entry->settings->mutex, &entry->settings->autocatch, &new_value);
+    toggle_bool_locked(entry->settings.mutex, &entry->settings.autocatch, &new_value);
     return new_value;
 }
 

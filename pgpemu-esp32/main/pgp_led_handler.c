@@ -14,10 +14,10 @@
 #include <stdlib.h>
 
 // Helper macro to get device settings safely
-#define GET_DEVICE_SETTINGS(conn_id)                             \
-    ({                                                           \
-        client_state_t* state = get_client_state_entry(conn_id); \
-        (state && state->settings) ? state->settings : NULL;     \
+#define GET_DEVICE_SETTINGS(conn_id)                              \
+    ({                                                            \
+        client_state_t* state = get_client_state_entry(conn_id);  \
+        (state && state->has_settings) ? &state->settings : NULL; \
     })
 
 void handle_led_notify_from_app(esp_gatt_if_t gatts_if, uint16_t conn_id, const uint8_t* buffer, uint16_t len) {

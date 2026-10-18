@@ -701,22 +701,17 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
         // Load device settings for this connection
         client_state_t* client_entry = get_client_state_entry(param->connect.conn_id);
         if (client_entry) {
-            // Allocate memory for device settings
-            client_entry->settings = (DeviceSettings*)malloc(sizeof(DeviceSettings));
-            if (client_entry->settings) {
-                memset(client_entry->settings, 0, sizeof(DeviceSettings));
-                read_stored_device_settings(conn_params.bda, client_entry->settings);
-                ESP_LOGI(BT_GATTS_TAG, "[%d] device settings loaded", param->connect.conn_id);
+            DeviceSettings* settings = &client_entry->settings;
+            read_stored_device_settings(conn_params.bda, settings);
+            client_entry->has_settings = true;
+            ESP_LOGI(BT_GATTS_TAG, "[%d] device settings loaded", param->connect.conn_id);
 
-                // Enable autospin and autocatch on every connection/reconnection
-                if (mutex_acquire_blocking(client_entry->settings->mutex)) {
-                    client_entry->settings->autospin = true;
-                    client_entry->settings->autocatch = true;
-                    mutex_release(client_entry->settings->mutex);
-                    ESP_LOGI(BT_GATTS_TAG, "[%d] autospin and autocatch enabled on connection", param->connect.conn_id);
-                }
-            } else {
-                ESP_LOGE(BT_GATTS_TAG, "[%d] failed to allocate device settings", param->connect.conn_id);
+            // Enable autospin and autocatch on every connection/reconnection
+            if (mutex_acquire_blocking(settings->mutex)) {
+                settings->autospin = true;
+                settings->autocatch = true;
+                mutex_release(settings->mutex);
+                ESP_LOGI(BT_GATTS_TAG, "[%d] autospin and autocatch enabled on connection", param->connect.conn_id);
             }
         }
 

@@ -20,7 +20,6 @@ QueueHandle_t button_queue;
 uint8_t bt_mac[6];
 
 static client_state_t g_state, g_other;
-static DeviceSettings g_settings;
 static int queue_sends, set_attr_calls, indicate_calls, decrypt_calls, reconnect_calls, persist_calls;
 
 client_state_t* get_client_state_entry(uint16_t conn_id) {
@@ -120,9 +119,8 @@ void increment_spin(uint16_t conn_id) {
 // ---- helpers ----
 static void reset(int cert_state) {
     memset(&g_state, 0, sizeof(g_state));
-    memset(&g_settings, 0, sizeof(g_settings));
-    g_settings.autocatch = true;
-    g_state.settings = &g_settings;
+    g_state.settings.autocatch = true;
+    g_state.has_settings = true;
     g_state.cert_state = cert_state;
     queue_sends = set_attr_calls = indicate_calls = decrypt_calls = reconnect_calls = persist_calls = 0;
 }

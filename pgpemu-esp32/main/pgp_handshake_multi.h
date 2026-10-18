@@ -29,7 +29,10 @@ typedef struct {
     // connection informations
     uint16_t conn_id;
     esp_bd_addr_t remote_bda;
-    DeviceSettings* settings;
+    // Embedded so connect/disconnect never allocate; its mutex lives as long as the slot.
+    DeviceSettings settings;
+    // Set once the connect path has loaded settings into this slot.
+    bool has_settings;
 
     // cert informations
     pgp_cert_state_t cert_state;

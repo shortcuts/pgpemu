@@ -368,10 +368,10 @@ static void pgp_control_handle_command_write(esp_gatt_if_t gatts_if,
             Stats stats = { 0 };
 
             if (entry != NULL) {
-                if (entry->settings != NULL) {
+                if (entry->has_settings) {
                     flags |= 0x01;
-                    autospin = get_setting(&entry->settings->autospin) ? 1 : 0;
-                    autocatch = get_setting(&entry->settings->autocatch) ? 1 : 0;
+                    autospin = get_setting(&entry->settings.autospin) ? 1 : 0;
+                    autocatch = get_setting(&entry->settings.autocatch) ? 1 : 0;
                 }
                 if (stats_get_for_conn(entry->conn_id, &stats)) {
                     flags |= 0x02;

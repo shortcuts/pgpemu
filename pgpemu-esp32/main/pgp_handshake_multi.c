@@ -24,8 +24,20 @@ static uint16_t conn_id_map[MAX_CONNECTIONS] = { 0 };
 // keep track of handshake state per connection
 static client_state_t client_states[MAX_CONNECTIONS] = { 0 };
 
+// Zero a slot but keep its settings mutex: FreeRTOS mutexes are created once per slot, never freed.
+static void reset_client_state(client_state_t* entry) {
+    SemaphoreHandle_t mutex = entry->settings.mutex;
+    memset(entry, 0, sizeof(client_state_t));
+    entry->settings.mutex = mutex;
+}
+
 void init_handshake_multi() {
     memset(conn_id_map, 0xff, sizeof(conn_id_map));
+    for (int i = 0; i < MAX_CONNECTIONS; i++) {
+        if (client_states[i].settings.mutex == NULL) {
+            client_states[i].settings.mutex = xSemaphoreCreateMutex();
+        }
+    }
     if (active_connections_mutex == NULL) {
         active_connections_mutex = xSemaphoreCreateMutex();
     }
@@ -90,7 +102,7 @@ client_state_t* get_or_create_client_state_entry(uint16_t conn_id) {
             conn_id_map[i] = conn_id;
 
             // set default values
-            memset(&client_states[i], 0, sizeof(client_state_t));
+            reset_client_state(&client_states[i]);
             client_states[i].conn_id = conn_id;
             client_states[i].handshake_start = xTaskGetTickCount();
 
@@ -106,12 +118,6 @@ static void delete_client_state_entry(client_state_t* entry) {
         return;
     }
 
-    // Free allocated device settings
-    if (entry->settings) {
-        free(entry->settings);
-        entry->settings = NULL;
-    }
-
     // delete mapping
     for (int i = 0; i < MAX_CONNECTIONS; i++) {
         if (conn_id_map[i] == entry->conn_id) {
@@ -119,8 +125,7 @@ static void delete_client_state_entry(client_state_t* entry) {
         }
     }
 
-    // zero out entry
-    memset(entry, 0, sizeof(client_state_t));
+    reset_client_state(entry);
 }
 
 int get_cert_state(uint16_t conn_id) {
@@ -259,11 +264,11 @@ size_t dump_client_states_format(char* buf, size_t buf_len) {
             entry->reconnection_at,
             entry->connection_start,
             entry->connection_end);
-        if (entry->settings != NULL) {
+        if (entry->has_settings) {
             buf_writer_appendf(&writer,
                 "  autospin=%s autocatch=%s\n",
-                get_setting_log_value(&entry->settings->autospin),
-                get_setting_log_value(&entry->settings->autocatch));
+                get_setting_log_value(&entry->settings.autospin),
+                get_setting_log_value(&entry->settings.autocatch));
         }
         buf_writer_append_hex(&writer, "state_0_nonce", entry->state_0_nonce, sizeof(entry->state_0_nonce));
         buf_writer_append_hex(&writer, "the_challenge", entry->the_challenge, sizeof(entry->the_challenge));

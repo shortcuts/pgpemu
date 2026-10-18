@@ -42,8 +42,10 @@ static unsigned long pdTICKS_TO_MS(TickType_t ticks) {
     return (unsigned long)ticks;
 }
 
+static int mutex_create_count = 0;
+
 static SemaphoreHandle_t xSemaphoreCreateMutex() {
-    return (SemaphoreHandle_t)1;
+    return (SemaphoreHandle_t)(long)(++mutex_create_count);
 }
 
 // Settings structures
@@ -79,7 +81,8 @@ static const size_t CERT_BUFFER_LEN = 378;
 typedef struct {
     uint16_t conn_id;
     esp_bd_addr_t remote_bda;
-    DeviceSettings* settings;
+    DeviceSettings settings;
+    bool has_settings;
     int cert_state;
     bool has_reconnect_key;
     bool notify;
@@ -100,9 +103,19 @@ static int active_connections = 0;
 static uint16_t conn_id_map[MAX_CONNECTIONS] = { 0 };
 static client_state_t client_states[MAX_CONNECTIONS] = { 0 };
 
+// Zero a slot but keep its settings mutex: mutexes are created once per slot, never freed.
+static void reset_client_state(client_state_t* entry) {
+    SemaphoreHandle_t mutex = entry->settings.mutex;
+    memset(entry, 0, sizeof(client_state_t));
+    entry->settings.mutex = mutex;
+}
+
 void init_handshake_multi() {
     for (int i = 0; i < MAX_CONNECTIONS; i++) {
         conn_id_map[i] = 0xffff;
+        if (client_states[i].settings.mutex == NULL) {
+            client_states[i].settings.mutex = xSemaphoreCreateMutex();
+        }
     }
     active_connections = 0;
 }
@@ -160,7 +173,7 @@ client_state_t* get_or_create_client_state_entry(uint16_t conn_id) {
     for (int i = 0; i < MAX_CONNECTIONS; i++) {
         if (conn_id_map[i] == 0xffff) {
             conn_id_map[i] = conn_id;
-            memset(&client_states[i], 0, sizeof(client_state_t));
+            reset_client_state(&client_states[i]);
             client_states[i].conn_id = conn_id;
             client_states[i].handshake_start = xTaskGetTickCount();
             return &client_states[i];
@@ -176,7 +189,7 @@ static void delete_client_state_entry(client_state_t* entry) {
             conn_id_map[i] = 0xffff;
         }
     }
-    memset(entry, 0, sizeof(client_state_t));
+    reset_client_state(entry);
 }
 
 void connection_start(uint16_t conn_id) {
@@ -395,25 +408,40 @@ void test_device_settings_linkage() {
     init_handshake_multi();
     uint16_t conn_id = 0x0001;
 
-    // Create device settings
-    DeviceSettings device_settings = { 0 };
-    device_settings.autospin = true;
-    device_settings.autocatch = false;
-    device_settings.autospin_probability = 5;
-
-    // Link to connection
     client_state_t* entry = get_or_create_client_state_entry(conn_id);
-    entry->settings = &device_settings;
+    assert(!entry->has_settings);
+    entry->settings.autospin = true;
+    entry->settings.autocatch = false;
+    entry->has_settings = true;
+    assert(entry->settings.autospin == true);
+    assert(entry->settings.autocatch == false);
+    printf("✓ Device settings stored in the slot\n");
+}
 
-    assert(entry->settings != NULL);
-    assert(entry->settings->autospin == true);
-    assert(entry->settings->autocatch == false);
-    printf("✓ Device settings linked to connection\n");
+// Each slot owns one settings mutex for the life of the firmware; reconnects must not create more.
+void test_settings_mutex_not_recreated_on_reconnect() {
+    printf("\n=== Test: Settings Mutex Created Once Per Slot ===\n");
 
-    // Modify settings through connection
-    entry->settings->autospin = false;
-    assert(device_settings.autospin == false);
-    printf("✓ Settings modifications affect original device settings\n");
+    mutex_create_count = 0;
+    memset(client_states, 0, sizeof(client_states));
+    init_handshake_multi();
+    assert(mutex_create_count == MAX_CONNECTIONS);
+
+    for (int cycle = 0; cycle < 50; cycle++) {
+        client_state_t* entry = get_or_create_client_state_entry(0x0001);
+        assert(entry->settings.mutex != NULL);
+        entry->has_settings = true;
+        entry->settings.autospin = true;
+        connection_start(0x0001);
+        connection_stop(0x0001);
+    }
+    assert(mutex_create_count == MAX_CONNECTIONS);
+
+    client_state_t* entry = get_or_create_client_state_entry(0x0002);
+    assert(!entry->has_settings);
+    assert(!entry->settings.autospin);
+    assert(entry->settings.mutex != NULL);
+    printf("✓ 50 connect/disconnect cycles created no extra mutex, slot values reset\n");
 }
 
 // Test lookup consistency
@@ -523,6 +551,7 @@ int main() {
     test_max_connections_limit();
     test_connection_state_transitions();
     test_device_settings_linkage();
+    test_settings_mutex_not_recreated_on_reconnect();
     test_lookup_consistency();
     test_auth_fail_bond_removal_decision();
     test_stop_incomplete_handshake_does_not_undercount();
