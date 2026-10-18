@@ -68,4 +68,10 @@ bool pgp_control_handle_attr_tab_created(esp_ble_gatts_cb_param_t* param);
 // pgp_gatts.c fall through to its existing unknown-handle logging.
 bool pgp_control_try_handle_write(esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t* param);
 
+// Called from ESP_GATTS_CONF_EVT: the peer confirmed (or timed out) the indication.
+void pgp_control_on_conf(uint16_t conn_id);
+
+// Called from ESP_GATTS_DISCONNECT_EVT: drops any in-flight indication state.
+void pgp_control_on_disconnect(uint16_t conn_id);
+
 #endif /* PGP_CONTROL_H */

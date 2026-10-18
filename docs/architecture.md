@@ -21,7 +21,7 @@ Single-responsibility firmware modules under `pgpemu-esp32/main/`. BLE, storage,
 
 ## Control Service
 
-Separate custom GATT service for the Companion App. One Command characteristic (opcode + payload) and one Response characteristic (notify/indicate). Requires an encrypted, bonded link. Handler: `pgp_control.c`.
+Separate custom GATT service for the Companion App. One Command characteristic (opcode + payload) and one Response characteristic (confirmed indications, one in flight per connection). Requires an encrypted, bonded link. Handler: `pgp_control.c`.
 
 ## Advertising
 

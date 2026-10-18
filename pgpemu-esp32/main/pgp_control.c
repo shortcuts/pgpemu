@@ -89,6 +89,9 @@ static uint8_t GATTS_CHAR_UUID_CONTROL_RESPONSE[ESP_UUID_LEN_128] = { 0x42,
 uint16_t control_handle_table[CONTROL_LAST_IDX];
 static uint8_t control_response_buffer[MAX_VALUE_LENGTH];  // {0x00,0x00} = status OK, opcode 0 until first response
 
+// ATT allows one unconfirmed indication per link; set on send, cleared by CONF_EVT or disconnect.
+static bool indicate_in_flight[CONFIG_BT_ACL_CONNECTIONS];
+
 static const esp_gatts_attr_db_t gatt_db_control[CONTROL_LAST_IDX] = {
     [IDX_CONTROL_SVC] = { { ESP_GATT_AUTO_RSP },
         { ESP_UUID_LEN_16,
@@ -175,16 +178,36 @@ static void pgp_control_send_response(esp_gatt_if_t gatts_if,
         payload_len = CONTROL_MAX_RESPONSE_PAYLOAD;
     }
 
-    uint8_t frame[2 + CONTROL_MAX_RESPONSE_PAYLOAD];
+    if (conn_id >= CONFIG_BT_ACL_CONNECTIONS || indicate_in_flight[conn_id]) {
+        ESP_LOGW(CONTROL_TAG, "[%d] response dropped, indication in flight", conn_id);
+        return;
+    }
+
+    // Static: keeps 500 bytes off the BTC stack; safe because all writes run on BTC_TASK.
+    static uint8_t frame[2 + CONTROL_MAX_RESPONSE_PAYLOAD];
     frame[0] = (uint8_t)status;
     frame[1] = opcode;
     if (payload_len > 0) {
         memcpy(frame + 2, payload, payload_len);
     }
 
-    esp_ble_gatts_set_attr_value(control_handle_table[IDX_CHAR_CONTROL_RESPONSE_VAL], 2 + payload_len, frame);
-    esp_ble_gatts_send_indicate(
-        gatts_if, conn_id, control_handle_table[IDX_CHAR_CONTROL_RESPONSE_VAL], 2 + payload_len, frame, false);
+    indicate_in_flight[conn_id] = true;
+    // No CONF_EVT follows a send that never started, so free the slot on error.
+    if (esp_ble_gatts_send_indicate(
+            gatts_if, conn_id, control_handle_table[IDX_CHAR_CONTROL_RESPONSE_VAL], 2 + payload_len, frame, true)
+        != ESP_OK) {
+        indicate_in_flight[conn_id] = false;
+    }
+}
+
+void pgp_control_on_conf(uint16_t conn_id) {
+    if (conn_id < CONFIG_BT_ACL_CONNECTIONS) {
+        indicate_in_flight[conn_id] = false;
+    }
+}
+
+void pgp_control_on_disconnect(uint16_t conn_id) {
+    pgp_control_on_conf(conn_id);
 }
 
 static void pgp_control_handle_command_write(esp_gatt_if_t gatts_if,
@@ -200,7 +223,8 @@ static void pgp_control_handle_command_write(esp_gatt_if_t gatts_if,
     const uint8_t* payload = value + 1;
     uint16_t payload_len = len - 1;
 
-    uint8_t resp[CONTROL_MAX_RESPONSE_PAYLOAD];
+    // Static: keeps 498 bytes off the BTC stack; safe because all writes run on BTC_TASK.
+    static uint8_t resp[CONTROL_MAX_RESPONSE_PAYLOAD];
     size_t resp_len = 0;
     control_status_t status = CONTROL_STATUS_OK;
 
@@ -308,7 +332,7 @@ static void pgp_control_handle_command_write(esp_gatt_if_t gatts_if,
         // below what vTaskList needs to write (AGENTS.md: no undersized
         // buffers on hot/stack paths). Kept at the same 1024 bytes uart.c's
         // 't' handler already uses.
-        char task_buf[1024];
+        static char task_buf[1024];  // static: BTC stack is small, see resp
         vTaskList(task_buf);
         int n = snprintf((char*)resp, sizeof(resp), "%s\nHeap free: %lu bytes", task_buf, esp_get_free_heap_size());
         resp_len = (n > 0) ? (size_t)n : 0;
@@ -404,6 +428,7 @@ static void pgp_control_handle_command_write(esp_gatt_if_t gatts_if,
     }
 
     pgp_control_send_response(gatts_if, conn_id, status, opcode, resp, resp_len);
+    ESP_LOGD(CONTROL_TAG, "[%d] btc stack hwm=%u words", conn_id, (unsigned)uxTaskGetStackHighWaterMark(NULL));
 }
 
 bool pgp_control_try_handle_write(esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t* param) {

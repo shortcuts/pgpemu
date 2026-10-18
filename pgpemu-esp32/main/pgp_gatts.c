@@ -661,6 +661,7 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
         break;
     case ESP_GATTS_CONF_EVT:
         ESP_LOGD(BT_GATTS_TAG, "ESP_GATTS_CONF_EVT, status = %d", param->conf.status);
+        pgp_control_on_conf(param->conf.conn_id);
         break;
     case ESP_GATTS_START_EVT:
         ESP_LOGD(BT_GATTS_TAG,
@@ -735,6 +736,7 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
         break;
     case ESP_GATTS_DISCONNECT_EVT:
         pgp_handshake_disconnect(param->disconnect.conn_id, param->disconnect.reason);
+        pgp_control_on_disconnect(param->disconnect.conn_id);
 
         ESP_LOGW(BT_GATTS_TAG, "[%d/%d] disconnected", param->disconnect.conn_id, get_active_connections());
 
