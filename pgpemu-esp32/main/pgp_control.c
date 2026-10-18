@@ -405,6 +405,10 @@ static void pgp_control_handle_command_write(esp_gatt_if_t gatts_if,
                 if (stats_get_for_conn(entry->conn_id, &stats)) {
                     flags |= 0x02;
                 }
+                // Only the game link completes the handshake; the companion link is not a Device Profile.
+                if (entry->cert_state == PGP_CERT_DONE) {
+                    flags |= 0x04;
+                }
             }
 
             resp[offset++] = (uint8_t)(conn_id & 0xFF);

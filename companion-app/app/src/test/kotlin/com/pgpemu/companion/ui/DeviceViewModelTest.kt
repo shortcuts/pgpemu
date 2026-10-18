@@ -27,11 +27,14 @@ private fun clientSummarySlotBytes(
     autospin: Boolean = false,
     autocatch: Boolean = false,
     hasStats: Boolean = false,
+    handshakeDone: Boolean = connId != 0xFFFF,
     caught: Int = 0,
     fled: Int = 0,
     spin: Int = 0,
 ): ByteArray {
-    val flags = (if (hasSettings) 0x01 else 0) or (if (hasStats) 0x02 else 0)
+    val flags =
+        (if (hasSettings) 0x01 else 0) or (if (hasStats) 0x02 else 0) or
+            (if (handshakeDone) 0x04 else 0)
     return byteArrayOf(
         (connId and 0xFF).toByte(),
         ((connId shr 8) and 0xFF).toByte(),
@@ -254,6 +257,40 @@ class DeviceViewModelTest {
             assertNull(state.profiles[1].autospin)
             assertEquals(false, state.profiles[2].autospin)
             assertEquals(true, state.profiles[2].autocatch)
+        }
+
+    @Test
+    fun `refreshStatus hides a slot whose handshake is not complete`() =
+        runTest {
+            val repository = FakeBleControlRepository()
+            repository.stubResponse(
+                Opcode.GET_CLIENT_SUMMARY,
+                Result.success(
+                    ResponseFrame(
+                        StatusCode.OK,
+                        Opcode.GET_CLIENT_SUMMARY.toByte(),
+                        clientSummarySlotBytes(connId = 1, hasSettings = true, handshakeDone = false) +
+                            clientSummarySlotBytes(connId = 2, hasSettings = true) +
+                            emptyClientSummarySlot() +
+                            emptyClientSummarySlot(),
+                    ),
+                ),
+            )
+            val viewModel = DeviceViewModel(repository)
+
+            viewModel.refreshStatus()
+            dispatcher.scheduler.advanceUntilIdle()
+
+            assertEquals(
+                false,
+                viewModel.uiState.value.profiles[0]
+                    .connected,
+            )
+            assertEquals(
+                true,
+                viewModel.uiState.value.profiles[1]
+                    .connected,
+            )
         }
 
     @Test

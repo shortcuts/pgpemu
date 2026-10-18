@@ -379,8 +379,9 @@ private fun parseClientSummary(payload: ByteArray): List<ClientSummary> =
         val flags = payload[base + 2].toInt() and 0xFF
         val hasSettings = flags and 0x01 != 0
         val hasStats = flags and 0x02 != 0
+        val handshakeDone = flags and 0x04 != 0
         ClientSummary(
-            connected = connId != 0xFFFF,
+            connected = connId != 0xFFFF && handshakeDone,
             autospin = if (hasSettings) payload[base + 3] == 1.toByte() else null,
             autocatch = if (hasSettings) payload[base + 4] == 1.toByte() else null,
             caught = if (hasStats) u16(5) else null,
