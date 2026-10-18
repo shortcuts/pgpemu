@@ -13,6 +13,9 @@ data class ResponseFrame(
             opcode == other.opcode &&
             payload.contentEquals(other.payload)
 
+    /** The firmware echoes the request opcode; any other frame is stale and must not complete the request. */
+    fun answers(requestOpcode: Int): Boolean = (opcode.toInt() and 0xFF) == (requestOpcode and 0xFF)
+
     override fun hashCode(): Int = 31 * (31 * status + opcode) + payload.contentHashCode()
 }
 

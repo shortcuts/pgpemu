@@ -16,6 +16,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
 
 // ponytail: CONFIG_BT_ACL_CONNECTIONS is compile-time on the firmware side
@@ -101,6 +103,7 @@ class DeviceViewModel
         val uiState: StateFlow<DeviceUiState> = _uiState.asStateFlow()
 
         private var pollJob: Job? = null
+        private val commandLock = Mutex() // user actions queue behind the running command instead of being dropped
 
         init {
             viewModelScope.launch {
@@ -174,56 +177,59 @@ class DeviceViewModel
             payload: ByteArray = ByteArray(0),
             onOk: (ResponseFrame) -> Unit,
         ) {
-            // one in-flight command at a time — NordicBleControlRepository has a single pendingResponse slot
-            if (_uiState.value.isBusy) return
             viewModelScope.launch {
-                _uiState.update { it.copy(isBusy = true, errorMessage = null) }
-                runStep(opcode, payload, onOk)
-                _uiState.update { it.copy(isBusy = false) }
+                commandLock.withLock {
+                    _uiState.update { it.copy(isBusy = true, errorMessage = null) }
+                    runStep(opcode, payload, onOk)
+                    _uiState.update { it.copy(isBusy = false) }
+                }
             }
         }
 
         /** Requests current device state after connect — runs its GET commands sequentially,
          * since NordicBleControlRepository only has one pendingResponse slot at a time. */
         fun refreshStatus(clearError: Boolean = true) {
-            if (_uiState.value.isBusy) return
+            // the poll skips a round when a command runs; user-initiated refreshes queue
+            if (!clearError && commandLock.isLocked) return
             viewModelScope.launch {
-                _uiState.update { it.copy(isBusy = true, errorMessage = if (clearError) null else it.errorMessage) }
-                runStep(Opcode.GET_GLOBAL_SETTINGS) { frame ->
-                    val p = frame.payload
-                    _uiState.update {
-                        it.copy(
-                            status =
-                                it.status.copy(
-                                    logLevel = p[0].toInt(),
-                                    advertisingEnabled = p[1] == 1.toByte(),
-                                    advertisingActive = p.getOrNull(4)?.let { it == 1.toByte() || it == 2.toByte() },
-                                    activeConnections = p[2].toInt() and 0xFF,
-                                ),
-                            settings = it.settings.copy(maxConnections = p[3].toInt() and 0xFF),
-                        )
+                commandLock.withLock {
+                    _uiState.update { it.copy(isBusy = true, errorMessage = if (clearError) null else it.errorMessage) }
+                    runStep(Opcode.GET_GLOBAL_SETTINGS) { frame ->
+                        val p = frame.payload
+                        _uiState.update {
+                            it.copy(
+                                status =
+                                    it.status.copy(
+                                        logLevel = p[0].toInt(),
+                                        advertisingEnabled = p[1] == 1.toByte(),
+                                        advertisingActive = p.getOrNull(4)?.let { it == 1.toByte() || it == 2.toByte() },
+                                        activeConnections = p[2].toInt() and 0xFF,
+                                    ),
+                                settings = it.settings.copy(maxConnections = p[3].toInt() and 0xFF),
+                            )
+                        }
                     }
-                }
-                runStep(Opcode.GET_LED_STATE) { frame ->
-                    _uiState.update { it.copy(status = it.status.copy(ledOn = frame.payload[0] == 1.toByte())) }
-                }
-                runStep(Opcode.GET_CLIENT_SUMMARY) { frame ->
-                    val summaries = parseClientSummary(frame.payload)
-                    _uiState.update { s ->
-                        s.copy(
-                            profiles =
-                                s.profiles.mapIndexed { i, p ->
-                                    val summary = summaries[i]
-                                    p.copy(
-                                        connected = summary.connected,
-                                        autospin = summary.autospin ?: p.autospin,
-                                        autocatch = summary.autocatch ?: p.autocatch,
-                                    )
-                                },
-                        )
+                    runStep(Opcode.GET_LED_STATE) { frame ->
+                        _uiState.update { it.copy(status = it.status.copy(ledOn = frame.payload[0] == 1.toByte())) }
                     }
+                    runStep(Opcode.GET_CLIENT_SUMMARY) { frame ->
+                        val summaries = parseClientSummary(frame.payload)
+                        _uiState.update { s ->
+                            s.copy(
+                                profiles =
+                                    s.profiles.mapIndexed { i, p ->
+                                        val summary = summaries[i]
+                                        p.copy(
+                                            connected = summary.connected,
+                                            autospin = summary.autospin ?: p.autospin,
+                                            autocatch = summary.autocatch ?: p.autocatch,
+                                        )
+                                    },
+                            )
+                        }
+                    }
+                    _uiState.update { it.copy(isBusy = false) }
                 }
-                _uiState.update { it.copy(isBusy = false) }
             }
         }
 
@@ -280,48 +286,49 @@ class DeviceViewModel
         }
 
         fun refreshRuntimeStats() {
-            if (_uiState.value.isBusy) return
             viewModelScope.launch {
-                _uiState.update { it.copy(isBusy = true, errorMessage = null) }
+                commandLock.withLock {
+                    _uiState.update { it.copy(isBusy = true, errorMessage = null) }
 
-                repository.sendCommand(Opcode.GET_RUNTIME_STATS, ByteArray(0)).fold(
-                    onSuccess = { frame ->
-                        if (frame.isOk) {
-                            val text = String(frame.payload, Charsets.UTF_8)
-                            _uiState.update { it.copy(diagnostics = it.diagnostics.copy(runtimeStats = text)) }
-                        } else {
-                            _uiState.update { it.copy(errorMessage = "device returned status ${frame.status}") }
-                        }
-                    },
-                    onFailure = { e -> _uiState.update { it.copy(errorMessage = e.message ?: "command failed") } },
-                )
-
-                repository.sendCommand(Opcode.GET_CLIENT_SUMMARY, ByteArray(0)).fold(
-                    onSuccess = { frame ->
-                        if (frame.isOk) {
-                            val summaries = parseClientSummary(frame.payload)
-                            _uiState.update { s ->
-                                s.copy(
-                                    profiles =
-                                        s.profiles.mapIndexed { i, p ->
-                                            val summary = summaries[i]
-                                            p.copy(
-                                                connected = summary.connected,
-                                                caught = summary.caught,
-                                                fled = summary.fled,
-                                                spin = summary.spin,
-                                            )
-                                        },
-                                )
+                    repository.sendCommand(Opcode.GET_RUNTIME_STATS, ByteArray(0)).fold(
+                        onSuccess = { frame ->
+                            if (frame.isOk) {
+                                val text = String(frame.payload, Charsets.UTF_8)
+                                _uiState.update { it.copy(diagnostics = it.diagnostics.copy(runtimeStats = text)) }
+                            } else {
+                                _uiState.update { it.copy(errorMessage = "device returned status ${frame.status}") }
                             }
-                        } else {
-                            _uiState.update { it.copy(errorMessage = "device returned status ${frame.status}") }
-                        }
-                    },
-                    onFailure = { e -> _uiState.update { it.copy(errorMessage = e.message ?: "command failed") } },
-                )
+                        },
+                        onFailure = { e -> _uiState.update { it.copy(errorMessage = e.message ?: "command failed") } },
+                    )
 
-                _uiState.update { it.copy(isBusy = false) }
+                    repository.sendCommand(Opcode.GET_CLIENT_SUMMARY, ByteArray(0)).fold(
+                        onSuccess = { frame ->
+                            if (frame.isOk) {
+                                val summaries = parseClientSummary(frame.payload)
+                                _uiState.update { s ->
+                                    s.copy(
+                                        profiles =
+                                            s.profiles.mapIndexed { i, p ->
+                                                val summary = summaries[i]
+                                                p.copy(
+                                                    connected = summary.connected,
+                                                    caught = summary.caught,
+                                                    fled = summary.fled,
+                                                    spin = summary.spin,
+                                                )
+                                            },
+                                    )
+                                }
+                            } else {
+                                _uiState.update { it.copy(errorMessage = "device returned status ${frame.status}") }
+                            }
+                        },
+                        onFailure = { e -> _uiState.update { it.copy(errorMessage = e.message ?: "command failed") } },
+                    )
+
+                    _uiState.update { it.copy(isBusy = false) }
+                }
             }
         }
 

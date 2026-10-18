@@ -4,6 +4,7 @@ import com.pgpemu.companion.ble.BleControlRepository
 import com.pgpemu.companion.ble.ConnectionState
 import com.pgpemu.companion.ble.ResponseFrame
 import com.pgpemu.companion.ble.ScannedDevice
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -21,6 +22,9 @@ class FakeBleControlRepository : BleControlRepository {
     val connectedAddresses = mutableListOf<String>()
 
     private val responses = mutableMapOf<Int, Result<ResponseFrame>>()
+
+    /** Complete the entry for an opcode to let a command that is parked in sendCommand() return. */
+    val gates = mutableMapOf<Int, CompletableDeferred<Unit>>()
     val sentCommands = mutableListOf<Pair<Int, ByteArray>>()
 
     fun setConnectionState(state: ConnectionState) {
@@ -57,6 +61,7 @@ class FakeBleControlRepository : BleControlRepository {
         payload: ByteArray,
     ): Result<ResponseFrame> {
         sentCommands.add(opcode to payload)
+        gates[opcode]?.await()
         return responses[opcode] ?: Result.failure(UnsupportedOperationException("not stubbed: opcode=$opcode"))
     }
 }

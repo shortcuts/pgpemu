@@ -11,6 +11,8 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
 import no.nordicsemi.android.ble.BleManager
 import no.nordicsemi.android.ble.callback.FailCallback
@@ -64,6 +66,8 @@ class NordicBleControlRepository
         override val connectionState: StateFlow<ConnectionState> = _connectionState.asStateFlow()
 
         private var pendingResponse: CompletableDeferred<ResponseFrame>? = null
+        private var pendingOpcode = -1
+        private val commandLock = Mutex() // one request in flight: the firmware echoes only the opcode
 
         private val manager = ControlBleManager(context)
         private val bluetoothAdapter = (context.getSystemService(Context.BLUETOOTH_SERVICE) as android.bluetooth.BluetoothManager).adapter
@@ -179,33 +183,36 @@ class NordicBleControlRepository
             opcode: Int,
             payload: ByteArray,
         ): Result<ResponseFrame> =
-            runCatching {
-                val deferred = CompletableDeferred<ResponseFrame>()
-                pendingResponse = deferred
-                val request = byteArrayOf(opcode.toByte(), *payload)
-                try {
-                    manager.writeCommand(request).suspend()
-                } catch (e: RequestFailedException) {
-                    if (e.status in
-                        setOf(
-                            GattError.GATT_INSUF_AUTHENTICATION,
-                            GattError.GATT_INSUF_AUTHORIZATION,
-                            GattError.GATT_INSUF_ENCRYPTION,
-                            GattError.GATT_AUTH_FAIL,
-                        )
-                    ) {
-                        // Android still thinks the device is bonded, but the peripheral rejected
-                        // encryption with our stored key (e.g. its keys were reset by a reflash).
-                        // Drop the stale bond so the next connect re-pairs instead of hitting this
-                        // same failure forever.
-                        manager.forgetBond()
+            commandLock.withLock {
+                runCatching {
+                    val deferred = CompletableDeferred<ResponseFrame>()
+                    pendingOpcode = opcode and 0xFF
+                    pendingResponse = deferred
+                    val request = byteArrayOf(opcode.toByte(), *payload)
+                    try {
+                        manager.writeCommand(request).suspend()
+                    } catch (e: RequestFailedException) {
+                        if (e.status in
+                            setOf(
+                                GattError.GATT_INSUF_AUTHENTICATION,
+                                GattError.GATT_INSUF_AUTHORIZATION,
+                                GattError.GATT_INSUF_ENCRYPTION,
+                                GattError.GATT_AUTH_FAIL,
+                            )
+                        ) {
+                            // Android still thinks the device is bonded, but the peripheral rejected
+                            // encryption with our stored key (e.g. its keys were reset by a reflash).
+                            // Drop the stale bond so the next connect re-pairs instead of hitting this
+                            // same failure forever.
+                            manager.forgetBond()
+                        }
+                        throw IllegalStateException("command write failed: ${GattError.parse(e.status)} (status ${e.status})", e)
                     }
-                    throw IllegalStateException("command write failed: ${GattError.parse(e.status)} (status ${e.status})", e)
+                    withTimeoutOrNull(COMMAND_TIMEOUT_MS) { deferred.await() }
+                        ?: throw java.util.concurrent.TimeoutException("no response for opcode $opcode")
+                }.also {
+                    pendingResponse = null
                 }
-                withTimeoutOrNull(COMMAND_TIMEOUT_MS) { deferred.await() }
-                    ?: throw java.util.concurrent.TimeoutException("no response for opcode $opcode")
-            }.also {
-                pendingResponse = null
             }
 
         private fun onDisconnected() {
@@ -326,7 +333,7 @@ class NordicBleControlRepository
                                         opcode = bytes[1],
                                         payload = bytes.copyOfRange(2, bytes.size),
                                     )
-                                pendingResponse?.complete(frame)
+                                if (frame.answers(pendingOpcode)) pendingResponse?.complete(frame)
                             }
                         }
                         enableIndications(responseCharacteristic).enqueue()

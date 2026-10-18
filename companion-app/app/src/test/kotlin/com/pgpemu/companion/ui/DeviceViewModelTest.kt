@@ -6,6 +6,7 @@ import com.pgpemu.companion.ble.ResponseFrame
 import com.pgpemu.companion.ble.ScannedDevice
 import com.pgpemu.companion.ble.StatusCode
 import com.pgpemu.companion.core.testing.FakeBleControlRepository
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -171,6 +172,52 @@ class DeviceViewModelTest {
                 countAfterDisconnect,
                 repository.sentCommands.count { it.first == Opcode.GET_GLOBAL_SETTINGS },
             )
+        }
+
+    @Test
+    fun `user tap during a status refresh runs after it instead of being dropped`() =
+        runTest {
+            val repository = FakeBleControlRepository()
+            repository.stubResponse(
+                Opcode.GET_GLOBAL_SETTINGS,
+                Result.success(ResponseFrame(StatusCode.OK, Opcode.GET_GLOBAL_SETTINGS.toByte(), byteArrayOf(0, 0, 1, 4))),
+            )
+            repository.stubResponse(
+                Opcode.GET_LED_STATE,
+                Result.success(ResponseFrame(StatusCode.OK, Opcode.GET_LED_STATE.toByte(), byteArrayOf(0))),
+            )
+            repository.stubResponse(
+                Opcode.GET_CLIENT_SUMMARY,
+                Result.success(
+                    ResponseFrame(
+                        StatusCode.OK,
+                        Opcode.GET_CLIENT_SUMMARY.toByte(),
+                        emptyClientSummarySlot() + emptyClientSummarySlot() + emptyClientSummarySlot() + emptyClientSummarySlot(),
+                    ),
+                ),
+            )
+            repository.stubResponse(
+                Opcode.CYCLE_LOG_LEVEL,
+                Result.success(ResponseFrame(StatusCode.OK, Opcode.CYCLE_LOG_LEVEL.toByte(), byteArrayOf(3))),
+            )
+            val gate = CompletableDeferred<Unit>()
+            repository.gates[Opcode.GET_GLOBAL_SETTINGS] = gate
+            val viewModel = DeviceViewModel(repository)
+            repository.setConnectionState(ConnectionState.Ready)
+            dispatcher.scheduler.runCurrent() // refreshStatus() parks on the gate
+
+            viewModel.cycleLogLevel()
+            dispatcher.scheduler.runCurrent()
+            assertTrue(repository.sentCommands.none { it.first == Opcode.CYCLE_LOG_LEVEL })
+
+            gate.complete(Unit)
+            dispatcher.scheduler.runCurrent()
+
+            assertEquals(1, repository.sentCommands.count { it.first == Opcode.CYCLE_LOG_LEVEL })
+            assertEquals(3, viewModel.uiState.value.status.logLevel)
+
+            repository.setConnectionState(ConnectionState.Disconnected("done"))
+            dispatcher.scheduler.runCurrent()
         }
 
     @Test
