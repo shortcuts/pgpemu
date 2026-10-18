@@ -45,9 +45,28 @@ data class DeviceUiState(
     val settings: SettingsState = SettingsState(),
     val diagnostics: DiagnosticsState = DiagnosticsState(),
     val isBusy: Boolean = false,
-    val errorMessage: String? = null,
+    val message: UiMessage? = null,
     val pendingConfirmation: ConfirmAction? = null,
 )
+
+/** Text for the user; the screen maps each case to a string resource, raw codes ride along for bug reports. */
+sealed interface UiMessage {
+    val isError: Boolean get() = true
+
+    data class DeviceStatus(
+        val code: Int,
+    ) : UiMessage
+
+    data class CommandFailed(
+        val detail: String?,
+    ) : UiMessage
+
+    data object UnexpectedReply : UiMessage
+
+    data object Saved : UiMessage {
+        override val isError get() = false
+    }
+}
 
 data class StatusState(
     val ledOn: Boolean? = null,
@@ -176,6 +195,10 @@ class DeviceViewModel
             }
         }
 
+        fun consumeMessage() {
+            _uiState.update { it.copy(message = null) }
+        }
+
         fun disconnect() {
             viewModelScope.launch { repository.disconnect() }
         }
@@ -188,9 +211,9 @@ class DeviceViewModel
             val result = repository.sendCommand(opcode, payload)
             result.fold(
                 onSuccess = { frame ->
-                    if (frame.isOk) onOk(frame) else _uiState.update { it.copy(errorMessage = "device returned status ${frame.status}") }
+                    if (frame.isOk) onOk(frame) else _uiState.update { it.copy(message = UiMessage.DeviceStatus(frame.status.toInt())) }
                 },
-                onFailure = { e -> _uiState.update { it.copy(errorMessage = e.message ?: "command failed") } },
+                onFailure = { e -> _uiState.update { it.copy(message = UiMessage.CommandFailed(e.message)) } },
             )
         }
 
@@ -200,7 +223,7 @@ class DeviceViewModel
         ) {
             result.fold(
                 onSuccess = apply,
-                onFailure = { _uiState.update { s -> s.copy(errorMessage = "device sent an unexpected reply") } },
+                onFailure = { _uiState.update { s -> s.copy(message = UiMessage.UnexpectedReply) } },
             )
         }
 
@@ -211,7 +234,7 @@ class DeviceViewModel
         ) {
             viewModelScope.launch {
                 commandLock.withLock {
-                    _uiState.update { it.copy(isBusy = true, errorMessage = null) }
+                    _uiState.update { it.copy(isBusy = true, message = null) }
                     runStep(opcode, payload, onOk)
                     _uiState.update { it.copy(isBusy = false) }
                 }
@@ -225,7 +248,7 @@ class DeviceViewModel
             if (!clearError && commandLock.isLocked) return
             viewModelScope.launch {
                 commandLock.withLock {
-                    _uiState.update { it.copy(isBusy = true, errorMessage = if (clearError) null else it.errorMessage) }
+                    _uiState.update { it.copy(isBusy = true, message = if (clearError) null else it.message) }
                     runStep(Opcode.GET_GLOBAL_SETTINGS) { frame ->
                         decoded(decodeGlobalSettings(frame.payload)) { g ->
                             _uiState.update {
@@ -291,7 +314,7 @@ class DeviceViewModel
         }
 
         fun saveSettings() {
-            runCommand(Opcode.SAVE_SETTINGS) { /* no payload; status OK is the confirmation */ }
+            runCommand(Opcode.SAVE_SETTINGS) { _uiState.update { it.copy(message = UiMessage.Saved) } }
         }
 
         fun toggleAutospin(index: Int) {
@@ -326,7 +349,7 @@ class DeviceViewModel
         fun refreshRuntimeStats() {
             viewModelScope.launch {
                 commandLock.withLock {
-                    _uiState.update { it.copy(isBusy = true, errorMessage = null) }
+                    _uiState.update { it.copy(isBusy = true, message = null) }
 
                     repository.sendCommand(Opcode.GET_RUNTIME_STATS, ByteArray(0)).fold(
                         onSuccess = { frame ->
@@ -334,10 +357,10 @@ class DeviceViewModel
                                 val text = String(frame.payload, Charsets.UTF_8)
                                 _uiState.update { it.copy(diagnostics = it.diagnostics.copy(runtimeStats = text)) }
                             } else {
-                                _uiState.update { it.copy(errorMessage = "device returned status ${frame.status}") }
+                                _uiState.update { it.copy(message = UiMessage.DeviceStatus(frame.status.toInt())) }
                             }
                         },
-                        onFailure = { e -> _uiState.update { it.copy(errorMessage = e.message ?: "command failed") } },
+                        onFailure = { e -> _uiState.update { it.copy(message = UiMessage.CommandFailed(e.message)) } },
                     )
 
                     repository.sendCommand(Opcode.GET_CLIENT_SUMMARY, ByteArray(0)).fold(
@@ -360,10 +383,10 @@ class DeviceViewModel
                                     }
                                 }
                             } else {
-                                _uiState.update { it.copy(errorMessage = "device returned status ${frame.status}") }
+                                _uiState.update { it.copy(message = UiMessage.DeviceStatus(frame.status.toInt())) }
                             }
                         },
-                        onFailure = { e -> _uiState.update { it.copy(errorMessage = e.message ?: "command failed") } },
+                        onFailure = { e -> _uiState.update { it.copy(message = UiMessage.CommandFailed(e.message)) } },
                     )
 
                     _uiState.update { it.copy(isBusy = false) }

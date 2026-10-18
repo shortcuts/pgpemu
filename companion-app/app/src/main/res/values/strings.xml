@@ -33,4 +33,15 @@
     <string name="device_scan_again">Scan again</string>
     <string name="device_scan">Scan for devices</string>
     <string name="confirm_cancel">Cancel</string>
+    <string name="msg_saved">Settings saved to device</string>
+    <string name="msg_unexpected_reply">Device sent an unexpected reply</string>
+    <string name="msg_command_failed">Command failed (%1$s)</string>
+    <string name="msg_status_unknown_opcode">Device does not support this command (%1$d)</string>
+    <string name="msg_status_malformed">Device rejected the request (%1$d)</string>
+    <string name="msg_status_not_bonded">Pair with the device first (%1$d)</string>
+    <string name="msg_status_busy">Device is busy, try again (%1$d)</string>
+    <string name="msg_status_internal">Device hit an internal error (%1$d)</string>
+    <string name="msg_status_other">Device returned an error (%1$d)</string>
+    <string name="msg_disconnected_lost">Connection lost, device out of range? (%1$d)</string>
+    <string name="msg_disconnected">Device disconnected (%1$d)</string>
 </resources>

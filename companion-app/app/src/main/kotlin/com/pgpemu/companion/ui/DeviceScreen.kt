@@ -37,6 +37,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -64,6 +66,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pgpemu.companion.R
 import com.pgpemu.companion.ble.ConnectionState
 import com.pgpemu.companion.ble.ScannedDevice
+import com.pgpemu.companion.ble.StatusCode
 import com.pgpemu.companion.ui.theme.LocalPgpColors
 
 // API 31+ (Android 12+) uses the dedicated BLUETOOTH_SCAN/CONNECT runtime permissions.
@@ -114,61 +117,73 @@ fun DeviceScreen(viewModel: DeviceViewModel = hiltViewModel()) {
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize().background(colors.bg).safeDrawingPadding()) {
-        TopBar(connectionState = uiState.connectionState)
-
-        if (uiState.connectionState is ConnectionState.Ready) {
-            LazyColumn(
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                item { StatusSection(uiState.status) }
-                item {
-                    DeviceProfilesSection(
-                        profiles = uiState.profiles,
-                        maxConnections = uiState.settings.maxConnections,
-                        onToggleAutospin = viewModel::toggleAutospin,
-                        onToggleAutocatch = viewModel::toggleAutocatch,
-                    )
-                }
-                item {
-                    SettingsSection(
-                        status = uiState.status,
-                        settings = uiState.settings,
-                        onToggleAdvertising = viewModel::toggleAdvertising,
-                        onSetMaxConnections = viewModel::setMaxConnections,
-                        onCycleLogLevel = viewModel::cycleLogLevel,
-                        onSave = viewModel::saveSettings,
-                    )
-                }
-                item {
-                    DiagnosticsSection(
-                        diagnostics = uiState.diagnostics,
-                        onRefreshStats = viewModel::refreshRuntimeStats,
-                        onRefreshTasks = viewModel::refreshTaskList,
-                        onRefreshClientStates = viewModel::refreshClientStates,
-                        onDisconnectAll = viewModel::disconnectAllClients,
-                    )
-                }
-                item {
-                    DangerZoneSection(
-                        onResetSecrets = viewModel::requestResetSecrets,
-                        onRestart = viewModel::requestRestart,
-                    )
-                }
-                item { DisconnectRow(onDisconnect = viewModel::disconnect) }
-            }
-        } else {
-            ConnectPanel(
-                connectionState = uiState.connectionState,
-                errorMessage = uiState.errorMessage,
-                permissionDenied = permissionDenied,
-                devices = uiState.discoveredDevices,
-                hasScanned = uiState.hasScanned,
-                onScan = ::requestScan,
-                onConnect = viewModel::connectTo,
-            )
+    val snackbarHost = remember { SnackbarHostState() }
+    val messageText = uiState.message?.let { messageText(it) }
+    LaunchedEffect(uiState.message) {
+        messageText?.let {
+            snackbarHost.showSnackbar(it)
+            viewModel.consumeMessage()
         }
+    }
+
+    Box(modifier = Modifier.fillMaxSize().background(colors.bg).safeDrawingPadding()) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            TopBar(connectionState = uiState.connectionState)
+
+            if (uiState.connectionState is ConnectionState.Ready) {
+                LazyColumn(
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    item { StatusSection(uiState.status) }
+                    item {
+                        DeviceProfilesSection(
+                            profiles = uiState.profiles,
+                            maxConnections = uiState.settings.maxConnections,
+                            onToggleAutospin = viewModel::toggleAutospin,
+                            onToggleAutocatch = viewModel::toggleAutocatch,
+                        )
+                    }
+                    item {
+                        SettingsSection(
+                            status = uiState.status,
+                            settings = uiState.settings,
+                            onToggleAdvertising = viewModel::toggleAdvertising,
+                            onSetMaxConnections = viewModel::setMaxConnections,
+                            onCycleLogLevel = viewModel::cycleLogLevel,
+                            onSave = viewModel::saveSettings,
+                        )
+                    }
+                    item {
+                        DiagnosticsSection(
+                            diagnostics = uiState.diagnostics,
+                            onRefreshStats = viewModel::refreshRuntimeStats,
+                            onRefreshTasks = viewModel::refreshTaskList,
+                            onRefreshClientStates = viewModel::refreshClientStates,
+                            onDisconnectAll = viewModel::disconnectAllClients,
+                        )
+                    }
+                    item {
+                        DangerZoneSection(
+                            onResetSecrets = viewModel::requestResetSecrets,
+                            onRestart = viewModel::requestRestart,
+                        )
+                    }
+                    item { DisconnectRow(onDisconnect = viewModel::disconnect) }
+                }
+            } else {
+                ConnectPanel(
+                    connectionState = uiState.connectionState,
+                    errorMessage = (uiState.connectionState as? ConnectionState.Disconnected)?.reason?.let { disconnectText(it) },
+                    permissionDenied = permissionDenied,
+                    devices = uiState.discoveredDevices,
+                    hasScanned = uiState.hasScanned,
+                    onScan = ::requestScan,
+                    onConnect = viewModel::connectTo,
+                )
+            }
+        }
+        SnackbarHost(snackbarHost, modifier = Modifier.align(Alignment.BottomCenter))
     }
 
     uiState.pendingConfirmation?.let { action ->
@@ -180,6 +195,35 @@ fun DeviceScreen(viewModel: DeviceViewModel = hiltViewModel()) {
         )
     }
 }
+
+@Composable
+private fun messageText(message: UiMessage): String =
+    when (message) {
+        is UiMessage.DeviceStatus ->
+            stringResource(
+                when (message.code.toByte()) {
+                    StatusCode.ERR_UNKNOWN_OPCODE -> R.string.msg_status_unknown_opcode
+                    StatusCode.ERR_MALFORMED_PAYLOAD -> R.string.msg_status_malformed
+                    StatusCode.ERR_NOT_BONDED -> R.string.msg_status_not_bonded
+                    StatusCode.ERR_BUSY -> R.string.msg_status_busy
+                    StatusCode.ERR_INTERNAL -> R.string.msg_status_internal
+                    else -> R.string.msg_status_other
+                },
+                message.code,
+            )
+        is UiMessage.CommandFailed -> stringResource(R.string.msg_command_failed, message.detail ?: stringResource(R.string.dash))
+        UiMessage.UnexpectedReply -> stringResource(R.string.msg_unexpected_reply)
+        UiMessage.Saved -> stringResource(R.string.msg_saved)
+    }
+
+// GATT 8 = supervision timeout, the usual out-of-range drop; 0 = clean local disconnect.
+@Composable
+private fun disconnectText(reason: Int): String? =
+    when (reason) {
+        0 -> null
+        8 -> stringResource(R.string.msg_disconnected_lost, reason)
+        else -> stringResource(R.string.msg_disconnected, reason)
+    }
 
 @Composable
 private fun TopBar(connectionState: ConnectionState) {

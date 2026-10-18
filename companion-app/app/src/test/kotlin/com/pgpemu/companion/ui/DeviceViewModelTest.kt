@@ -121,7 +121,7 @@ class DeviceViewModelTest {
             assertEquals(ConnectionState.Ready, viewModel.uiState.value.connectionState)
 
             // runTest drains the scheduler on exit; stop the poll loop so it can finish.
-            repository.setConnectionState(ConnectionState.Disconnected("done"))
+            repository.setConnectionState(ConnectionState.Disconnected())
             dispatcher.scheduler.runCurrent()
         }
 
@@ -161,7 +161,7 @@ class DeviceViewModelTest {
                 repository.sentCommands.count { it.first == Opcode.GET_GLOBAL_SETTINGS },
             )
 
-            repository.setConnectionState(ConnectionState.Disconnected("gone"))
+            repository.setConnectionState(ConnectionState.Disconnected())
             dispatcher.scheduler.runCurrent()
             val countAfterDisconnect = repository.sentCommands.count { it.first == Opcode.GET_GLOBAL_SETTINGS }
 
@@ -217,7 +217,7 @@ class DeviceViewModelTest {
             dispatcher.scheduler.runCurrent()
             assertEquals(whileBackground + 2, polls())
 
-            repository.setConnectionState(ConnectionState.Disconnected("done"))
+            repository.setConnectionState(ConnectionState.Disconnected())
             dispatcher.scheduler.runCurrent()
         }
 
@@ -263,7 +263,7 @@ class DeviceViewModelTest {
             assertEquals(1, repository.sentCommands.count { it.first == Opcode.CYCLE_LOG_LEVEL })
             assertEquals(3, viewModel.uiState.value.status.logLevel)
 
-            repository.setConnectionState(ConnectionState.Disconnected("done"))
+            repository.setConnectionState(ConnectionState.Disconnected())
             dispatcher.scheduler.runCurrent()
         }
 
@@ -296,14 +296,14 @@ class DeviceViewModelTest {
 
             viewModel.cycleLogLevel()
             dispatcher.scheduler.runCurrent()
-            assertEquals("boom", viewModel.uiState.value.errorMessage)
+            assertEquals(UiMessage.CommandFailed("boom"), viewModel.uiState.value.message)
 
             dispatcher.scheduler.advanceTimeBy(STATUS_POLL_INTERVAL_MS + 1)
             dispatcher.scheduler.runCurrent()
 
-            assertEquals("boom", viewModel.uiState.value.errorMessage)
+            assertEquals(UiMessage.CommandFailed("boom"), viewModel.uiState.value.message)
 
-            repository.setConnectionState(ConnectionState.Disconnected("done"))
+            repository.setConnectionState(ConnectionState.Disconnected())
             dispatcher.scheduler.runCurrent()
         }
 
@@ -454,7 +454,7 @@ class DeviceViewModelTest {
             viewModel.cycleLogLevel()
             dispatcher.scheduler.advanceUntilIdle()
 
-            assertEquals("disconnected", viewModel.uiState.value.errorMessage)
+            assertEquals(UiMessage.CommandFailed("disconnected"), viewModel.uiState.value.message)
         }
 
     @Test
@@ -470,7 +470,7 @@ class DeviceViewModelTest {
             viewModel.cycleLogLevel()
             dispatcher.scheduler.advanceUntilIdle()
 
-            assertEquals("device sent an unexpected reply", viewModel.uiState.value.errorMessage)
+            assertEquals(UiMessage.UnexpectedReply, viewModel.uiState.value.message)
             assertNull(viewModel.uiState.value.status.logLevel)
         }
 
@@ -487,7 +487,7 @@ class DeviceViewModelTest {
             viewModel.cycleLogLevel()
             dispatcher.scheduler.advanceUntilIdle()
 
-            assertEquals("device returned status ${StatusCode.ERR_BUSY}", viewModel.uiState.value.errorMessage)
+            assertEquals(UiMessage.DeviceStatus(StatusCode.ERR_BUSY.toInt()), viewModel.uiState.value.message)
             assertNull(viewModel.uiState.value.status.logLevel)
         }
 
@@ -534,5 +534,23 @@ class DeviceViewModelTest {
                 listOf(Opcode.GET_RUNTIME_STATS, Opcode.GET_CLIENT_SUMMARY),
                 repository.sentCommands.map { it.first },
             )
+        }
+
+    @Test
+    fun `save settings confirms with Saved message`() =
+        runTest {
+            val repository = FakeBleControlRepository()
+            repository.stubResponse(
+                Opcode.SAVE_SETTINGS,
+                Result.success(ResponseFrame(StatusCode.OK, Opcode.SAVE_SETTINGS.toByte(), ByteArray(0))),
+            )
+            val viewModel = DeviceViewModel(repository)
+
+            viewModel.saveSettings()
+            dispatcher.scheduler.advanceUntilIdle()
+
+            assertEquals(UiMessage.Saved, viewModel.uiState.value.message)
+            viewModel.consumeMessage()
+            assertNull(viewModel.uiState.value.message)
         }
 }

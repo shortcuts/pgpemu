@@ -200,7 +200,7 @@ class NordicBleControlRepository
 
         override suspend fun disconnect() {
             manager.disconnect().suspend()
-            _connectionState.value = ConnectionState.Disconnected("user requested")
+            _connectionState.value = ConnectionState.Disconnected()
         }
 
         override suspend fun sendCommand(
@@ -384,7 +384,7 @@ class NordicBleControlRepository
                             reason: Int,
                         ) {
                             onDisconnected()
-                            _connectionState.value = ConnectionState.Disconnected(reason.toString())
+                            _connectionState.value = ConnectionState.Disconnected(reason)
                         }
                     }
                 bondingObserver =

@@ -13,8 +13,9 @@ sealed interface ConnectionState {
 
     data object Ready : ConnectionState
 
+    /** [reason] is the GATT status of an unexpected drop; null when the user asked for it. */
     data class Disconnected(
-        val reason: String,
+        val reason: Int? = null,
     ) : ConnectionState
 
     data class Error(
