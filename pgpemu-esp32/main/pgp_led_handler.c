@@ -2,7 +2,6 @@
 #include "esp_log.h"
 #include "esp_random.h"
 #include "freertos/FreeRTOS.h"
-#include "freertos/queue.h"
 #include "freertos/task.h"
 #include "log_tags.h"
 #include "pgp_autobutton.h"
@@ -174,11 +173,7 @@ void handle_led_notify_from_app(esp_gatt_if_t gatts_if, uint16_t conn_id, const 
         if (delay < pattern_ms) {
             ESP_LOGD(LEDHANDLER_TAG, "[%d] queueing push button after %d ms", conn_id, delay);
 
-            button_queue_item_t item;
-            item.gatts_if = gatts_if;
-            item.conn_id = conn_id;
-            item.delay = delay;
-            xQueueSend(button_queue, &item, portMAX_DELAY);
+            schedule_button_press(gatts_if, conn_id, delay);
         }
     }
 }

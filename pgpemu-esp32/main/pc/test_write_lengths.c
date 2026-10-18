@@ -16,11 +16,10 @@
 
 // ---- mocks of everything the units under test call ----
 uint16_t certificate_handle_table[CERT_LAST_IDX];
-QueueHandle_t button_queue;
 uint8_t bt_mac[6];
 
 static client_state_t g_state, g_other;
-static int queue_sends, set_attr_calls, indicate_calls, decrypt_calls, reconnect_calls, persist_calls;
+static int button_presses, set_attr_calls, indicate_calls, decrypt_calls, reconnect_calls, persist_calls;
 
 client_state_t* get_client_state_entry(uint16_t conn_id) {
     if (conn_id == 1) {
@@ -35,9 +34,9 @@ client_state_t* get_or_create_client_state_entry(uint16_t conn_id) {
     (void)conn_id;
     return &g_state;
 }
-int xQueueSend(QueueHandle_t q, const void* item, TickType_t wait) {
-    (void)q, (void)item, (void)wait;
-    return ++queue_sends;
+bool schedule_button_press(esp_gatt_if_t gatts_if, uint16_t conn_id, int delay_ms) {
+    (void)gatts_if, (void)conn_id, (void)delay_ms;
+    return ++button_presses;
 }
 int esp_ble_gatts_set_attr_value(uint16_t handle, uint16_t len, const uint8_t* value) {
     (void)handle, (void)len, (void)value;
@@ -122,7 +121,7 @@ static void reset(int cert_state) {
     g_state.settings.autocatch = true;
     g_state.has_settings = true;
     g_state.cert_state = cert_state;
-    queue_sends = set_attr_calls = indicate_calls = decrypt_calls = reconnect_calls = persist_calls = 0;
+    button_presses = set_attr_calls = indicate_calls = decrypt_calls = reconnect_calls = persist_calls = 0;
 }
 
 // The three call_* wrappers are the only place that knows the handler signatures.
@@ -143,19 +142,19 @@ static void test_led_short_writes_ignored(void) {
 
     reset(0);
     call_led(led, 7);
-    assert(queue_sends == 1);  // accepted packet still presses the button
+    assert(button_presses == 1);  // accepted packet still presses the button
 
     for (uint16_t len = 0; len < 7; len++) {
         reset(0);
         call_led(led, len);
-        assert(queue_sends == 0);
+        assert(button_presses == 0);
     }
 
     // count byte claims 31 patterns, i.e. 97 bytes; 96 must be rejected
     uint8_t big[97] = { 0, 0, 0, 0x1f };
     reset(0);
     call_led(big, 96);
-    assert(queue_sends == 0);
+    assert(button_presses == 0);
     printf("PASS: led short writes ignored\n");
 }
 
