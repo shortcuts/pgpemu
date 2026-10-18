@@ -45,9 +45,9 @@ fun ConfirmActionSheet(
         containerColor = colors.surface,
     ) {
         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)) {
-            Text(text = action.title, color = colors.text, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+            Text(text = stringResource(action.titleRes), color = colors.text, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
             Text(
-                text = action.consequence,
+                text = stringResource(action.bodyRes),
                 color = colors.muted,
                 fontSize = 13.sp,
                 modifier = Modifier.padding(top = 6.dp, bottom = 16.dp),
@@ -55,7 +55,7 @@ fun ConfirmActionSheet(
             OutlinedTextField(
                 value = typed,
                 onValueChange = { typed = it },
-                label = { Text("Type ${action.confirmWord} to confirm") },
+                label = { Text(stringResource(R.string.confirm_type_word, action.confirmWord)) },
                 singleLine = true,
                 colors =
                     OutlinedTextFieldDefaults.colors(
@@ -83,7 +83,7 @@ fun ConfirmActionSheet(
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColors(containerColor = colors.danger, contentColor = colors.bg),
                     shape = RoundedCornerShape(10.dp),
-                ) { Text(action.title) }
+                ) { Text(stringResource(action.titleRes)) }
             }
         }
     }

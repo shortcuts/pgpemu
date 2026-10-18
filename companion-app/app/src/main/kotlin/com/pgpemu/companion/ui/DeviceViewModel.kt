@@ -2,6 +2,7 @@ package com.pgpemu.companion.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pgpemu.companion.R
 import com.pgpemu.companion.ble.BleControlRepository
 import com.pgpemu.companion.ble.ConnectionState
 import com.pgpemu.companion.ble.Opcode
@@ -99,22 +100,19 @@ data class DiagnosticsState(
 
 sealed interface ConfirmAction {
     val confirmWord: String
-    val title: String
-    val consequence: String
+    val titleRes: Int
+    val bodyRes: Int
 
     data object ResetSecrets : ConfirmAction {
         override val confirmWord = "RESET"
-        override val title = "Reset secrets"
-        override val consequence =
-            "This erases this device's clone identity, MAC, and keys. " +
-                "It will need to be re-paired from scratch. This cannot be undone."
+        override val titleRes = R.string.confirm_reset_title
+        override val bodyRes = R.string.confirm_reset_body
     }
 
     data object Restart : ConfirmAction {
         override val confirmWord = "RESTART"
-        override val title = "Restart device"
-        override val consequence =
-            "This restarts the device immediately. The BLE connection will drop."
+        override val titleRes = R.string.danger_restart
+        override val bodyRes = R.string.confirm_restart_body
     }
 }
 

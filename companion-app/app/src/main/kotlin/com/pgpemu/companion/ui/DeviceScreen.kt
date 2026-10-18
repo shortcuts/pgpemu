@@ -14,6 +14,7 @@ import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -61,6 +62,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -270,16 +272,16 @@ private fun TopBar(connectionState: ConnectionState) {
 @Composable
 private fun StatusPill(connectionState: ConnectionState) {
     val colors = LocalPgpColors.current
-    val (label, dotColor) =
+    val (labelRes, dotColor) =
         when (connectionState) {
-            is ConnectionState.Ready -> "Ready" to colors.accent
-            is ConnectionState.Scanning -> "Scanning" to colors.warn
-            is ConnectionState.Connecting -> "Connecting" to colors.warn
-            is ConnectionState.Bonding -> "Bonding" to colors.warn
-            is ConnectionState.DiscoveringServices -> "Discovering" to colors.warn
-            is ConnectionState.Error -> "Error" to colors.danger
-            is ConnectionState.Disconnected -> "Disconnected" to colors.muted
-            is ConnectionState.Idle -> "Idle" to colors.muted
+            is ConnectionState.Ready -> R.string.state_ready to colors.accent
+            is ConnectionState.Scanning -> R.string.state_scanning to colors.warn
+            is ConnectionState.Connecting -> R.string.state_connecting to colors.warn
+            is ConnectionState.Bonding -> R.string.state_bonding to colors.warn
+            is ConnectionState.DiscoveringServices -> R.string.state_discovering to colors.warn
+            is ConnectionState.Error -> R.string.state_error to colors.danger
+            is ConnectionState.Disconnected -> R.string.state_disconnected to colors.muted
+            is ConnectionState.Idle -> R.string.state_idle to colors.muted
         }
     val dimColor = dotColor.copy(alpha = 0.16f)
     Row(
@@ -291,7 +293,7 @@ private fun StatusPill(connectionState: ConnectionState) {
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Box(modifier = Modifier.size(6.dp).background(color = dotColor, shape = CircleShape))
-        Text(text = label, color = dotColor, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+        Text(text = stringResource(labelRes), color = dotColor, fontSize = 12.sp, fontWeight = FontWeight.Medium)
     }
 }
 
@@ -354,7 +356,7 @@ private fun ConnectPanel(
         if (devices.isNotEmpty()) {
             Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = "Found ${devices.size} ${if (devices.size == 1) "device" else "devices"}",
+                text = pluralStringResource(R.plurals.device_found, devices.size, devices.size),
                 color = colors.text,
                 fontWeight = FontWeight.SemiBold,
             )
@@ -411,11 +413,12 @@ private fun ConnectPanel(
     }
 }
 
+@StringRes
 private fun signalLabel(rssi: Int) =
     when {
-        rssi >= -60 -> "Strong"
-        rssi >= -75 -> "Medium"
-        else -> "Weak"
+        rssi >= -60 -> R.string.signal_strong
+        rssi >= -75 -> R.string.signal_medium
+        else -> R.string.signal_weak
     }
 
 @Composable
@@ -431,8 +434,10 @@ private fun DeviceRow(
                 .heightIn(min = 48.dp)
                 .background(colors.surface, RoundedCornerShape(10.dp))
                 .border(1.dp, colors.border, RoundedCornerShape(10.dp))
-                .clickable(onClickLabel = "Connect to ${device.name} ${device.address}", onClick = onClick)
-                .padding(12.dp),
+                .clickable(
+                    onClickLabel = stringResource(R.string.device_connect_to, device.name, device.address),
+                    onClick = onClick,
+                ).padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
@@ -440,7 +445,11 @@ private fun DeviceRow(
             Text(text = device.name, color = colors.text, fontWeight = FontWeight.Medium)
             Text(text = device.address, color = colors.muted, fontSize = 12.sp)
         }
-        Text(text = "${signalLabel(device.rssi)} · ${device.rssi} dBm", color = colors.muted, fontSize = 12.sp)
+        Text(
+            text = stringResource(R.string.device_signal, stringResource(signalLabel(device.rssi)), device.rssi),
+            color = colors.muted,
+            fontSize = 12.sp,
+        )
     }
 }
 
@@ -458,28 +467,39 @@ private fun DisconnectRow(onDisconnect: () -> Unit) {
 
 @Composable
 private fun StatusSection(status: StatusState) {
-    SectionCard(title = "Status") {
-        LabeledValue(stringResource(R.string.status_led), status.ledOn?.let { if (it) "On" else "Off" } ?: "—")
+    val dash = stringResource(R.string.dash)
+    SectionCard(title = stringResource(R.string.section_status)) {
+        LabeledValue(
+            stringResource(R.string.status_led),
+            status.ledOn?.let { stringResource(if (it) R.string.status_on else R.string.status_off) } ?: dash,
+        )
         LabeledValue(
             stringResource(R.string.status_advertising),
-            status.advertisingEnabled?.let { if (it) "Enabled" else "Disabled" } ?: "—",
+            status.advertisingEnabled?.let {
+                stringResource(if (it) R.string.status_enabled else R.string.status_disabled)
+            } ?: dash,
         )
         LabeledValue(
             stringResource(R.string.status_radio),
             status.advertisingActive?.let {
                 stringResource(if (it) R.string.status_radio_active else R.string.status_radio_idle)
-            } ?: "—",
+            } ?: dash,
         )
-        LabeledValue(stringResource(R.string.status_connections), status.activeConnections?.toString() ?: "—")
-        LabeledValue(stringResource(R.string.status_log_level), status.logLevel?.let { logLevelName(it) } ?: "—", isLast = true)
+        LabeledValue(stringResource(R.string.status_connections), status.activeConnections?.toString() ?: dash)
+        LabeledValue(
+            stringResource(R.string.status_log_level),
+            status.logLevel?.let { stringResource(logLevelName(it)) } ?: dash,
+            isLast = true,
+        )
     }
 }
 
+@StringRes
 private fun logLevelName(level: Int) =
     when (level) {
-        3 -> "Verbose"
-        2 -> "Info"
-        else -> "Debug"
+        3 -> R.string.log_verbose
+        2 -> R.string.log_info
+        else -> R.string.log_debug
     }
 
 @Composable
@@ -490,7 +510,7 @@ private fun DeviceProfilesSection(
     onToggleAutocatch: (Int) -> Unit,
 ) {
     val active = profiles.filter { it.connected }.let { conn -> maxConnections?.let { conn.take(it) } ?: conn }
-    SectionCard(title = "Device profiles") {
+    SectionCard(title = stringResource(R.string.section_profiles)) {
         if (active.isEmpty()) {
             Text(text = stringResource(R.string.device_no_devices_connected), color = LocalPgpColors.current.muted, fontSize = 12.sp)
         } else {
@@ -516,6 +536,7 @@ private fun RowScope.ProfileChip(
     onToggleAutocatch: () -> Unit,
 ) {
     val colors = LocalPgpColors.current
+    val dash = stringResource(R.string.dash)
     Column(
         modifier =
             modifier
@@ -531,7 +552,13 @@ private fun RowScope.ProfileChip(
         FlagDot(label = stringResource(R.string.profile_catch), active = profile.autocatch == true, onClick = onToggleAutocatch)
         Spacer(modifier = Modifier.height(4.dp))
         Text(
-            text = "C:${profile.caught ?: "—"} F:${profile.fled ?: "—"} S:${profile.spin ?: "—"}",
+            text =
+                stringResource(
+                    R.string.profile_counters,
+                    profile.caught ?: dash,
+                    profile.fled ?: dash,
+                    profile.spin ?: dash,
+                ),
             color = colors.muted,
             fontSize = 9.sp,
         )
@@ -566,7 +593,7 @@ private fun SettingsSection(
     onSave: () -> Unit,
 ) {
     val colors = LocalPgpColors.current
-    SectionCard(title = "Settings") {
+    SectionCard(title = stringResource(R.string.section_settings)) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
             Text(text = stringResource(R.string.settings_advertising), color = colors.text, modifier = Modifier.weight(1f))
             Switch(
@@ -579,7 +606,7 @@ private fun SettingsSection(
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
             Text(text = stringResource(R.string.settings_max_connections), color = colors.text, modifier = Modifier.weight(1f))
             Text(
-                text = "${settings.maxConnections ?: "—"}",
+                text = settings.maxConnections?.toString() ?: stringResource(R.string.dash),
                 color = colors.muted,
                 fontFamily = FontFamily.Monospace,
                 modifier = Modifier.padding(end = 8.dp),
@@ -589,7 +616,14 @@ private fun SettingsSection(
             StepperButton("+") { onSetMaxConnections((settings.maxConnections ?: 1) + 1) }
         }
         Divider()
-        TextRow(label = "Log level: ${status.logLevel?.let { logLevelName(it) } ?: "—"}", onClick = onCycleLogLevel)
+        TextRow(
+            label =
+                stringResource(
+                    R.string.settings_log_level,
+                    status.logLevel?.let { stringResource(logLevelName(it)) } ?: stringResource(R.string.dash),
+                ),
+            onClick = onCycleLogLevel,
+        )
         Spacer(modifier = Modifier.height(10.dp))
         Button(
             onClick = onSave,
@@ -625,7 +659,7 @@ private fun DiagnosticsSection(
     onRefreshClientStates: () -> Unit,
     onDisconnectAll: () -> Unit,
 ) {
-    SectionCard(title = "Diagnostics") {
+    SectionCard(title = stringResource(R.string.section_diagnostics)) {
         DiagnosticDump(stringResource(R.string.diag_runtime_stats), diagnostics.runtimeStats, onRefreshStats)
         DiagnosticDump(stringResource(R.string.diag_task_list), diagnostics.taskList, onRefreshTasks)
         DiagnosticDump(stringResource(R.string.diag_client_states), diagnostics.clientStates, onRefreshClientStates)
@@ -640,7 +674,7 @@ private fun DangerZoneSection(
     onRestart: () -> Unit,
 ) {
     val colors = LocalPgpColors.current
-    SectionCard(title = "Danger zone", titleColor = colors.danger) {
+    SectionCard(title = stringResource(R.string.section_danger), titleColor = colors.danger) {
         DangerButton(stringResource(R.string.danger_reset_secrets), onResetSecrets)
         Spacer(modifier = Modifier.height(8.dp))
         DangerButton(stringResource(R.string.danger_restart), onRestart)

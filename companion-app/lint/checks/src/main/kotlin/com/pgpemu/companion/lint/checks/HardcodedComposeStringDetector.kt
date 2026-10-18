@@ -9,13 +9,18 @@ import com.android.tools.lint.detector.api.Issue
 import com.android.tools.lint.detector.api.JavaContext
 import com.android.tools.lint.detector.api.Scope
 import com.android.tools.lint.detector.api.Severity
+import com.intellij.psi.PsiLocalVariable
+import com.intellij.psi.PsiMethod
 import org.jetbrains.uast.UBinaryExpression
 import org.jetbrains.uast.UCallExpression
 import org.jetbrains.uast.UElement
 import org.jetbrains.uast.UExpression
 import org.jetbrains.uast.UExpressionList
 import org.jetbrains.uast.UIfExpression
+import org.jetbrains.uast.ULocalVariable
 import org.jetbrains.uast.UMethod
+import org.jetbrains.uast.UPolyadicExpression
+import org.jetbrains.uast.UReturnExpression
 import org.jetbrains.uast.USimpleNameReferenceExpression
 import org.jetbrains.uast.USwitchClauseExpressionWithBody
 import org.jetbrains.uast.USwitchExpression
@@ -24,17 +29,18 @@ import org.jetbrains.uast.UastBinaryOperator
 import org.jetbrains.uast.getParentOfType
 import org.jetbrains.uast.kotlin.kinds.KotlinSpecialExpressionKinds
 import org.jetbrains.uast.skipParenthesizedExprDown
+import org.jetbrains.uast.toUElementOfType
+import org.jetbrains.uast.visitor.AbstractUastVisitor
 
 /**
- * Flags a literal `String` passed to the text-bearing parameter of a small,
- * fixed set of Compose/Material calls. Deliberately narrow: it only flags a
- * compile-time-constant string — `ConstantEvaluator` resolves a plain Kotlin
- * string literal (which UAST wraps as `KotlinStringTemplateUPolyadicExpression`
- * even with zero `$` interpolation, not a bare `ULiteralExpression`) but
- * returns null for a template with an interpolated (non-constant) part, so a
- * string like `"Hello $name"` is not flagged — the extraction sweep turns
- * those into `stringResource(R.string.x, arg)` calls, which are themselves
- * calls, not literals, and so are already clean.
+ * Flags a `String` that reaches the text-bearing parameter of a Compose/Material
+ * call and holds hardcoded words. It flags:
+ * - a compile-time-constant string (`ConstantEvaluator` resolves a plain Kotlin
+ *   literal, which UAST wraps as a template without `$` parts);
+ * - a template or `+` chain with a constant operand that contains a letter, so
+ *   `"Found $n devices"` is flagged and `"#$n"` is not;
+ * - a local `val` whose initializer is one of the above;
+ * - a call to a function in the same file that returns one of the above.
  */
 class HardcodedComposeStringDetector :
     Detector(),
@@ -57,7 +63,7 @@ class HardcodedComposeStringDetector :
                         // animateFloatAsState/Crossfade/rememberInfiniteTransition etc. take a `label`
                         // param that's an Android Studio animation-inspector tag, never user-facing text.
                         containingClass != null && containingClass.startsWith("androidx.compose.animation") -> return
-                        context.evaluator.findAnnotation(method, COMPOSABLE_ANNOTATION) != null -> GENERIC_PARAM_NAMES
+                        isComposable(context, method) -> GENERIC_PARAM_NAMES
                         else -> return
                     }
 
@@ -128,6 +134,14 @@ class HardcodedComposeStringDetector :
         }
     }
 
+    // Kotlin sources resolve to a fake light method whose PSI annotations are empty; UAST sees them.
+    private fun isComposable(
+        context: JavaContext,
+        method: PsiMethod,
+    ): Boolean =
+        context.evaluator.findAnnotation(method, COMPOSABLE_ANNOTATION) != null ||
+            method.toUElementOfType<UMethod>()?.uAnnotations?.any { it.qualifiedName == COMPOSABLE_ANNOTATION } == true
+
     private fun reportHardcodedLeaves(
         context: JavaContext,
         reportNode: UElement,
@@ -137,10 +151,51 @@ class HardcodedComposeStringDetector :
         val leaves = mutableListOf<UExpression>()
         collectLeafExpressions(argumentExpression, leaves)
         for (leaf in leaves) {
-            val value = ConstantEvaluator.evaluate(context, leaf) as? String ?: continue
-            if (value.isEmpty()) continue
-            context.report(ISSUE, reportNode, context.getLocation(leaf), message)
+            for (hardcoded in hardcodedLeaves(context, leaf, MAX_FOLLOW_DEPTH)) {
+                context.report(ISSUE, reportNode, context.getLocation(hardcoded), message)
+            }
         }
+    }
+
+    private fun hardcodedLeaves(
+        context: JavaContext,
+        leaf: UExpression,
+        depth: Int,
+    ): List<UExpression> {
+        val value = ConstantEvaluator.evaluate(context, leaf) as? String
+        if (value != null) return if (value.isEmpty()) emptyList() else listOf(leaf)
+        if (leaf is UPolyadicExpression) {
+            val hasWords =
+                leaf.operands.any { operand ->
+                    (ConstantEvaluator.evaluate(context, operand) as? String)?.any(Char::isLetter) == true
+                }
+            return if (hasWords) listOf(leaf) else emptyList()
+        }
+        if (depth == 0) return emptyList()
+        val followed = mutableListOf<UExpression>()
+        when (leaf) {
+            is USimpleNameReferenceExpression -> {
+                val initializer =
+                    (leaf.resolve() as? PsiLocalVariable)
+                        ?.toUElementOfType<ULocalVariable>()
+                        ?.uastInitializer
+                initializer?.let { collectLeafExpressions(it, followed) }
+            }
+            is UCallExpression -> {
+                val helper = leaf.resolve()?.toUElementOfType<UMethod>()
+                if (helper?.sourcePsi?.containingFile == context.psiFile) {
+                    helper?.uastBody?.accept(
+                        object : AbstractUastVisitor() {
+                            override fun visitReturnExpression(node: UReturnExpression): Boolean {
+                                node.returnExpression?.let { collectLeafExpressions(it, followed) }
+                                return true
+                            }
+                        },
+                    )
+                }
+            }
+        }
+        return followed.flatMap { hardcodedLeaves(context, it, depth - 1) }
     }
 
     private data class Target(
@@ -149,6 +204,7 @@ class HardcodedComposeStringDetector :
     )
 
     companion object {
+        private const val MAX_FOLLOW_DEPTH = 3
         private const val COMPOSABLE_ANNOTATION = "androidx.compose.runtime.Composable"
         private val GENERIC_PARAM_NAMES =
             setOf("contentDescription", "title", "label", "text", "placeholder")
@@ -164,6 +220,8 @@ class HardcodedComposeStringDetector :
                     ),
                 "Image" to
                     Target("contentDescription", listOf("androidx.compose.foundation.")),
+                "clickable" to
+                    Target("onClickLabel", listOf("androidx.compose.foundation.")),
                 "showSnackbar" to
                     Target("message", listOf("androidx.compose.material3.", "androidx.compose.material.")),
             )

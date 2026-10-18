@@ -12,7 +12,7 @@
     <application
         android:name=".CompanionApplication"
         android:allowBackup="true"
-        android:label="Companion App"
+        android:label="@string/app_name"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
 
         <activity

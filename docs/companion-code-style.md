@@ -13,7 +13,7 @@ Rules for `companion-app/` (Kotlin, Jetpack Compose, package `com.pgpemu.compani
 - State lives in `DeviceViewModel`; Composables render it and emit events.
 - Collect state with `collectAsStateWithLifecycle()`.
 - No business logic in Composables.
-- User-facing text uses `stringResource()`. The `HardcodedComposeString` lint rule (`companion-app/lint/checks`) fails the build otherwise; check with `make companion-lint`.
+- User-facing text uses `stringResource()`. The `HardcodedComposeString` lint rule (`companion-app/lint/checks`) fails the build otherwise; check with `make companion-lint`. The rule also flags templates with literal words (`"Found $n devices"`), locals and same-file helpers that return literals, and `clickable(onClickLabel = ...)`. Helpers return a `@StringRes Int`.
 
 ## Coroutines
 
