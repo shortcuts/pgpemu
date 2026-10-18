@@ -7,6 +7,10 @@ import com.pgpemu.companion.ble.ConnectionState
 import com.pgpemu.companion.ble.Opcode
 import com.pgpemu.companion.ble.ResponseFrame
 import com.pgpemu.companion.ble.ScannedDevice
+import com.pgpemu.companion.ble.decodeClientSummary
+import com.pgpemu.companion.ble.decodeFlag
+import com.pgpemu.companion.ble.decodeGlobalSettings
+import com.pgpemu.companion.ble.decodeLogLevel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -172,6 +176,16 @@ class DeviceViewModel
             )
         }
 
+        private fun <T> decoded(
+            result: Result<T>,
+            apply: (T) -> Unit,
+        ) {
+            result.fold(
+                onSuccess = apply,
+                onFailure = { _uiState.update { s -> s.copy(errorMessage = "device sent an unexpected reply") } },
+            )
+        }
+
         private fun runCommand(
             opcode: Int,
             payload: ByteArray = ByteArray(0),
@@ -195,37 +209,41 @@ class DeviceViewModel
                 commandLock.withLock {
                     _uiState.update { it.copy(isBusy = true, errorMessage = if (clearError) null else it.errorMessage) }
                     runStep(Opcode.GET_GLOBAL_SETTINGS) { frame ->
-                        val p = frame.payload
-                        _uiState.update {
-                            it.copy(
-                                status =
-                                    it.status.copy(
-                                        logLevel = p[0].toInt(),
-                                        advertisingEnabled = p[1] == 1.toByte(),
-                                        advertisingActive = p.getOrNull(4)?.let { it == 1.toByte() || it == 2.toByte() },
-                                        activeConnections = p[2].toInt() and 0xFF,
-                                    ),
-                                settings = it.settings.copy(maxConnections = p[3].toInt() and 0xFF),
-                            )
+                        decoded(decodeGlobalSettings(frame.payload)) { g ->
+                            _uiState.update {
+                                it.copy(
+                                    status =
+                                        it.status.copy(
+                                            logLevel = g.logLevel,
+                                            advertisingEnabled = g.advertisingEnabled,
+                                            advertisingActive = g.advertisingActive,
+                                            activeConnections = g.activeConnections,
+                                        ),
+                                    settings = it.settings.copy(maxConnections = g.maxConnections),
+                                )
+                            }
                         }
                     }
                     runStep(Opcode.GET_LED_STATE) { frame ->
-                        _uiState.update { it.copy(status = it.status.copy(ledOn = frame.payload[0] == 1.toByte())) }
+                        decoded(decodeFlag(frame.payload)) { on ->
+                            _uiState.update { it.copy(status = it.status.copy(ledOn = on)) }
+                        }
                     }
                     runStep(Opcode.GET_CLIENT_SUMMARY) { frame ->
-                        val summaries = parseClientSummary(frame.payload)
-                        _uiState.update { s ->
-                            s.copy(
-                                profiles =
-                                    s.profiles.mapIndexed { i, p ->
-                                        val summary = summaries[i]
-                                        p.copy(
-                                            connected = summary.connected,
-                                            autospin = summary.autospin ?: p.autospin,
-                                            autocatch = summary.autocatch ?: p.autocatch,
-                                        )
-                                    },
-                            )
+                        decoded(decodeClientSummary(frame.payload)) { summaries ->
+                            _uiState.update { s ->
+                                s.copy(
+                                    profiles =
+                                        s.profiles.mapIndexed { i, p ->
+                                            val summary = summaries[i]
+                                            p.copy(
+                                                connected = summary.connected,
+                                                autospin = summary.autospin ?: p.autospin,
+                                                autocatch = summary.autocatch ?: p.autocatch,
+                                            )
+                                        },
+                                )
+                            }
                         }
                     }
                     _uiState.update { it.copy(isBusy = false) }
@@ -248,7 +266,9 @@ class DeviceViewModel
 
         fun cycleLogLevel() {
             runCommand(Opcode.CYCLE_LOG_LEVEL) { frame ->
-                _uiState.update { it.copy(status = it.status.copy(logLevel = frame.payload[0].toInt())) }
+                decoded(decodeLogLevel(frame.payload)) { level ->
+                    _uiState.update { it.copy(status = it.status.copy(logLevel = level)) }
+                }
             }
         }
 
@@ -258,13 +278,13 @@ class DeviceViewModel
 
         fun toggleAutospin(index: Int) {
             runCommand(Opcode.TOGGLE_AUTOSPIN, byteArrayOf(index.toByte())) { frame ->
-                updateProfile(index) { it.copy(autospin = frame.payload[0] == 1.toByte()) }
+                decoded(decodeFlag(frame.payload)) { on -> updateProfile(index) { it.copy(autospin = on) } }
             }
         }
 
         fun toggleAutocatch(index: Int) {
             runCommand(Opcode.TOGGLE_AUTOCATCH, byteArrayOf(index.toByte())) { frame ->
-                updateProfile(index) { it.copy(autocatch = frame.payload[0] == 1.toByte()) }
+                decoded(decodeFlag(frame.payload)) { on -> updateProfile(index) { it.copy(autocatch = on) } }
             }
         }
 
@@ -305,20 +325,21 @@ class DeviceViewModel
                     repository.sendCommand(Opcode.GET_CLIENT_SUMMARY, ByteArray(0)).fold(
                         onSuccess = { frame ->
                             if (frame.isOk) {
-                                val summaries = parseClientSummary(frame.payload)
-                                _uiState.update { s ->
-                                    s.copy(
-                                        profiles =
-                                            s.profiles.mapIndexed { i, p ->
-                                                val summary = summaries[i]
-                                                p.copy(
-                                                    connected = summary.connected,
-                                                    caught = summary.caught,
-                                                    fled = summary.fled,
-                                                    spin = summary.spin,
-                                                )
-                                            },
-                                    )
+                                decoded(decodeClientSummary(frame.payload)) { summaries ->
+                                    _uiState.update { s ->
+                                        s.copy(
+                                            profiles =
+                                                s.profiles.mapIndexed { i, p ->
+                                                    val summary = summaries[i]
+                                                    p.copy(
+                                                        connected = summary.connected,
+                                                        caught = summary.caught,
+                                                        fled = summary.fled,
+                                                        spin = summary.spin,
+                                                    )
+                                                },
+                                        )
+                                    }
                                 }
                             } else {
                                 _uiState.update { it.copy(errorMessage = "device returned status ${frame.status}") }
@@ -359,40 +380,4 @@ class DeviceViewModel
                 null -> Unit
             }
         }
-    }
-
-private data class ClientSummary(
-    val connected: Boolean,
-    val autospin: Boolean?,
-    val autocatch: Boolean?,
-    val caught: Int?,
-    val fled: Int?,
-    val spin: Int?,
-)
-
-private const val CLIENT_SUMMARY_RECORD_SIZE = 11
-
-// Decodes CONTROL_OP_GET_CLIENT_SUMMARY's fixed-layout binary payload —
-// DEVICE_PROFILE_COUNT records of CLIENT_SUMMARY_RECORD_SIZE bytes each,
-// see pgp_control.c's CONTROL_OP_GET_CLIENT_SUMMARY case for the layout.
-private fun parseClientSummary(payload: ByteArray): List<ClientSummary> =
-    (0 until DEVICE_PROFILE_COUNT).map { slot ->
-        val base = slot * CLIENT_SUMMARY_RECORD_SIZE
-
-        fun u16(offset: Int) =
-            (payload[base + offset].toInt() and 0xFF) or
-                ((payload[base + offset + 1].toInt() and 0xFF) shl 8)
-        val connId = u16(0)
-        val flags = payload[base + 2].toInt() and 0xFF
-        val hasSettings = flags and 0x01 != 0
-        val hasStats = flags and 0x02 != 0
-        val handshakeDone = flags and 0x04 != 0
-        ClientSummary(
-            connected = connId != 0xFFFF && handshakeDone,
-            autospin = if (hasSettings) payload[base + 3] == 1.toByte() else null,
-            autocatch = if (hasSettings) payload[base + 4] == 1.toByte() else null,
-            caught = if (hasStats) u16(5) else null,
-            fled = if (hasStats) u16(7) else null,
-            spin = if (hasStats) u16(9) else null,
-        )
     }

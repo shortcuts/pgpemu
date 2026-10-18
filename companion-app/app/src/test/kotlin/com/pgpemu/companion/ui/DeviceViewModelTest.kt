@@ -411,6 +411,23 @@ class DeviceViewModelTest {
         }
 
     @Test
+    fun `empty OK payload shows unexpected reply instead of crashing`() =
+        runTest {
+            val repository = FakeBleControlRepository()
+            repository.stubResponse(
+                Opcode.CYCLE_LOG_LEVEL,
+                Result.success(ResponseFrame(StatusCode.OK, Opcode.CYCLE_LOG_LEVEL.toByte(), ByteArray(0))),
+            )
+            val viewModel = DeviceViewModel(repository)
+
+            viewModel.cycleLogLevel()
+            dispatcher.scheduler.advanceUntilIdle()
+
+            assertEquals("device sent an unexpected reply", viewModel.uiState.value.errorMessage)
+            assertNull(viewModel.uiState.value.status.logLevel)
+        }
+
+    @Test
     fun `non-OK device status surfaces error message and leaves state unchanged`() =
         runTest {
             val repository = FakeBleControlRepository()
