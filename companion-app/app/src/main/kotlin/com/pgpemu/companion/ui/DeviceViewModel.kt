@@ -5,10 +5,13 @@ import androidx.lifecycle.viewModelScope
 import com.pgpemu.companion.R
 import com.pgpemu.companion.ble.BleControlRepository
 import com.pgpemu.companion.ble.ConnectionState
+import com.pgpemu.companion.ble.DeviceInfo
 import com.pgpemu.companion.ble.Opcode
 import com.pgpemu.companion.ble.ResponseFrame
 import com.pgpemu.companion.ble.ScannedDevice
+import com.pgpemu.companion.ble.StatusCode
 import com.pgpemu.companion.ble.decodeClientSummary
+import com.pgpemu.companion.ble.decodeDeviceInfo
 import com.pgpemu.companion.ble.decodeFlag
 import com.pgpemu.companion.ble.decodeGlobalSettings
 import com.pgpemu.companion.ble.decodeLogLevel
@@ -27,11 +30,11 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
 
-// ponytail: CONFIG_BT_ACL_CONNECTIONS is compile-time on the firmware side
-// (pgpemu-esp32/sdkconfig) with no opcode to read it at runtime; hardcode
-// here, bump both sides together if the firmware value ever changes.
-const val DEVICE_PROFILE_COUNT = 4
-const val MAX_CONNECTIONS_LIMIT = 4
+// Used until GET_DEVICE_INFO answers, and for firmware too old to answer it (those builds have 4 slots).
+const val DEFAULT_PROFILE_COUNT = 4
+
+// Oldest GET_DEVICE_INFO layout version this app decodes.
+const val MIN_PROTOCOL_VERSION = 1
 
 // Poll interval while connected — other phones can connect/disconnect and
 // toggle profiles without this app knowing, so state can go stale otherwise.
@@ -42,12 +45,15 @@ data class DeviceUiState(
     val discoveredDevices: List<ScannedDevice> = emptyList(),
     val hasScanned: Boolean = false,
     val status: StatusState = StatusState(),
-    val profiles: List<ProfileState> = List(DEVICE_PROFILE_COUNT) { ProfileState(index = it) },
+    val profiles: List<ProfileState> = List(DEFAULT_PROFILE_COUNT) { ProfileState(index = it) },
     val settings: SettingsState = SettingsState(),
     val diagnostics: DiagnosticsState = DiagnosticsState(),
     val isBusy: Boolean = false,
     val message: UiMessage? = null,
     val pendingConfirmation: ConfirmAction? = null,
+    val deviceInfo: DeviceInfo? = null,
+    /** The device cannot answer GET_DEVICE_INFO, or speaks a protocol older than this app supports. */
+    val firmwareOutdated: Boolean = false,
 )
 
 /** Text for the user; the screen maps each case to a string resource, raw codes ride along for bug reports. */
@@ -63,6 +69,8 @@ sealed interface UiMessage {
     ) : UiMessage
 
     data object UnexpectedReply : UiMessage
+
+    data object FirmwareOutdated : UiMessage
 
     data object Saved : UiMessage {
         override val isError get() = false
@@ -140,7 +148,14 @@ class DeviceViewModel
             }
             viewModelScope.launch {
                 repository.connectionState.collect { newState ->
-                    _uiState.update { it.copy(connectionState = newState) }
+                    _uiState.update {
+                        // The next device may run other firmware, so forget what the last one reported.
+                        if (newState is ConnectionState.Ready) {
+                            it.copy(connectionState = newState)
+                        } else {
+                            it.copy(connectionState = newState, deviceInfo = null, firmwareOutdated = false)
+                        }
+                    }
                 }
             }
             // Poll only while connected and visible: a stopped activity would keep the BLE link busy.
@@ -247,6 +262,7 @@ class DeviceViewModel
             viewModelScope.launch {
                 commandLock.withLock {
                     _uiState.update { it.copy(isBusy = true, message = if (clearError) null else it.message) }
+                    if (_uiState.value.let { it.deviceInfo == null && !it.firmwareOutdated }) fetchDeviceInfo()
                     runStep(Opcode.GET_GLOBAL_SETTINGS) { frame ->
                         decoded(decodeGlobalSettings(frame.payload)) { g ->
                             _uiState.update {
@@ -274,7 +290,7 @@ class DeviceViewModel
                                 s.copy(
                                     profiles =
                                         s.profiles.mapIndexed { i, p ->
-                                            val summary = summaries[i]
+                                            val summary = summaries.getOrNull(i) ?: return@mapIndexed p
                                             p.copy(
                                                 connected = summary.connected,
                                                 autospin = summary.autospin ?: p.autospin,
@@ -290,6 +306,33 @@ class DeviceViewModel
             }
         }
 
+        /** Transport errors are ignored here: the next poll retries and the steps after it report them. */
+        private suspend fun fetchDeviceInfo() {
+            val frame = repository.sendCommand(Opcode.GET_DEVICE_INFO).getOrNull() ?: return
+            when {
+                frame.status == StatusCode.ERR_UNKNOWN_OPCODE -> markFirmwareOutdated()
+                !frame.isOk -> _uiState.update { it.copy(message = UiMessage.DeviceStatus(frame.status.toInt())) }
+                else ->
+                    decoded(decodeDeviceInfo(frame.payload)) { info ->
+                        if (info.protocolVersion < MIN_PROTOCOL_VERSION) {
+                            markFirmwareOutdated()
+                        } else {
+                            _uiState.update { s ->
+                                val slots = info.maxConnections.coerceAtLeast(1)
+                                s.copy(
+                                    deviceInfo = info,
+                                    profiles = List(slots) { s.profiles.getOrNull(it) ?: ProfileState(index = it) },
+                                )
+                            }
+                        }
+                    }
+            }
+        }
+
+        private fun markFirmwareOutdated() {
+            _uiState.update { it.copy(firmwareOutdated = true, message = UiMessage.FirmwareOutdated) }
+        }
+
         fun toggleAdvertising() {
             val turningOn = _uiState.value.status.advertisingEnabled != true
             val opcode = if (turningOn) Opcode.ADVERTISE_START else Opcode.ADVERTISE_STOP
@@ -297,7 +340,7 @@ class DeviceViewModel
         }
 
         fun setMaxConnections(value: Int) {
-            val clamped = value.coerceIn(1, MAX_CONNECTIONS_LIMIT)
+            val clamped = value.coerceIn(1, _uiState.value.deviceInfo?.maxConnections ?: DEFAULT_PROFILE_COUNT)
             runCommand(Opcode.SET_MAX_CONNECTIONS, byteArrayOf(clamped.toByte())) {
                 _uiState.update { it.copy(settings = it.settings.copy(maxConnections = clamped)) }
             }
@@ -369,7 +412,7 @@ class DeviceViewModel
                                         s.copy(
                                             profiles =
                                                 s.profiles.mapIndexed { i, p ->
-                                                    val summary = summaries[i]
+                                                    val summary = summaries.getOrNull(i) ?: return@mapIndexed p
                                                     p.copy(
                                                         connected = summary.connected,
                                                         caught = summary.caught,

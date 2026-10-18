@@ -23,9 +23,21 @@ data class ClientSummary(
     val spin: Int?,
 )
 
-const val CLIENT_SUMMARY_SLOTS = 4
+/** Firmware facts from GET_DEVICE_INFO; the firmware version string is last so the record can grow. */
+data class DeviceInfo(
+    val protocolVersion: Int,
+    val maxConnections: Int,
+    /** ESP-IDF esp_reset_reason_t value. */
+    val resetReason: Int,
+    val uptimeSeconds: Long,
+    val freeHeap: Long,
+    val minFreeHeap: Long,
+    val firmwareVersion: String,
+)
+
 const val CLIENT_SUMMARY_RECORD_SIZE = 11
 private const val GLOBAL_SETTINGS_MIN_SIZE = 4
+private const val DEVICE_INFO_MIN_SIZE = 15
 
 private fun ByteArray.require(
     size: Int,
@@ -49,15 +61,30 @@ fun decodeGlobalSettings(p: ByteArray): Result<GlobalSettings> =
         )
     }
 
+/** Layout: see pgp_control.c's CONTROL_OP_GET_DEVICE_INFO case. */
+fun decodeDeviceInfo(p: ByteArray): Result<DeviceInfo> =
+    p.require(DEVICE_INFO_MIN_SIZE, "device info").map {
+        fun u32(offset: Int) = (0 until 4).sumOf { (p[offset + it].toLong() and 0xFF) shl (8 * it) }
+        DeviceInfo(
+            protocolVersion = p[0].toInt() and 0xFF,
+            maxConnections = p[1].toInt() and 0xFF,
+            resetReason = p[2].toInt() and 0xFF,
+            uptimeSeconds = u32(3),
+            freeHeap = u32(7),
+            minFreeHeap = u32(11),
+            firmwareVersion = String(p, DEVICE_INFO_MIN_SIZE, p.size - DEVICE_INFO_MIN_SIZE, Charsets.UTF_8),
+        )
+    }
+
 /** LED state and the autospin/autocatch toggles reply with one flag byte. */
 fun decodeFlag(p: ByteArray): Result<Boolean> = p.require(1, "flag").map { p[0] == 1.toByte() }
 
 fun decodeLogLevel(p: ByteArray): Result<Int> = p.require(1, "log level").map { p[0].toInt() }
 
-/** Layout: see pgp_control.c's CONTROL_OP_GET_CLIENT_SUMMARY case. */
+/** Layout: see pgp_control.c's CONTROL_OP_GET_CLIENT_SUMMARY case; one record per firmware connection slot. */
 fun decodeClientSummary(payload: ByteArray): Result<List<ClientSummary>> =
-    payload.require(CLIENT_SUMMARY_SLOTS * CLIENT_SUMMARY_RECORD_SIZE, "client summary").map {
-        (0 until CLIENT_SUMMARY_SLOTS).map { slot ->
+    payload.require(CLIENT_SUMMARY_RECORD_SIZE, "client summary").map {
+        (0 until payload.size / CLIENT_SUMMARY_RECORD_SIZE).map { slot ->
             val base = slot * CLIENT_SUMMARY_RECORD_SIZE
 
             fun u16(offset: Int) =

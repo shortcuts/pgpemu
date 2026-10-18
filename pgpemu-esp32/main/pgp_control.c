@@ -6,8 +6,10 @@
 #include "esp_gatt_defs.h"
 #include "esp_log.h"
 #include "esp_system.h"  // esp_restart, esp_get_free_heap_size
+#include "esp_timer.h"   // esp_timer_get_time
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"  // vTaskList
+#include "fw_version.h"     // PGP_FW_VERSION
 #include "led_output.h"     // get_led_advertising
 #include "log_tags.h"
 #include "pgp_gap.h"              // advertise_if_needed, pgp_adv_get_state
@@ -22,6 +24,12 @@
 
 #define CONTROL_CHAR_DECLARATION_SIZE (sizeof(uint8_t))
 static const uint8_t CONTROL_INST_ID = 0;
+
+static void put_u32_le(uint8_t* out, uint32_t v) {
+    for (int i = 0; i < 4; i++) {
+        out[i] = (uint8_t)(v >> (8 * i));
+    }
+}
 
 // Standard BLE SIG UUIDs — local aliases matching pgp_gatts.c's
 // primary_service_uuid/character_declaration_uuid/character_client_config_uuid;
@@ -424,6 +432,18 @@ static void pgp_control_handle_command_write(esp_gatt_if_t gatts_if,
             resp[offset++] = (uint8_t)(stats.spin >> 8);
         }
         resp_len = offset;
+        break;
+    }
+    case CONTROL_OP_GET_DEVICE_INFO: {
+        // Fixed prefix, then the version string up to the end of the payload; append-only so old apps keep decoding.
+        resp[0] = CONTROL_PROTOCOL_VERSION;
+        resp[1] = CONFIG_BT_ACL_CONNECTIONS;
+        resp[2] = (uint8_t)esp_reset_reason();
+        put_u32_le(resp + 3, (uint32_t)(esp_timer_get_time() / 1000000));
+        put_u32_le(resp + 7, esp_get_free_heap_size());
+        put_u32_le(resp + 11, esp_get_minimum_free_heap_size());
+        memcpy(resp + 15, PGP_FW_VERSION, sizeof(PGP_FW_VERSION) - 1);
+        resp_len = 15 + sizeof(PGP_FW_VERSION) - 1;
         break;
     }
     default:

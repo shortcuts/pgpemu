@@ -19,4 +19,5 @@ object Opcode {
     const val TOGGLE_AUTOSPIN: Int = 0x10
     const val TOGGLE_AUTOCATCH: Int = 0x11
     const val GET_CLIENT_SUMMARY: Int = 0x12
+    const val GET_DEVICE_INFO: Int = 0x13
 }

@@ -26,13 +26,21 @@ class ControlDecodersTest {
 
     @Test
     fun `client summary rejects short payload, accepts exact and longer`() {
-        val size = CLIENT_SUMMARY_SLOTS * CLIENT_SUMMARY_RECORD_SIZE
-        assertTrue(decodeClientSummary(ByteArray(size - 1)).exceptionOrNull() is DecodeError)
-        val empty = ByteArray(size) { 0xFF.toByte() }
+        assertTrue(decodeClientSummary(ByteArray(CLIENT_SUMMARY_RECORD_SIZE - 1)).exceptionOrNull() is DecodeError)
+        val empty = ByteArray(2 * CLIENT_SUMMARY_RECORD_SIZE) { 0xFF.toByte() }
         for (payload in listOf(empty, empty + byteArrayOf(0))) {
             val slots = decodeClientSummary(payload).getOrThrow()
-            assertEquals(CLIENT_SUMMARY_SLOTS, slots.size)
+            assertEquals(2, slots.size)
             assertEquals(false, slots[0].connected)
         }
+    }
+
+    @Test
+    fun `device info rejects short payload, decodes fields and version tail`() {
+        val head = byteArrayOf(1, 2, 4, 5, 0, 0, 0, 0, 0, 1, 0, 0, 0, 2, 0)
+        assertTrue(decodeDeviceInfo(head.copyOf(14)).exceptionOrNull() is DecodeError)
+        val info = decodeDeviceInfo(head + "1.0.1".toByteArray()).getOrThrow()
+        assertEquals(DeviceInfo(1, 2, 4, 5L, 65536L, 131072L, "1.0.1"), info)
+        assertEquals("", decodeDeviceInfo(head).getOrThrow().firmwareVersion)
     }
 }

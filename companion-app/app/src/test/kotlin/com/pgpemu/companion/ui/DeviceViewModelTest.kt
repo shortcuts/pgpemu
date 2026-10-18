@@ -353,6 +353,99 @@ class DeviceViewModelTest {
             assertEquals(true, state.profiles[2].autocatch)
         }
 
+    private fun stubStatusReplies(repository: FakeBleControlRepository) {
+        repository.stubResponse(
+            Opcode.GET_GLOBAL_SETTINGS,
+            Result.success(ResponseFrame(StatusCode.OK, Opcode.GET_GLOBAL_SETTINGS.toByte(), byteArrayOf(0, 0, 1, 2))),
+        )
+        repository.stubResponse(
+            Opcode.GET_LED_STATE,
+            Result.success(ResponseFrame(StatusCode.OK, Opcode.GET_LED_STATE.toByte(), byteArrayOf(0))),
+        )
+        repository.stubResponse(
+            Opcode.GET_CLIENT_SUMMARY,
+            Result.success(
+                ResponseFrame(
+                    StatusCode.OK,
+                    Opcode.GET_CLIENT_SUMMARY.toByte(),
+                    emptyClientSummarySlot() + emptyClientSummarySlot(),
+                ),
+            ),
+        )
+    }
+
+    private fun deviceInfoBytes(
+        protocol: Int,
+        slots: Int,
+    ) = byteArrayOf(protocol.toByte(), slots.toByte(), 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0) + "1.0.1".toByteArray()
+
+    @Test
+    fun `device info sizes profiles and the max connections cap, and is read once`() =
+        runTest {
+            val repository = FakeBleControlRepository()
+            stubStatusReplies(repository)
+            repository.stubResponse(
+                Opcode.GET_DEVICE_INFO,
+                Result.success(ResponseFrame(StatusCode.OK, Opcode.GET_DEVICE_INFO.toByte(), deviceInfoBytes(1, 2))),
+            )
+            repository.stubResponse(
+                Opcode.SET_MAX_CONNECTIONS,
+                Result.success(ResponseFrame(StatusCode.OK, Opcode.SET_MAX_CONNECTIONS.toByte(), byteArrayOf())),
+            )
+            val viewModel = DeviceViewModel(repository)
+
+            viewModel.refreshStatus()
+            dispatcher.scheduler.advanceUntilIdle()
+            viewModel.refreshStatus()
+            dispatcher.scheduler.advanceUntilIdle()
+            viewModel.setMaxConnections(9)
+            dispatcher.scheduler.advanceUntilIdle()
+
+            val state = viewModel.uiState.value
+            assertEquals("1.0.1", state.deviceInfo?.firmwareVersion)
+            assertEquals(2, state.profiles.size)
+            assertFalse(state.firmwareOutdated)
+            assertEquals(1, repository.sentCommands.count { it.first == Opcode.GET_DEVICE_INFO })
+            assertEquals(
+                2,
+                repository.sentCommands
+                    .last { it.first == Opcode.SET_MAX_CONNECTIONS }
+                    .second[0]
+                    .toInt(),
+            )
+        }
+
+    @Test
+    fun `unknown opcode and protocol 0 flag outdated firmware and keep default profiles, disconnect clears`() =
+        runTest {
+            val repository = FakeBleControlRepository()
+            stubStatusReplies(repository)
+            repository.stubResponse(
+                Opcode.GET_DEVICE_INFO,
+                Result.success(ResponseFrame(StatusCode.ERR_UNKNOWN_OPCODE, Opcode.GET_DEVICE_INFO.toByte(), byteArrayOf())),
+            )
+            val viewModel = DeviceViewModel(repository)
+
+            viewModel.refreshStatus()
+            dispatcher.scheduler.advanceUntilIdle()
+            assertTrue(viewModel.uiState.value.firmwareOutdated)
+            assertEquals(UiMessage.FirmwareOutdated, viewModel.uiState.value.message)
+            assertEquals(DEFAULT_PROFILE_COUNT, viewModel.uiState.value.profiles.size)
+
+            repository.setConnectionState(ConnectionState.Disconnected())
+            dispatcher.scheduler.advanceUntilIdle()
+            assertFalse(viewModel.uiState.value.firmwareOutdated)
+
+            repository.stubResponse(
+                Opcode.GET_DEVICE_INFO,
+                Result.success(ResponseFrame(StatusCode.OK, Opcode.GET_DEVICE_INFO.toByte(), deviceInfoBytes(0, 2))),
+            )
+            viewModel.refreshStatus()
+            dispatcher.scheduler.advanceUntilIdle()
+            assertTrue(viewModel.uiState.value.firmwareOutdated)
+            assertNull(viewModel.uiState.value.deviceInfo)
+        }
+
     @Test
     fun `refreshStatus hides a slot whose handshake is not complete`() =
         runTest {

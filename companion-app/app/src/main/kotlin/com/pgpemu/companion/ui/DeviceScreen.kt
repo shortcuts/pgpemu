@@ -76,6 +76,7 @@ import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pgpemu.companion.R
 import com.pgpemu.companion.ble.ConnectionState
+import com.pgpemu.companion.ble.DeviceInfo
 import com.pgpemu.companion.ble.ScannedDevice
 import com.pgpemu.companion.ble.StatusCode
 import com.pgpemu.companion.ui.theme.LocalPgpColors
@@ -155,6 +156,7 @@ fun DeviceScreen(viewModel: DeviceViewModel = hiltViewModel()) {
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     item { StatusSection(uiState.status) }
+                    item { DeviceInfoSection(uiState.deviceInfo, uiState.firmwareOutdated) }
                     item {
                         DeviceProfilesSection(
                             profiles = uiState.profiles,
@@ -240,6 +242,7 @@ private fun messageText(message: UiMessage): String =
             )
         is UiMessage.CommandFailed -> stringResource(R.string.msg_command_failed, message.detail ?: stringResource(R.string.dash))
         UiMessage.UnexpectedReply -> stringResource(R.string.msg_unexpected_reply)
+        UiMessage.FirmwareOutdated -> stringResource(R.string.msg_firmware_outdated)
         UiMessage.Saved -> stringResource(R.string.msg_saved)
     }
 
@@ -493,6 +496,45 @@ private fun StatusSection(status: StatusState) {
         )
     }
 }
+
+@Composable
+private fun DeviceInfoSection(
+    info: DeviceInfo?,
+    firmwareOutdated: Boolean,
+) {
+    val dash = stringResource(R.string.dash)
+    SectionCard(title = stringResource(R.string.section_device_info)) {
+        if (firmwareOutdated) {
+            Text(text = stringResource(R.string.about_update_firmware), color = LocalPgpColors.current.danger)
+            return@SectionCard
+        }
+        LabeledValue(stringResource(R.string.about_firmware), info?.firmwareVersion ?: dash)
+        LabeledValue(stringResource(R.string.about_max_connections), info?.maxConnections?.toString() ?: dash)
+        LabeledValue(stringResource(R.string.about_uptime), info?.let { formatUptime(it.uptimeSeconds) } ?: dash)
+        LabeledValue(
+            stringResource(R.string.about_last_reset),
+            info?.let { stringResource(resetReasonName(it.resetReason), it.resetReason) } ?: dash,
+        )
+        LabeledValue(stringResource(R.string.about_free_heap), info?.let { formatKib(it.freeHeap) } ?: dash)
+        LabeledValue(stringResource(R.string.about_min_free_heap), info?.let { formatKib(it.minFreeHeap) } ?: dash, isLast = true)
+    }
+}
+
+private fun formatUptime(seconds: Long) = "${seconds / 3600}h ${seconds / 60 % 60}m ${seconds % 60}s"
+
+private fun formatKib(bytes: Long) = "${bytes / 1024} KiB"
+
+// esp_reset_reason_t: 1 power-on, 3 software, 4 panic, 5-7 watchdogs, 9 brownout.
+@StringRes
+private fun resetReasonName(reason: Int) =
+    when (reason) {
+        1 -> R.string.reset_power_on
+        3 -> R.string.reset_software
+        4 -> R.string.reset_panic
+        5, 6, 7 -> R.string.reset_watchdog
+        9 -> R.string.reset_brownout
+        else -> R.string.reset_unknown
+    }
 
 @StringRes
 private fun logLevelName(level: Int) =

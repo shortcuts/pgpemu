@@ -24,6 +24,8 @@ Single-responsibility firmware modules under `pgpemu-esp32/main/`. BLE, storage,
 
 Separate custom GATT service for the Companion App. One Command characteristic (opcode + payload) and one Response characteristic (confirmed indications, one in flight per connection). Requires an encrypted, bonded link. Handler: `pgp_control.c`.
 
+GET_DEVICE_INFO (0x13) returns a little-endian record: protocol version (u8, `CONTROL_PROTOCOL_VERSION`), `CONFIG_BT_ACL_CONNECTIONS` (u8), `esp_reset_reason()` (u8), uptime in seconds (u32), free heap (u32), minimum free heap (u32), then the firmware version (`PGP_FW_VERSION` in `fw_version.h`, kept current by release-please) as UTF-8 to the end of the payload. New fields append before the string only with a protocol version bump. The app reads it once per connection. A device that answers ERR_UNKNOWN_OPCODE or reports a protocol version below the app's minimum gets the "update firmware" message.
+
 ## Advertising
 
 `global_settings.advertising_enabled` is the only advertising intent. The button, ADVERTISE_START and ADVERTISE_STOP set it, then call `advertise_if_needed()`. That function computes `want = enabled && connections < target` and lets `adv_decide()` (`pgp_adv_state.c`) move the radio state `OFF -> STARTING -> ON -> STOPPING`. A failed start retries with a doubling delay, from 1 s up to 30 s, until the intent changes. GET_GLOBAL_SETTINGS returns 5 bytes: log level, enabled flag, active connections, target connections, radio state (0 off, 1 starting, 2 on, 3 stopping). Bluedroid sends no stop event on connect, so `pgp_adv_on_connect()` resets the state to OFF.

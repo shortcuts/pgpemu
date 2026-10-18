@@ -22,6 +22,8 @@ extern uint16_t control_handle_table[CONTROL_LAST_IDX];
 // Response payload cap: MAX_VALUE_LENGTH (500, pgp_gatts.h) minus the
 // 2-byte [status][opcode] response header.
 #define CONTROL_MAX_RESPONSE_PAYLOAD (500 - 2)
+// Layout version of GET_DEVICE_INFO; bump on a breaking change (new fields are appended).
+#define CONTROL_PROTOCOL_VERSION 1
 
 typedef enum {
     CONTROL_OP_HELP = 0x01,
@@ -42,6 +44,7 @@ typedef enum {
     CONTROL_OP_TOGGLE_AUTOSPIN = 0x10,
     CONTROL_OP_TOGGLE_AUTOCATCH = 0x11,
     CONTROL_OP_GET_CLIENT_SUMMARY = 0x12,
+    CONTROL_OP_GET_DEVICE_INFO = 0x13,
 } control_opcode_t;
 
 typedef enum {

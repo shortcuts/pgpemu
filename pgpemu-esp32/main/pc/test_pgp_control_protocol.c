@@ -110,6 +110,10 @@ static void cmd1(uint8_t op, uint8_t arg, int with_arg) {
     assert(write_cmd(0, b, with_arg ? 2 : 1));
 }
 
+int64_t esp_timer_get_time(void) {
+    return 5000000;
+}
+
 // ---- tests ----
 static void test_unknown_opcode_and_empty_write(void) {
     reset();
@@ -218,6 +222,17 @@ static void test_client_summary_layout(void) {
     }
 }
 
+static void test_device_info_frame(void) {
+    reset();
+    cmd1(CONTROL_OP_GET_DEVICE_INFO, 0, 0);
+    const uint8_t want[] = {
+        CONTROL_STATUS_OK, CONTROL_OP_GET_DEVICE_INFO, CONTROL_PROTOCOL_VERSION, 4, 3, 5, 0, 0, 0
+    };
+    assert(memcmp(sent, want, sizeof(want)) == 0);
+    assert(sent_len == 2 + 15 + strlen(PGP_FW_VERSION));
+    assert(memcmp(sent + 2 + 15, PGP_FW_VERSION, strlen(PGP_FW_VERSION)) == 0);
+}
+
 static void test_toggle_device_payload(void) {
     reset();
     cmd1(CONTROL_OP_TOGGLE_AUTOSPIN, 0, 0);
@@ -242,6 +257,7 @@ int main(void) {
     test_indication_gate();
     test_oversized_payload_is_truncated();
     test_client_summary_layout();
+    test_device_info_frame();
     test_toggle_device_payload();
     printf("test_pgp_control_protocol: all passed\n");
     return 0;

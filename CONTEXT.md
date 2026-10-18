@@ -8,6 +8,9 @@ ESP32-C3 firmware emulating a Pokémon GO Plus BLE accessory, plus its companion
 The new custom BLE GATT service added to the firmware, separate from the existing Battery/LED-Button/Cert services, that exposes device configuration and control to the Companion App. Requires an encrypted (bonded) link.
 _Avoid_: config service, debug service
 
+**Control protocol version**:
+The u8 in byte 0 of the GET_DEVICE_INFO reply. The firmware bumps it on a breaking layout change; the app compares it with the oldest version it decodes.
+
 **Command characteristic** / **Response characteristic**:
 The two characteristics on the Control Service. The app writes an opcode+payload to Command; the firmware answers on Response (notify/indicate). One pair carries every control operation — no per-setting characteristic.
 _Avoid_: request/reply characteristic

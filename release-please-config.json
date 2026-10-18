@@ -8,6 +8,10 @@
         {
           "type": "generic",
           "path": "companion-app/app/build.gradle.kts"
+        },
+        {
+          "type": "generic",
+          "path": "pgpemu-esp32/main/fw_version.h"
         }
       ]
     }
