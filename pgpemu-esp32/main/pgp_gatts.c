@@ -31,7 +31,6 @@ static const uint8_t BATTERY_INST_ID = 0;
 static const uint8_t LED_BUTTON_INST_ID = 1;
 static const uint8_t CERT_INST_ID = 2;
 
-#define PREPARE_BUF_MAX_SIZE 1024
 #define CHAR_DECLARATION_SIZE (sizeof(uint8_t))
 
 uint16_t battery_handle_table[BATTERY_LAST_IDX];
@@ -84,14 +83,6 @@ static uint8_t raw_scan_rsp_data[] = { /* flags */
     0x00
 };
 
-typedef struct {
-    uint16_t handle;
-    uint8_t* prepare_buf;
-    int prepare_len;
-} prepare_type_env_t;
-
-static prepare_type_env_t prepare_write_env;
-
 struct gatts_profile_inst {
     esp_gatts_cb_t gatts_cb;
     uint16_t gatts_if;
@@ -109,9 +100,6 @@ struct gatts_profile_inst {
 
 static void gatts_profile_event_handler(esp_gatts_cb_event_t event,
     esp_gatt_if_t gatts_if,
-    esp_ble_gatts_cb_param_t* param);
-static void pgp_prepare_write_event_env(esp_gatt_if_t gatts_if,
-    prepare_type_env_t* prepare_write_env,
     esp_ble_gatts_cb_param_t* param);
 
 /* One gatt-based profile one app_id and one gatts_if, this array will store the gatts_if returned
@@ -650,8 +638,12 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
                 esp_ble_gatts_send_response(gatts_if, param->write.conn_id, param->write.trans_id, ESP_GATT_OK, NULL);
             }
         } else {
-            /* handle prepare write */
-            pgp_prepare_write_event_env(gatts_if, &prepare_write_env, param);
+            // No capture shows the real accessory using long writes: fail fast instead of a client GATT timeout.
+            ESP_LOGW(BT_GATTS_TAG, "[%d] prepare write rejected, handle=%d", param->write.conn_id, param->write.handle);
+            if (param->write.need_rsp) {
+                esp_ble_gatts_send_response(
+                    gatts_if, param->write.conn_id, param->write.trans_id, ESP_GATT_REQ_NOT_SUPPORTED, NULL);
+            }
         }
         break;
     case ESP_GATTS_EXEC_WRITE_EVT:
@@ -857,35 +849,4 @@ void gatts_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp
             }
         }
     } while (0);
-}
-
-void pgp_prepare_write_event_env(esp_gatt_if_t gatts_if,
-    prepare_type_env_t* prepare_write_env,
-    esp_ble_gatts_cb_param_t* param) {
-    ESP_LOGD(BT_GATTS_TAG, "prepare write, handle=%d, value len=%d", param->write.handle, param->write.len);
-    if (prepare_write_env->prepare_buf == NULL) {
-        prepare_write_env->handle = param->write.handle;
-        prepare_write_env->prepare_buf = (uint8_t*)malloc(PREPARE_BUF_MAX_SIZE * sizeof(uint8_t));
-        prepare_write_env->prepare_len = 0;
-        if (prepare_write_env->prepare_buf == NULL) {
-            ESP_LOGE(BT_GATTS_TAG, "%s, Gatt_server prep no mem", __func__);
-        }
-    } else {
-        if (param->write.offset > PREPARE_BUF_MAX_SIZE) {
-            ESP_LOGD(BT_GATTS_TAG, "write offset invalid");
-        } else if ((param->write.offset + param->write.len) > PREPARE_BUF_MAX_SIZE) {
-            ESP_LOGD(BT_GATTS_TAG, "write attribute length invalid");
-        }
-    }
-    /*send response when param->write.need_rsp is true */
-    if (param->write.need_rsp) {
-        ESP_LOGE(BT_GATTS_TAG, "need_rsp not implemented");
-    } else {
-        ESP_LOGI(BT_GATTS_TAG, "ESP_GATT_PREP_WRITE_CANCEL");
-    }
-    if (prepare_write_env->prepare_buf) {
-        free(prepare_write_env->prepare_buf);
-        prepare_write_env->prepare_buf = NULL;
-    }
-    prepare_write_env->prepare_len = 0;
 }
