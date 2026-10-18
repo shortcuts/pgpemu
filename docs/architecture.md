@@ -17,6 +17,7 @@ Single-responsibility firmware modules under `pgpemu-esp32/main/`. BLE, storage,
 2. First connection: full handshake with passkey, then session key persisted to NVS by MAC.
 3. Reconnect: cached session key, expedited handshake, no passkey.
    The cert characteristic read is answered per connection from its own buffer (`pgp_cert_read_slice`), never from the shared attribute value.
+   If the client disconnects mid-reconnect (reconnect `cert_state`, reason peer-user), the device clears the cached session, so the next connection runs a full handshake. This rule is unproven against a capture.
 4. LED patterns (`pgp_led_handler.c`) trigger `pgp_autobutton.c` per the profile's settings.
 
 ## Control Service

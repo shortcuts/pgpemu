@@ -216,16 +216,18 @@ void connection_stop(uint16_t conn_id, uint8_t reason) {
     }
 
     entry->connection_end = xTaskGetTickCount();
+    pgp_cert_state_t final_state = entry->cert_state;
     entry->cert_state = PGP_CERT_FRESH;
     entry->cert_len = 0;
 
-    // Detect early disconnect with cached session (potential stale cache)
-    uint32_t conn_duration_ms = pdTICKS_TO_MS(entry->connection_end - entry->connection_start);
-    if (conn_duration_ms < 5000 && entry->used_cached_session) {
-        if (reason == ESP_GATT_CONN_TERMINATE_PEER_USER) {
-            ESP_LOGW(HANDSHAKE_TAG, "[%d] Early disconnect detected with cached session, clearing cache", conn_id);
-            clear_device_session(entry->remote_bda);
-        }
+    // Unproven against a capture: assumes the client drops the link when it rejects the cached keys.
+    if (entry->used_cached_session && reason == ESP_GATT_CONN_TERMINATE_PEER_USER
+        && final_state >= PGP_CERT_RECON_CHALLENGE_SENT && final_state <= PGP_CERT_RECON_ESTABLISHED_PENDING) {
+        ESP_LOGW(HANDSHAKE_TAG,
+            "[%d] disconnected in reconnect state %d with cached session, clearing cache",
+            conn_id,
+            final_state);
+        clear_device_session(entry->remote_bda);
     }
 
     ESP_LOGI(HANDSHAKE_TAG,

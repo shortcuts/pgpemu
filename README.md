@@ -459,7 +459,7 @@ This comprehensive test suite contains **260 total assertions** across 8 test mo
 
 **Bug #4: Stale Session Cache Clearing**
 - Issue: Cached session keys become invalid after Android credential reset, causing reconnection failures
-- Test: Verify early disconnect detection (< 5s, cached session, reason 0x13) triggers cache clearing
+- Test: Verify peer disconnect during a cached-session reconnection handshake (reason 0x13) triggers cache clearing
 - Impact: Critical - prevents persistent connection failures requiring manual intervention
 
 **Bug #6: Invalid MAC Address (BDA) Handling**
