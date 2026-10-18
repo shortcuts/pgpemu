@@ -16,6 +16,24 @@
 // disable using random values for the keys and nonces for debugging
 static const bool use_debug_buffer_values = false;
 
+uint16_t pgp_cert_read_slice(uint16_t conn_id, uint16_t offset, uint8_t* out, uint16_t out_cap) {
+    client_state_t* client_state = get_client_state_entry(conn_id);
+    if (!client_state || offset >= client_state->cert_len) {
+        return 0;
+    }
+    // ATT payload is MTU - 1; 23 is the ATT default until ESP_GATTS_MTU_EVT arrives.
+    uint16_t mtu = client_state->mtu ? client_state->mtu : 23;
+    uint16_t len = client_state->cert_len - offset;
+    if (len > mtu - 1) {
+        len = mtu - 1;
+    }
+    if (len > out_cap) {
+        len = out_cap;
+    }
+    memcpy(out, client_state->cert_buffer + offset, len);
+    return len;
+}
+
 void handle_pgp_handshake_first(esp_gatt_if_t gatts_if, const uint8_t* value, uint16_t len, uint16_t conn_id) {
     if (len < 2) {
         ESP_LOGW(HANDSHAKE_TAG, "[%d] CCCD write too short: len=%d", conn_id, len);
@@ -55,8 +73,7 @@ void handle_pgp_handshake_first(esp_gatt_if_t gatts_if, const uint8_t* value, ui
             client_state->cert_buffer[0] = 3;
             memcpy(client_state->cert_buffer + 4, client_state->reconnect_challenge, 32);
 
-            esp_ble_gatts_set_attr_value(
-                certificate_handle_table[IDX_CHAR_SFIDA_TO_CENTRAL_VAL], 36, client_state->cert_buffer);
+            client_state->cert_len = 36;
 
             client_state->cert_state = PGP_CERT_RECON_CHALLENGE_SENT;
         } else if (has_cached_session(client_state->remote_bda)) {
@@ -73,8 +90,7 @@ void handle_pgp_handshake_first(esp_gatt_if_t gatts_if, const uint8_t* value, ui
                 client_state->cert_buffer[0] = 3;
                 memcpy(client_state->cert_buffer + 4, client_state->reconnect_challenge, 32);
 
-                esp_ble_gatts_set_attr_value(
-                    certificate_handle_table[IDX_CHAR_SFIDA_TO_CENTRAL_VAL], 36, client_state->cert_buffer);
+                client_state->cert_len = 36;
 
                 client_state->cert_state = PGP_CERT_RECON_CHALLENGE_SENT;
             } else {
@@ -106,8 +122,7 @@ void handle_pgp_handshake_first(esp_gatt_if_t gatts_if, const uint8_t* value, ui
                 client_state->outer_nonce,
                 (struct challenge_data*)client_state->cert_buffer);
 
-            esp_ble_gatts_set_attr_value(
-                certificate_handle_table[IDX_CHAR_SFIDA_TO_CENTRAL_VAL], 378, client_state->cert_buffer);
+            client_state->cert_len = 378;
         }
 
         ESP_LOGD(HANDSHAKE_TAG, "[%d] start CERT PAIRING", conn_id);
@@ -185,8 +200,7 @@ void handle_pgp_handshake_second(esp_gatt_if_t gatts_if, const uint8_t* prepare_
             // ESP_LOG_BUFFER_HEX(HANDSHAKE_TAG, temp, sizeof(temp));
             // ESP_LOG_BUFFER_HEX(HANDSHAKE_TAG, cert_buffer, 52);
 
-            esp_ble_gatts_set_attr_value(
-                certificate_handle_table[IDX_CHAR_SFIDA_TO_CENTRAL_VAL], 52, client_state->cert_buffer);
+            client_state->cert_len = 52;
             esp_ble_gatts_send_indicate(gatts_if,
                 conn_id,
                 certificate_handle_table[IDX_CHAR_SFIDA_COMMANDS_VAL],
@@ -218,8 +232,7 @@ void handle_pgp_handshake_second(esp_gatt_if_t gatts_if, const uint8_t* prepare_
 
         memcpy(client_state->cert_buffer, temp, 20);
 
-        esp_ble_gatts_set_attr_value(
-            certificate_handle_table[IDX_CHAR_SFIDA_TO_CENTRAL_VAL], 20, client_state->cert_buffer);
+        client_state->cert_len = 20;
         esp_ble_gatts_send_indicate(gatts_if,
             conn_id,
             certificate_handle_table[IDX_CHAR_SFIDA_COMMANDS_VAL],
@@ -305,8 +318,7 @@ void handle_pgp_handshake_second(esp_gatt_if_t gatts_if, const uint8_t* prepare_
         memset(notify_data, 0, 4);
         notify_data[0] = 0x05;
 
-        esp_ble_gatts_set_attr_value(
-            certificate_handle_table[IDX_CHAR_SFIDA_TO_CENTRAL_VAL], 20, client_state->cert_buffer);
+        client_state->cert_len = 20;
         esp_ble_gatts_send_indicate(gatts_if,
             conn_id,
             certificate_handle_table[IDX_CHAR_SFIDA_COMMANDS_VAL],

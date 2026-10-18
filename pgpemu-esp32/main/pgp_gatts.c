@@ -513,7 +513,8 @@ static const esp_gatts_attr_db_t gatt_db_certificate[CERT_LAST_IDX] = {
             CHAR_DECLARATION_SIZE,
             CHAR_DECLARATION_SIZE,
             (uint8_t*)&char_prop_read } },
-    [IDX_CHAR_SFIDA_TO_CENTRAL_VAL] = { { ESP_GATT_AUTO_RSP },
+    // BY_APP: attribute values are global, each connection needs its own handshake bytes
+    [IDX_CHAR_SFIDA_TO_CENTRAL_VAL] = { { ESP_GATT_RSP_BY_APP },
         { ESP_UUID_LEN_128,
             (uint8_t*)&GATTS_CHAR_UUID_SFIDA_TO_CENTRAL,
             ESP_GATT_PERM_READ,
@@ -571,14 +572,18 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
             "[%d] ESP_GATTS_READ_EVT: %s",
             param->read.conn_id,
             char_name_from_handle(param->read.handle));
-        if (pgp_get_handshake_state(param->read.conn_id) == PGP_CERT_FULL_CHALLENGE_SENT) {
+        if (param->read.handle == certificate_handle_table[IDX_CHAR_SFIDA_TO_CENTRAL_VAL]) {
+            esp_gatt_rsp_t rsp;
+            memset(&rsp, 0, sizeof(rsp));
+            rsp.attr_value.handle = param->read.handle;
+            rsp.attr_value.offset = param->read.offset;
+            rsp.attr_value.len = pgp_cert_read_slice(
+                param->read.conn_id, param->read.offset, rsp.attr_value.value, sizeof(rsp.attr_value.value));
             if (esp_log_level_get(BT_GATTS_TAG) >= ESP_LOG_VERBOSE) {
                 ESP_LOGV(BT_GATTS_TAG, "DATA SENT TO APP");
-                if (gatt_db_certificate[IDX_CHAR_SFIDA_TO_CENTRAL_VAL].att_desc.value) {
-                    ESP_LOG_BUFFER_HEX(
-                        BT_GATTS_TAG, gatt_db_certificate[IDX_CHAR_SFIDA_TO_CENTRAL_VAL].att_desc.value, 52);
-                }
+                ESP_LOG_BUFFER_HEX(BT_GATTS_TAG, rsp.attr_value.value, rsp.attr_value.len);
             }
+            esp_ble_gatts_send_response(gatts_if, param->read.conn_id, param->read.trans_id, ESP_GATT_OK, &rsp);
         }
         break;
     case ESP_GATTS_WRITE_EVT:
@@ -655,6 +660,12 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
         break;
     case ESP_GATTS_MTU_EVT:
         ESP_LOGD(BT_GATTS_TAG, "ESP_GATTS_MTU_EVT, MTU %d", param->mtu.mtu);
+        {
+            client_state_t* client_state = get_or_create_client_state_entry(param->mtu.conn_id);
+            if (client_state) {
+                client_state->mtu = param->mtu.mtu;
+            }
+        }
         break;
     case ESP_GATTS_CONF_EVT:
         ESP_LOGD(BT_GATTS_TAG, "ESP_GATTS_CONF_EVT, status = %d", param->conf.status);

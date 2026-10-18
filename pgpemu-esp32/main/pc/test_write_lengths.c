@@ -19,12 +19,17 @@ uint16_t certificate_handle_table[CERT_LAST_IDX];
 QueueHandle_t button_queue;
 uint8_t bt_mac[6];
 
-static client_state_t g_state;
+static client_state_t g_state, g_other;
 static DeviceSettings g_settings;
 static int queue_sends, set_attr_calls, indicate_calls, decrypt_calls, reconnect_calls, persist_calls;
 
 client_state_t* get_client_state_entry(uint16_t conn_id) {
-    (void)conn_id;
+    if (conn_id == 1) {
+        return &g_other;
+    }
+    if (conn_id == 9) {
+        return NULL;
+    }
     return &g_state;
 }
 client_state_t* get_or_create_client_state_entry(uint16_t conn_id) {
@@ -217,10 +222,42 @@ static void test_handshake_short_writes_ignored(void) {
     printf("PASS: handshake short writes ignored\n");
 }
 
+static void test_cert_read_slice(void) {
+    uint8_t out[400];
+
+    reset(0);
+    memset(&g_other, 0, sizeof(g_other));
+    for (int i = 0; i < 378; i++) {
+        g_state.cert_buffer[i] = (uint8_t)i;
+    }
+    g_state.cert_len = 378;
+    memset(g_other.cert_buffer, 0xAA, 20);
+    g_other.cert_len = 20;
+
+    // no MTU event yet: ATT default 23 -> 22 byte payload
+    assert(pgp_cert_read_slice(0, 0, out, sizeof(out)) == 22 && out[21] == 21);
+    assert(pgp_cert_read_slice(0, 22, out, sizeof(out)) == 22 && out[0] == 22);
+    assert(pgp_cert_read_slice(0, 374, out, sizeof(out)) == 4 && out[3] == (uint8_t)377);
+    assert(pgp_cert_read_slice(0, 378, out, sizeof(out)) == 0);
+
+    g_state.mtu = 517;
+    assert(pgp_cert_read_slice(0, 0, out, sizeof(out)) == 378 && out[377] == (uint8_t)377);
+
+    // the other connection reads its own 20 bytes, never conn 0's
+    assert(pgp_cert_read_slice(1, 0, out, sizeof(out)) == 20 && out[0] == 0xAA && out[19] == 0xAA);
+
+    // unknown connection and empty buffer answer with zero bytes
+    assert(pgp_cert_read_slice(9, 0, out, sizeof(out)) == 0);
+    g_other.cert_len = 0;
+    assert(pgp_cert_read_slice(1, 0, out, sizeof(out)) == 0);
+    printf("PASS: cert read slice\n");
+}
+
 int main(void) {
     test_led_short_writes_ignored();
     test_cccd_short_write_ignored();
     test_handshake_short_writes_ignored();
+    test_cert_read_slice();
     printf("All write-length tests passed\n");
     return 0;
 }

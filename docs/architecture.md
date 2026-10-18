@@ -16,6 +16,7 @@ Single-responsibility firmware modules under `pgpemu-esp32/main/`. BLE, storage,
 1. Game connects over GATT (`pgp_gatts.c`); `pgp_handshake_multi.c` maps `conn_id` to a Device Profile (max 4).
 2. First connection: full handshake with passkey, then session key persisted to NVS by MAC.
 3. Reconnect: cached session key, expedited handshake, no passkey.
+   The cert characteristic read is answered per connection from its own buffer (`pgp_cert_read_slice`), never from the shared attribute value.
 4. LED patterns (`pgp_led_handler.c`) trigger `pgp_autobutton.c` per the profile's settings.
 
 ## Control Service

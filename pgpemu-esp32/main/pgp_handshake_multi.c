@@ -211,6 +211,7 @@ void connection_stop(uint16_t conn_id, uint8_t reason) {
 
     entry->connection_end = xTaskGetTickCount();
     entry->cert_state = PGP_CERT_FRESH;
+    entry->cert_len = 0;
 
     // Detect early disconnect with cached session (potential stale cache)
     uint32_t conn_duration_ms = pdTICKS_TO_MS(entry->connection_end - entry->connection_start);

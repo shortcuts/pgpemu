@@ -39,6 +39,10 @@ typedef struct {
     bool notify;
 
     uint8_t cert_buffer[378];
+    // valid bytes in cert_buffer; a read of the shared attribute serves this many
+    uint16_t cert_len;
+    // negotiated ATT MTU, 0 until ESP_GATTS_MTU_EVT
+    uint16_t mtu;
 
     uint8_t state_0_nonce[16];
 
