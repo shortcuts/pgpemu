@@ -50,10 +50,14 @@
       <li>Pokémon caught — the button press succeeded.</li>
       <li>Pokémon fled — the encounter ended without a catch.</li>
       <li>Pokéstop or Gym spun.</li>
-      <li>Item bag is full — the device holds off on spinning stops until there's room again.</li>
-      <li>Pokémon box is full — the device holds off on catching until there's room again.</li>
-      <li>Poké Balls are empty — nothing left to throw, so catching pauses.</li>
+      <li>Item bag is full.</li>
+      <li>Pokémon box is full.</li>
+      <li>Poké Balls are empty.</li>
     </ul>
+    <p>
+      The device does not press the button for the last three patterns. It keeps
+      Autospin and Autocatch turned on and does not pause or resume them. Clear space or restock in the game.
+    </p>
     <p>
       Button presses use small randomized delays rather than firing instantly, closer to how a
       person reacts than a fixed, mechanical timing.
@@ -61,9 +65,9 @@
 
     <h2 id="persisted">Settings stick around</h2>
     <p>
-      Autospin and Autocatch are remembered per device profile and reapplied automatically the
-      next time that same Pokémon GO account reconnects, even after the PGPemu device restarts.
-      An account the device has never seen before starts with both turned on.
+      Tap <strong>Save to device</strong> to store Autospin and Autocatch for each device profile.
+      The device still turns both on every time a Pokémon GO account connects,
+      so a saved Off does not last through a reconnect. Turn it off again after each connect.
     </p>
   </main>
 

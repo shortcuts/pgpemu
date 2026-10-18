@@ -174,10 +174,9 @@ or build and install from source:
 #### Pair
 
 1. Power on the PGPemu device.
-2. Open the app and tap **Connect** — it scans for the device, connects over
-   BLE, and completes bonding automatically.
-3. Once connected, the screen switches from the Connect button to
-   **Disconnect** and the sections below become visible.
+2. Open the app and tap **Scan for devices**. Pick the device from the list; the app
+   connects over BLE and completes bonding automatically.
+3. Once connected, the scan list gives way to **Disconnect** and the sections below become visible.
 
 #### Screens
 
@@ -193,7 +192,7 @@ The app is a single scrolling screen, ordered by risk/frequency:
   BLE client states), each with its own **Refresh** button, plus
   **Disconnect all** clients.
 - **Danger Zone** — **Reset secrets** and **Restart device**. Both open a
-  confirmation sheet that names the affected device and requires typing
+  confirmation sheet that requires typing
   `RESET` or `RESTART` before the action is enabled — these are silent,
   irreversible BLE operations with no undo.
 
