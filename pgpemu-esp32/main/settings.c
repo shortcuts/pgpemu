@@ -84,6 +84,28 @@ bool toggle_device_autocatch(uint8_t c) {
     return new_value;
 }
 
+// Unlike the toggles, assigns the caller's value, so a repeated command cannot flip it back.
+static bool set_bool_locked(SemaphoreHandle_t mutex, bool* var, bool val) {
+    if (!mutex_acquire_timeout(mutex, 10000)) {
+        return false;
+    }
+    *var = val;
+    mutex_release(mutex);
+    return true;
+}
+
+bool set_device_autospin(uint8_t c, bool val) {
+    client_state_t* entry = get_client_state_entry_by_idx(c);
+    return entry != NULL && entry->has_settings
+           && set_bool_locked(entry->settings.mutex, &entry->settings.autospin, val);
+}
+
+bool set_device_autocatch(uint8_t c, bool val) {
+    client_state_t* entry = get_client_state_entry_by_idx(c);
+    return entry != NULL && entry->has_settings
+           && set_bool_locked(entry->settings.mutex, &entry->settings.autocatch, val);
+}
+
 bool set_setting_bool(bool* var, bool val) {
     if (!var || !mutex_acquire_timeout(global_settings.mutex, 10000)) {
         return false;

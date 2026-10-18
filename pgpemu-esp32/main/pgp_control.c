@@ -16,14 +16,24 @@
 #include "pgp_gatts.h"            // MAX_VALUE_LENGTH
 #include "pgp_handshake_multi.h"  // dump_client_states_format, get_active_connections, reset_client_states
 #include "secrets.h"              // PGP_CLONE_NAME, PGP_MAC, PGP_DEVICE_KEY, PGP_BLOB
-#include "settings.h"             // global_settings, get_setting*, set_setting_uint8, cycle_log_level, toggle_device_*
-#include "stats.h"                // stats_format_runtime
+#include "settings.h"  // global_settings, get_setting*, set_setting_uint8, cycle_log_level, toggle_device_*, set_device_*
+#include "stats.h"     // stats_format_runtime
 
 #include <stdio.h>
 #include <string.h>
 
 #define CONTROL_CHAR_DECLARATION_SIZE (sizeof(uint8_t))
 static const uint8_t CONTROL_INST_ID = 0;
+
+static void apply_log_level(uint8_t level) {
+    if (level == 3) {
+        log_levels_verbose();
+    } else if (level == 2) {
+        log_levels_info();
+    } else {
+        log_levels_debug();
+    }
+}
 
 static void put_u32_le(uint8_t* out, uint32_t v) {
     for (int i = 0; i < 4; i++) {
@@ -319,13 +329,7 @@ static void pgp_control_handle_command_write(esp_gatt_if_t gatts_if,
             break;
         }
         uint8_t log_level = get_setting_uint8(&global_settings.log_level);
-        if (log_level == 3) {
-            log_levels_verbose();
-        } else if (log_level == 2) {
-            log_levels_info();
-        } else {
-            log_levels_debug();
-        }
+        apply_log_level(log_level);
         resp[0] = log_level;
         resp_len = 1;
         break;
@@ -391,6 +395,43 @@ static void pgp_control_handle_command_write(esp_gatt_if_t gatts_if,
             break;
         }
         resp[0] = toggle_device_autocatch(payload[0]) ? 1 : 0;
+        resp_len = 1;
+        break;
+    }
+    case CONTROL_OP_SET_AUTOSPIN:
+    case CONTROL_OP_SET_AUTOCATCH: {
+        // [slot][0|1]; an empty slot is a bad slot index, not an internal error.
+        if (payload_len < 2 || payload[0] > 3 || payload[1] > 1) {
+            status = CONTROL_STATUS_ERR_MALFORMED_PAYLOAD;
+            break;
+        }
+        client_state_t* entry = get_client_state_entry_by_idx(payload[0]);
+        if (entry == NULL || !entry->has_settings) {
+            status = CONTROL_STATUS_ERR_MALFORMED_PAYLOAD;
+            break;
+        }
+        bool val = payload[1] == 1;
+        bool ok = opcode == CONTROL_OP_SET_AUTOSPIN ? set_device_autospin(payload[0], val)
+                                                    : set_device_autocatch(payload[0], val);
+        if (!ok) {
+            status = CONTROL_STATUS_ERR_INTERNAL;
+            break;
+        }
+        resp[0] = payload[1];
+        resp_len = 1;
+        break;
+    }
+    case CONTROL_OP_SET_LOG_LEVEL: {
+        if (payload_len < 1 || payload[0] < 1 || payload[0] > 3) {
+            status = CONTROL_STATUS_ERR_MALFORMED_PAYLOAD;
+            break;
+        }
+        if (!set_setting_uint8(&global_settings.log_level, payload[0])) {
+            status = CONTROL_STATUS_ERR_INTERNAL;
+            break;
+        }
+        apply_log_level(payload[0]);
+        resp[0] = payload[0];
         resp_len = 1;
         break;
     }

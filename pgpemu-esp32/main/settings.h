@@ -40,6 +40,8 @@ void global_settings_ready();
 bool toggle_setting(bool* var);
 bool toggle_device_autospin(uint8_t c);
 bool toggle_device_autocatch(uint8_t c);
+bool set_device_autospin(uint8_t c, bool val);
+bool set_device_autocatch(uint8_t c, bool val);
 bool cycle_log_level(uint8_t* var);
 bool get_setting(bool* var);
 char* get_setting_log_value(bool* var);

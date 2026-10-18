@@ -58,12 +58,30 @@ static void test_device_toggle_is_per_slot(void) {
     assert(!toggle_device_autospin(5));
 }
 
+static void test_device_set_is_idempotent_and_per_slot(void) {
+    memset(g_slots, 0, sizeof(g_slots));
+    for (int i = 0; i < 2; i++) {
+        g_slots[i].settings.mutex = xSemaphoreCreateMutex();
+        g_slots[i].has_settings = true;
+    }
+    assert(set_device_autospin(0, true) && set_device_autospin(0, true));
+    assert(g_slots[0].settings.autospin && !g_slots[1].settings.autospin);
+    assert(set_device_autospin(0, false) && !g_slots[0].settings.autospin);
+    assert(set_device_autocatch(1, true) && set_device_autocatch(1, true));
+    assert(g_slots[1].settings.autocatch && !g_slots[0].settings.autocatch);
+
+    g_slots[1].has_settings = false;
+    assert(!set_device_autocatch(1, false) && g_slots[1].settings.autocatch);
+    assert(!set_device_autospin(5, true));
+}
+
 int main(void) {
     init_global_settings();
     test_toggle_and_null();
     test_cycle_log_level_wraps_after_3();
     test_get_set();
     test_device_toggle_is_per_slot();
+    test_device_set_is_idempotent_and_per_slot();
     printf("test_settings: all passed\n");
     return 0;
 }

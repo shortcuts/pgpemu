@@ -248,6 +248,65 @@ static void test_toggle_device_payload(void) {
     assert(sent[0] == CONTROL_STATUS_OK && sent_len == 3 && sent[2] == 1 && e->settings.autospin);
 }
 
+static void cmd2(uint8_t op, uint8_t a, uint8_t b) {
+    uint8_t buf[3] = { op, a, b };
+    assert(write_cmd(0, buf, 3));
+}
+
+static void test_set_device_payload(void) {
+    reset();
+    const uint8_t ops[] = { CONTROL_OP_SET_AUTOSPIN, CONTROL_OP_SET_AUTOCATCH };
+    for (int k = 0; k < 2; k++) {
+        bool* flag = NULL;
+        client_state_t* e = get_or_create_client_state_entry(1 + k);  // conn 1, 2 -> slot 0, 1
+        flag = k ? &e->settings.autocatch : &e->settings.autospin;
+
+        cmd1(ops[k], 0, 0);  // payload too short
+        assert(sent[0] == CONTROL_STATUS_ERR_MALFORMED_PAYLOAD);
+        pgp_control_on_conf(0);
+        cmd2(ops[k], 4, 1);  // slot out of range
+        assert(sent[0] == CONTROL_STATUS_ERR_MALFORMED_PAYLOAD);
+        pgp_control_on_conf(0);
+        cmd2(ops[k], 3, 2);  // value out of range
+        assert(sent[0] == CONTROL_STATUS_ERR_MALFORMED_PAYLOAD);
+        pgp_control_on_conf(0);
+        e->has_settings = false;
+        cmd2(ops[k], (uint8_t)k, 1);  // no profile in slot
+        assert(sent[0] == CONTROL_STATUS_ERR_MALFORMED_PAYLOAD && !*flag);
+        pgp_control_on_conf(0);
+
+        e->has_settings = true;
+        for (int i = 0; i < 2; i++) {  // a repeated frame must not flip the value back
+            cmd2(ops[k], (uint8_t)k, 1);
+            assert(sent_len == 3 && sent[0] == CONTROL_STATUS_OK && sent[1] == ops[k] && sent[2] == 1 && *flag);
+            pgp_control_on_conf(0);
+        }
+        cmd2(ops[k], (uint8_t)k, 0);
+        assert(sent[0] == CONTROL_STATUS_OK && sent[2] == 0 && !*flag);
+        pgp_control_on_conf(0);
+    }
+}
+
+static void test_set_log_level(void) {
+    reset();
+    cmd1(CONTROL_OP_SET_LOG_LEVEL, 0, 0);
+    assert(sent[0] == CONTROL_STATUS_ERR_MALFORMED_PAYLOAD);
+    pgp_control_on_conf(0);
+    cmd1(CONTROL_OP_SET_LOG_LEVEL, 0, 1);
+    assert(sent[0] == CONTROL_STATUS_ERR_MALFORMED_PAYLOAD);
+    pgp_control_on_conf(0);
+    cmd1(CONTROL_OP_SET_LOG_LEVEL, 4, 1);
+    assert(sent[0] == CONTROL_STATUS_ERR_MALFORMED_PAYLOAD && global_settings.log_level == 1);
+    pgp_control_on_conf(0);
+    for (uint8_t lvl = 3; lvl >= 1; lvl--) {
+        for (int i = 0; i < 2; i++) {
+            cmd1(CONTROL_OP_SET_LOG_LEVEL, lvl, 1);
+            assert(sent_len == 3 && sent[0] == CONTROL_STATUS_OK && sent[2] == lvl && global_settings.log_level == lvl);
+            pgp_control_on_conf(0);
+        }
+    }
+}
+
 int main(void) {
     test_unknown_opcode_and_empty_write();
     test_foreign_handles();
@@ -259,6 +318,8 @@ int main(void) {
     test_client_summary_layout();
     test_device_info_frame();
     test_toggle_device_payload();
+    test_set_device_payload();
+    test_set_log_level();
     printf("test_pgp_control_protocol: all passed\n");
     return 0;
 }

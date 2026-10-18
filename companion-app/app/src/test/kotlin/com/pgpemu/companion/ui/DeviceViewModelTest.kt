@@ -244,8 +244,8 @@ class DeviceViewModelTest {
                 ),
             )
             repository.stubResponse(
-                Opcode.CYCLE_LOG_LEVEL,
-                Result.success(ResponseFrame(StatusCode.OK, Opcode.CYCLE_LOG_LEVEL.toByte(), byteArrayOf(3))),
+                Opcode.SET_LOG_LEVEL,
+                Result.success(ResponseFrame(StatusCode.OK, Opcode.SET_LOG_LEVEL.toByte(), byteArrayOf(3))),
             )
             val gate = CompletableDeferred<Unit>()
             repository.gates[Opcode.GET_GLOBAL_SETTINGS] = gate
@@ -255,12 +255,12 @@ class DeviceViewModelTest {
 
             viewModel.cycleLogLevel()
             dispatcher.scheduler.runCurrent()
-            assertTrue(repository.sentCommands.none { it.first == Opcode.CYCLE_LOG_LEVEL })
+            assertTrue(repository.sentCommands.none { it.first == Opcode.SET_LOG_LEVEL })
 
             gate.complete(Unit)
             dispatcher.scheduler.runCurrent()
 
-            assertEquals(1, repository.sentCommands.count { it.first == Opcode.CYCLE_LOG_LEVEL })
+            assertEquals(1, repository.sentCommands.count { it.first == Opcode.SET_LOG_LEVEL })
             assertEquals(3, viewModel.uiState.value.status.logLevel)
 
             repository.setConnectionState(ConnectionState.Disconnected())
@@ -271,7 +271,7 @@ class DeviceViewModelTest {
     fun `background poll does not clear an existing error message`() =
         runTest {
             val repository = FakeBleControlRepository()
-            repository.stubResponse(Opcode.CYCLE_LOG_LEVEL, Result.failure(IOException("boom")))
+            repository.stubResponse(Opcode.SET_LOG_LEVEL, Result.failure(IOException("boom")))
             repository.stubResponse(
                 Opcode.GET_GLOBAL_SETTINGS,
                 Result.success(ResponseFrame(StatusCode.OK, Opcode.GET_GLOBAL_SETTINGS.toByte(), byteArrayOf(0, 0, 1, 4))),
@@ -386,7 +386,7 @@ class DeviceViewModelTest {
             stubStatusReplies(repository)
             repository.stubResponse(
                 Opcode.GET_DEVICE_INFO,
-                Result.success(ResponseFrame(StatusCode.OK, Opcode.GET_DEVICE_INFO.toByte(), deviceInfoBytes(1, 2))),
+                Result.success(ResponseFrame(StatusCode.OK, Opcode.GET_DEVICE_INFO.toByte(), deviceInfoBytes(2, 2))),
             )
             repository.stubResponse(
                 Opcode.SET_MAX_CONNECTIONS,
@@ -519,8 +519,8 @@ class DeviceViewModelTest {
         runTest {
             val repository = FakeBleControlRepository()
             repository.stubResponse(
-                Opcode.TOGGLE_AUTOSPIN,
-                Result.success(ResponseFrame(StatusCode.OK, Opcode.TOGGLE_AUTOSPIN.toByte(), byteArrayOf(1))),
+                Opcode.SET_AUTOSPIN,
+                Result.success(ResponseFrame(StatusCode.OK, Opcode.SET_AUTOSPIN.toByte(), byteArrayOf(1))),
             )
             val viewModel = DeviceViewModel(repository)
 
@@ -528,8 +528,8 @@ class DeviceViewModelTest {
             dispatcher.scheduler.advanceUntilIdle()
 
             val (opcode, payload) = repository.sentCommands.single()
-            assertEquals(Opcode.TOGGLE_AUTOSPIN, opcode)
-            assertEquals(2, payload[0].toInt())
+            assertEquals(Opcode.SET_AUTOSPIN, opcode)
+            assertEquals(listOf<Byte>(2, 1), payload.toList())
             assertEquals(
                 true,
                 viewModel.uiState.value.profiles[2]
@@ -538,10 +538,44 @@ class DeviceViewModelTest {
         }
 
     @Test
+    fun `toggleAutospin repeated without a reply sends the same target`() =
+        runTest {
+            val repository = FakeBleControlRepository()
+            repository.stubResponse(Opcode.SET_AUTOSPIN, Result.failure(IOException("lost")))
+            val viewModel = DeviceViewModel(repository)
+
+            viewModel.toggleAutospin(0)
+            dispatcher.scheduler.advanceUntilIdle()
+            viewModel.toggleAutospin(0)
+            dispatcher.scheduler.advanceUntilIdle()
+
+            assertEquals(listOf(listOf<Byte>(0, 1), listOf<Byte>(0, 1)), repository.sentCommands.map { it.second.toList() })
+        }
+
+    @Test
+    fun `cycleLogLevel from level 3 sends level 1`() =
+        runTest {
+            val repository = FakeBleControlRepository()
+            repository.stubResponse(
+                Opcode.SET_LOG_LEVEL,
+                Result.success(ResponseFrame(StatusCode.OK, Opcode.SET_LOG_LEVEL.toByte(), byteArrayOf(3))),
+            )
+            val viewModel = DeviceViewModel(repository)
+
+            viewModel.cycleLogLevel()
+            dispatcher.scheduler.advanceUntilIdle()
+            viewModel.cycleLogLevel()
+            dispatcher.scheduler.advanceUntilIdle()
+
+            assertEquals(listOf<Byte>(1), repository.sentCommands[0].second.toList())
+            assertEquals(listOf<Byte>(1), repository.sentCommands[1].second.toList())
+        }
+
+    @Test
     fun `repository failure surfaces error message in uiState`() =
         runTest {
             val repository = FakeBleControlRepository()
-            repository.stubResponse(Opcode.CYCLE_LOG_LEVEL, Result.failure(IOException("disconnected")))
+            repository.stubResponse(Opcode.SET_LOG_LEVEL, Result.failure(IOException("disconnected")))
             val viewModel = DeviceViewModel(repository)
 
             viewModel.cycleLogLevel()
@@ -555,8 +589,8 @@ class DeviceViewModelTest {
         runTest {
             val repository = FakeBleControlRepository()
             repository.stubResponse(
-                Opcode.CYCLE_LOG_LEVEL,
-                Result.success(ResponseFrame(StatusCode.OK, Opcode.CYCLE_LOG_LEVEL.toByte(), ByteArray(0))),
+                Opcode.SET_LOG_LEVEL,
+                Result.success(ResponseFrame(StatusCode.OK, Opcode.SET_LOG_LEVEL.toByte(), ByteArray(0))),
             )
             val viewModel = DeviceViewModel(repository)
 
@@ -572,8 +606,8 @@ class DeviceViewModelTest {
         runTest {
             val repository = FakeBleControlRepository()
             repository.stubResponse(
-                Opcode.CYCLE_LOG_LEVEL,
-                Result.success(ResponseFrame(StatusCode.ERR_BUSY, Opcode.CYCLE_LOG_LEVEL.toByte(), ByteArray(0))),
+                Opcode.SET_LOG_LEVEL,
+                Result.success(ResponseFrame(StatusCode.ERR_BUSY, Opcode.SET_LOG_LEVEL.toByte(), ByteArray(0))),
             )
             val viewModel = DeviceViewModel(repository)
 

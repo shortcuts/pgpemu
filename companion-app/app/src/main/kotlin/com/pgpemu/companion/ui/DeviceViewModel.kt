@@ -34,7 +34,7 @@ import javax.inject.Inject
 const val DEFAULT_PROFILE_COUNT = 4
 
 // Oldest GET_DEVICE_INFO layout version this app decodes.
-const val MIN_PROTOCOL_VERSION = 1
+const val MIN_PROTOCOL_VERSION = 2
 
 // Poll interval while connected — other phones can connect/disconnect and
 // toggle profiles without this app knowing, so state can go stale otherwise.
@@ -347,7 +347,9 @@ class DeviceViewModel
         }
 
         fun cycleLogLevel() {
-            runCommand(Opcode.CYCLE_LOG_LEVEL) { frame ->
+            // Send the target, not "next": a retried frame then cannot step the level twice.
+            val target = ((_uiState.value.status.logLevel ?: 0) % 3) + 1
+            runCommand(Opcode.SET_LOG_LEVEL, byteArrayOf(target.toByte())) { frame ->
                 decoded(decodeLogLevel(frame.payload)) { level ->
                     _uiState.update { it.copy(status = it.status.copy(logLevel = level)) }
                 }
@@ -359,13 +361,21 @@ class DeviceViewModel
         }
 
         fun toggleAutospin(index: Int) {
-            runCommand(Opcode.TOGGLE_AUTOSPIN, byteArrayOf(index.toByte())) { frame ->
+            val target =
+                _uiState.value.profiles
+                    .getOrNull(index)
+                    ?.autospin != true
+            runCommand(Opcode.SET_AUTOSPIN, byteArrayOf(index.toByte(), if (target) 1 else 0)) { frame ->
                 decoded(decodeFlag(frame.payload)) { on -> updateProfile(index) { it.copy(autospin = on) } }
             }
         }
 
         fun toggleAutocatch(index: Int) {
-            runCommand(Opcode.TOGGLE_AUTOCATCH, byteArrayOf(index.toByte())) { frame ->
+            val target =
+                _uiState.value.profiles
+                    .getOrNull(index)
+                    ?.autocatch != true
+            runCommand(Opcode.SET_AUTOCATCH, byteArrayOf(index.toByte(), if (target) 1 else 0)) { frame ->
                 decoded(decodeFlag(frame.payload)) { on -> updateProfile(index) { it.copy(autocatch = on) } }
             }
         }
