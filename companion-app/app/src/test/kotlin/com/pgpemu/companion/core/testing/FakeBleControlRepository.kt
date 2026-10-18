@@ -1,11 +1,14 @@
 package com.pgpemu.companion.core.testing
 
+import android.content.IntentSender
 import com.pgpemu.companion.ble.BleControlRepository
 import com.pgpemu.companion.ble.ConnectionState
 import com.pgpemu.companion.ble.ResponseFrame
 import com.pgpemu.companion.ble.ScannedDevice
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 
 class FakeBleControlRepository : BleControlRepository {
@@ -14,6 +17,8 @@ class FakeBleControlRepository : BleControlRepository {
 
     private val _discoveredDevices = MutableStateFlow<List<ScannedDevice>>(emptyList())
     override val discoveredDevices: StateFlow<List<ScannedDevice>> = _discoveredDevices
+
+    override val associationRequests: SharedFlow<IntentSender> = MutableSharedFlow()
 
     var startScanCalls = 0
         private set

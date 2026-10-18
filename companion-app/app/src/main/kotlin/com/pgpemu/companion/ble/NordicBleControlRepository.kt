@@ -5,10 +5,19 @@ import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
+import android.companion.AssociationInfo
+import android.companion.AssociationRequest
+import android.companion.BluetoothLeDeviceFilter
+import android.companion.CompanionDeviceManager
 import android.content.Context
+import android.content.IntentSender
+import android.os.Build
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
@@ -34,6 +43,8 @@ private const val PGP_ADVERTISED_NAME = "Pokemon GO Plus" // matches PGP_DEVICE_
 private const val COMMAND_TIMEOUT_MS = 5_000L
 private const val SCAN_TIMEOUT_MS = 15_000L
 private const val CONNECT_TIMEOUT_MS = 15_000L
+private const val BOND_WAIT_MS = 2_000L // ponytail: unmeasured ceiling, confirm on hardware
+private const val BOND_POLL_MS = 100L
 
 /**
  * Human-readable text for a [ConnectionObserver.onDeviceFailedToConnect] reason code, with the
@@ -57,6 +68,12 @@ internal fun describeConnectFailure(reason: Int): String {
     return "$description ($reason)"
 }
 
+/** Id of the CompanionDeviceManager association for [address] (case-insensitive), or null. */
+internal fun associationIdFor(
+    associations: List<Pair<Int, String?>>,
+    address: String,
+): Int? = associations.firstOrNull { it.second.equals(address, ignoreCase = true) }?.first
+
 class NordicBleControlRepository
     @Inject
     constructor(
@@ -70,6 +87,13 @@ class NordicBleControlRepository
         private val commandLock = Mutex() // one request in flight: the firmware echoes only the opcode
 
         private val manager = ControlBleManager(context)
+        private val companionDeviceManager = context.getSystemService(CompanionDeviceManager::class.java)
+        private val mainExecutor = context.mainExecutor
+        private val askedAssociations = mutableSetOf<String>() // ponytail: asks again after app restart; persist if that annoys
+
+        private val _associationRequests = MutableSharedFlow<IntentSender>(extraBufferCapacity = 1)
+        override val associationRequests: SharedFlow<IntentSender> = _associationRequests
+
         private val bluetoothAdapter = (context.getSystemService(Context.BLUETOOTH_SERVICE) as android.bluetooth.BluetoothManager).adapter
 
         private val _discoveredDevices = MutableStateFlow<List<ScannedDevice>>(emptyList())
@@ -204,7 +228,14 @@ class NordicBleControlRepository
                             // encryption with our stored key (e.g. its keys were reset by a reflash).
                             // Drop the stale bond so the next connect re-pairs instead of hitting this
                             // same failure forever.
-                            manager.forgetBond()
+                            val removed = manager.bluetoothDevice?.address?.let { forgetBond(it) } ?: true
+                            if (!removed) {
+                                throw IllegalStateException(
+                                    "stale pairing could not be removed: forget the device in Android Bluetooth settings, " +
+                                        "then reconnect (${GattError.parse(e.status)} (status ${e.status}))",
+                                    e,
+                                )
+                            }
                         }
                         throw IllegalStateException("command write failed: ${GattError.parse(e.status)} (status ${e.status})", e)
                     }
@@ -214,6 +245,87 @@ class NordicBleControlRepository
                     pendingResponse = null
                 }
             }
+
+        /** Asks once per process for a CompanionDeviceManager association: API 36+ needs it for removeBond. */
+        private fun requestAssociation(address: String) {
+            val cdm = companionDeviceManager
+            if (cdm == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.BAKLAVA) return
+            if (!askedAssociations.add(address.uppercase())) return
+            if (associationId(cdm, address) != null) return
+            val filter =
+                BluetoothLeDeviceFilter
+                    .Builder()
+                    .setScanFilter(ScanFilter.Builder().setDeviceAddress(address).build())
+                    .build()
+            val request =
+                AssociationRequest
+                    .Builder()
+                    .addDeviceFilter(filter)
+                    .setSingleDevice(true)
+                    .build()
+            try {
+                cdm.associate(
+                    request,
+                    mainExecutor,
+                    object : CompanionDeviceManager.Callback() {
+                        override fun onAssociationPending(intentSender: IntentSender) {
+                            _associationRequests.tryEmit(intentSender)
+                        }
+
+                        override fun onAssociationCreated(associationInfo: AssociationInfo) {}
+
+                        override fun onFailure(error: CharSequence?) {}
+                    },
+                )
+            } catch (_: Exception) {
+                // Association is optional; recovery falls back to the hidden call.
+            }
+        }
+
+        private fun associationId(
+            cdm: CompanionDeviceManager,
+            address: String,
+        ): Int? =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA) {
+                associationIdFor(cdm.myAssociations.map { it.id to it.deviceMacAddress?.toString() }, address)
+            } else {
+                null
+            }
+
+        private fun isBonded(address: String): Boolean =
+            try {
+                bluetoothAdapter.getRemoteDevice(address).bondState == BluetoothDevice.BOND_BONDED
+            } catch (_: SecurityException) {
+                false
+            }
+
+        private suspend fun awaitUnbonded(address: String): Boolean {
+            var waited = 0L
+            while (isBonded(address)) {
+                if (waited >= BOND_WAIT_MS) return false
+                delay(BOND_POLL_MS)
+                waited += BOND_POLL_MS
+            }
+            return true
+        }
+
+        /** Removes the stale bond: CDM on API 36+, then the hidden call. Returns whether the bond is gone. */
+        private suspend fun forgetBond(address: String): Boolean {
+            val cdm = companionDeviceManager
+            if (cdm != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA) {
+                try {
+                    associationId(cdm, address)?.let { cdm.removeBond(it) }
+                } catch (_: SecurityException) {
+                } catch (_: Exception) {
+                }
+                if (awaitUnbonded(address)) return true
+            }
+            try {
+                manager.forgetBond()
+            } catch (_: Exception) {
+            }
+            return awaitUnbonded(address)
+        }
 
         private fun onDisconnected() {
             pendingResponse?.let { deferred ->
@@ -247,6 +359,7 @@ class NordicBleControlRepository
 
                         override fun onDeviceReady(device: android.bluetooth.BluetoothDevice) {
                             _connectionState.value = ConnectionState.Ready
+                            requestAssociation(device.address)
                         }
 
                         override fun onDeviceFailedToConnect(
@@ -354,6 +467,6 @@ class NordicBleControlRepository
 
             // removeBond() is protected on BleManager; expose it for the stale-bond recovery
             // in sendCommand(), which holds a ControlBleManager reference, not a subclass of it.
-            fun forgetBond() = removeBond().enqueue()
+            suspend fun forgetBond() = removeBond().suspend()
         }
     }

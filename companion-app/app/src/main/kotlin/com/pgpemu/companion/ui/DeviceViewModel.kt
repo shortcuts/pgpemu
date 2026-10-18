@@ -105,6 +105,7 @@ class DeviceViewModel
     ) : ViewModel() {
         private val _uiState = MutableStateFlow(DeviceUiState())
         val uiState: StateFlow<DeviceUiState> = _uiState.asStateFlow()
+        val associationRequests = repository.associationRequests
 
         private var pollJob: Job? = null
         private val commandLock = Mutex() // user actions queue behind the running command instead of being dropped
