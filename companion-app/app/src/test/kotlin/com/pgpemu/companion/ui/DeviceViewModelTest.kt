@@ -175,6 +175,53 @@ class DeviceViewModelTest {
         }
 
     @Test
+    fun `polling stops in the background and refreshes once on return to foreground`() =
+        runTest {
+            val repository = FakeBleControlRepository()
+            repository.stubResponse(
+                Opcode.GET_GLOBAL_SETTINGS,
+                Result.success(ResponseFrame(StatusCode.OK, Opcode.GET_GLOBAL_SETTINGS.toByte(), byteArrayOf(0, 0, 1, 4))),
+            )
+            repository.stubResponse(
+                Opcode.GET_LED_STATE,
+                Result.success(ResponseFrame(StatusCode.OK, Opcode.GET_LED_STATE.toByte(), byteArrayOf(0))),
+            )
+            repository.stubResponse(
+                Opcode.GET_CLIENT_SUMMARY,
+                Result.success(
+                    ResponseFrame(
+                        StatusCode.OK,
+                        Opcode.GET_CLIENT_SUMMARY.toByte(),
+                        emptyClientSummarySlot() + emptyClientSummarySlot() + emptyClientSummarySlot() + emptyClientSummarySlot(),
+                    ),
+                ),
+            )
+            val viewModel = DeviceViewModel(repository)
+            repository.setConnectionState(ConnectionState.Ready)
+            dispatcher.scheduler.runCurrent()
+
+            fun polls() = repository.sentCommands.count { it.first == Opcode.GET_GLOBAL_SETTINGS }
+
+            viewModel.setForeground(false)
+            dispatcher.scheduler.runCurrent()
+            val whileBackground = polls()
+            dispatcher.scheduler.advanceTimeBy(STATUS_POLL_INTERVAL_MS * 3)
+            dispatcher.scheduler.runCurrent()
+            assertEquals(whileBackground, polls())
+
+            viewModel.setForeground(true)
+            dispatcher.scheduler.runCurrent()
+            assertEquals(whileBackground + 1, polls())
+
+            dispatcher.scheduler.advanceTimeBy(STATUS_POLL_INTERVAL_MS + 1)
+            dispatcher.scheduler.runCurrent()
+            assertEquals(whileBackground + 2, polls())
+
+            repository.setConnectionState(ConnectionState.Disconnected("done"))
+            dispatcher.scheduler.runCurrent()
+        }
+
+    @Test
     fun `user tap during a status refresh runs after it instead of being dropped`() =
         runTest {
             val repository = FakeBleControlRepository()

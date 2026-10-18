@@ -17,6 +17,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -108,6 +110,9 @@ class DeviceViewModel
         val associationRequests = repository.associationRequests
 
         private var pollJob: Job? = null
+
+        // Default true: the ViewModel is created by a started screen, which then reports every change.
+        private val foreground = MutableStateFlow(true)
         private val commandLock = Mutex() // user actions queue behind the running command instead of being dropped
 
         init {
@@ -119,14 +124,26 @@ class DeviceViewModel
             viewModelScope.launch {
                 repository.connectionState.collect { newState ->
                     _uiState.update { it.copy(connectionState = newState) }
-                    if (newState is ConnectionState.Ready) {
-                        refreshStatus()
-                        startPolling()
-                    } else {
-                        stopPolling()
-                    }
                 }
             }
+            // Poll only while connected and visible: a stopped activity would keep the BLE link busy.
+            viewModelScope.launch {
+                combine(repository.connectionState, foreground) { state, fg -> state is ConnectionState.Ready && fg }
+                    .distinctUntilChanged()
+                    .collect { active ->
+                        if (active) {
+                            refreshStatus() // catch up on changes made while away
+                            startPolling()
+                        } else {
+                            stopPolling()
+                        }
+                    }
+            }
+        }
+
+        /** Called by the screen with its lifecycle: true at STARTED, false at STOPPED. */
+        fun setForeground(visible: Boolean) {
+            foreground.value = visible
         }
 
         /** Keeps connection count / active profile state fresh while connected — other

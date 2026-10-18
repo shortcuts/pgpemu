@@ -59,6 +59,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pgpemu.companion.R
 import com.pgpemu.companion.ble.ConnectionState
@@ -91,6 +92,11 @@ fun DeviceScreen(viewModel: DeviceViewModel = hiltViewModel()) {
                 permissionDenied = true
             }
         }
+
+    LifecycleStartEffect(viewModel) {
+        viewModel.setForeground(true)
+        onStopOrDispose { viewModel.setForeground(false) }
+    }
 
     // Result ignored: the repository re-reads its associations when it needs one.
     val associationLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) {}
