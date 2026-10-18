@@ -5,6 +5,6 @@
 
 #include <stdint.h>
 
-void handle_led_notify_from_app(esp_gatt_if_t gatts_if, uint16_t conn_id, const uint8_t* buffer);
+void handle_led_notify_from_app(esp_gatt_if_t gatts_if, uint16_t conn_id, const uint8_t* buffer, uint16_t len);
 
 #endif /* PGP_LED_HANDLER_H */

@@ -16,7 +16,13 @@
 // disable using random values for the keys and nonces for debugging
 static const bool use_debug_buffer_values = false;
 
-void handle_pgp_handshake_first(esp_gatt_if_t gatts_if, uint16_t descr_value, uint16_t conn_id) {
+void handle_pgp_handshake_first(esp_gatt_if_t gatts_if, const uint8_t* value, uint16_t len, uint16_t conn_id) {
+    if (len < 2) {
+        ESP_LOGW(HANDSHAKE_TAG, "[%d] CCCD write too short: len=%d", conn_id, len);
+        return;
+    }
+    uint16_t descr_value = value[1] << 8 | value[0];
+
     client_state_t* client_state = get_or_create_client_state_entry(conn_id);
     if (!client_state) {
         ESP_LOGE(HANDSHAKE_TAG, "[%d] couldn't get/create client state", conn_id);
@@ -129,6 +135,23 @@ void handle_pgp_handshake_second(esp_gatt_if_t gatts_if, const uint8_t* prepare_
 
     if (client_state->cert_state >= 1) {
         ESP_LOGD(HANDSHAKE_TAG, "[%d] Handshake state=%d, received %d b", conn_id, client_state->cert_state, datalen);
+    }
+
+    // decrypt_next() reads a whole struct next_challenge; generate_reconnect_response() reads 32 bytes after a 4-byte
+    // header
+    int min_len = 0;
+    switch (client_state->cert_state) {
+    case 1:
+    case 2:
+        min_len = sizeof(struct next_challenge);
+        break;
+    case 4:
+        min_len = 4 + 32;
+        break;
+    }
+    if (datalen < min_len) {
+        ESP_LOGW(HANDSHAKE_TAG, "[%d] state %d write too short: len=%d", conn_id, client_state->cert_state, datalen);
+        return;
     }
 
     switch (client_state->cert_state) {

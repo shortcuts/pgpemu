@@ -38,8 +38,7 @@ uint16_t battery_handle_table[BATTERY_LAST_IDX];
 uint16_t led_button_handle_table[LED_BUTTON_LAST_IDX];
 uint16_t certificate_handle_table[CERT_LAST_IDX];
 
-static uint8_t raw_adv_data[] = {
-    /* flags */
+static uint8_t raw_adv_data[] = { /* flags */
     0x02,
     0x01,
     0x06,
@@ -70,8 +69,7 @@ static uint8_t raw_adv_data[] = {
     0x21,
     0x00
 };
-static uint8_t raw_scan_rsp_data[] = {
-    /* flags */
+static uint8_t raw_scan_rsp_data[] = { /* flags */
     0x02,
     0x01,
     0x06,
@@ -606,12 +604,11 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
                 certificate_handle_table[IDX_CHAR_SFIDA_COMMANDS_CFG]);
 
             if (certificate_handle_table[IDX_CHAR_SFIDA_COMMANDS_CFG] == param->write.handle) {
-                uint16_t descr_value = param->write.value[1] << 8 | param->write.value[0];
-                handle_pgp_handshake_first(gatts_if, descr_value, param->write.conn_id);
+                handle_pgp_handshake_first(gatts_if, param->write.value, param->write.len, param->write.conn_id);
             } else if (certificate_handle_table[IDX_CHAR_CENTRAL_TO_SFIDA_VAL] == param->write.handle) {
                 handle_pgp_handshake_second(gatts_if, param->write.value, param->write.len, param->write.conn_id);
             } else if (led_button_handle_table[IDX_CHAR_LED_VAL] == param->write.handle) {
-                handle_led_notify_from_app(gatts_if, param->write.conn_id, param->write.value);
+                handle_led_notify_from_app(gatts_if, param->write.conn_id, param->write.value, param->write.len);
                 return;
             } else if (led_button_handle_table[IDX_CHAR_BUTTON_CFG] == param->write.handle) {
                 ESP_LOGW(BT_GATTS_TAG, "%s: unhandled CHAR_BUTTON_CFG", __func__);

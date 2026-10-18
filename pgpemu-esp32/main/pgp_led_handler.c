@@ -20,8 +20,16 @@
         (state && state->settings) ? state->settings : NULL;     \
     })
 
-void handle_led_notify_from_app(esp_gatt_if_t gatts_if, uint16_t conn_id, const uint8_t* buffer) {
+void handle_led_notify_from_app(esp_gatt_if_t gatts_if, uint16_t conn_id, const uint8_t* buffer, uint16_t len) {
+    if (len < 4) {
+        ESP_LOGW(LEDHANDLER_TAG, "[%d] LED write too short: len=%d", conn_id, len);
+        return;
+    }
     int number_of_patterns = buffer[3] & 0x1f;
+    if (len < 4 + 3 * number_of_patterns) {
+        ESP_LOGW(LEDHANDLER_TAG, "[%d] LED write truncated: len=%d, patterns=%d", conn_id, len, number_of_patterns);
+        return;
+    }
     int priority = (buffer[3] >> 5) & 0x7;
 
     ESP_LOGD(LEDHANDLER_TAG, "[%d] LED: Pattern count=%d, priority=%d", conn_id, number_of_patterns, priority);

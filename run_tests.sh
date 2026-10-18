@@ -75,7 +75,7 @@ for test_file in $TEST_FILES; do
 	print_header "Running: $test_name"
 
 	# Compile
-	compile_output=$(cd "$TEST_DIR" && gcc -o "$test_name" "$test_name.c" -std=c99 2>&1)
+	compile_output=$(cd "$TEST_DIR" && gcc -o "$test_name" "$test_name.c" -std=c99 -Istubs 2>&1)
 	compile_status=$?
 
 	if [ $compile_status -ne 0 ]; then
