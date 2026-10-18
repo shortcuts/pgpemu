@@ -1,15 +1,10 @@
-# Basic Unit Test for NVS Helper
+# PC unit tests
 
-This test harness is for validating NVS helper logic on a PC (no ESP32 required).
+Run `make test` from the repo root. It builds each `test_*.c` with `gcc -std=c99 -Istubs` and runs it. No ESP32 needed.
 
-## Build
+## Rules
 
-    make -f Makefile.test
-
-## Run
-
-    ./cert-test
-
----
-
-Add more tests in `main/pc/` as needed.
+- A test `#include`s the real firmware `.c` file it tests. Never re-declare firmware code in a test.
+- `stubs/` holds ESP-IDF header stubs. `stubs/nvs_mem.h` is an in-memory NVS.
+- A test defines the mocks for everything outside the module under test (GATT sends, timers, other modules).
+- `fixtures/led_patterns.h` holds LED writes per game event. They are synthetic: replace them with packet captures.

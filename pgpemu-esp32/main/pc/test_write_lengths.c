@@ -7,6 +7,7 @@
 #include "../pgp_cert.h"
 #include "../pgp_gatts.h"
 #include "../pgp_handshake_multi.h"
+#include "fixtures/led_patterns.h"
 
 #include <assert.h>
 #include <stdbool.h>
@@ -19,6 +20,7 @@ uint16_t certificate_handle_table[CERT_LAST_IDX];
 uint8_t bt_mac[6];
 
 static client_state_t g_state, g_other;
+static int caught_calls, fled_calls, spin_calls;
 static int button_presses, set_attr_calls, indicate_calls, decrypt_calls, reconnect_calls, persist_calls;
 
 client_state_t* get_client_state_entry(uint16_t conn_id) {
@@ -103,12 +105,15 @@ int get_cert_state(uint16_t conn_id) {
 }
 void increment_caught(uint16_t conn_id) {
     (void)conn_id;
+    caught_calls++;
 }
 void increment_fled(uint16_t conn_id) {
     (void)conn_id;
+    fled_calls++;
 }
 void increment_spin(uint16_t conn_id) {
     (void)conn_id;
+    spin_calls++;
 }
 
 // ---- units under test, compiled for real ----
@@ -122,6 +127,7 @@ static void reset(int cert_state) {
     g_state.has_settings = true;
     g_state.cert_state = cert_state;
     button_presses = set_attr_calls = indicate_calls = decrypt_calls = reconnect_calls = persist_calls = 0;
+    caught_calls = fled_calls = spin_calls = 0;
 }
 
 // The three call_* wrappers are the only place that knows the handler signatures.
@@ -156,6 +162,42 @@ static void test_led_short_writes_ignored(void) {
     call_led(big, 96);
     assert(button_presses == 0);
     printf("PASS: led short writes ignored\n");
+}
+
+// Each game event, as the LED characteristic carries it, must drive exactly one reaction.
+static void test_led_events_classified(void) {
+    // autocatch on, autospin off (reset() default)
+    reset(0);
+    call_led(LED_POKEMON_IN_RANGE, sizeof(LED_POKEMON_IN_RANGE));
+    assert(button_presses == 1 && caught_calls + fled_calls + spin_calls == 0);
+
+    reset(0);
+    call_led(LED_POKESTOP_IN_RANGE, sizeof(LED_POKESTOP_IN_RANGE));
+    assert(button_presses == 0);
+    g_state.settings.autospin = true;
+    call_led(LED_POKESTOP_IN_RANGE, sizeof(LED_POKESTOP_IN_RANGE));
+    assert(button_presses == 1);
+
+    reset(0);
+    call_led(LED_CAUGHT, sizeof(LED_CAUGHT));
+    assert(caught_calls == 1 && fled_calls == 0 && spin_calls == 0 && button_presses == 0);
+
+    reset(0);
+    call_led(LED_FLED, sizeof(LED_FLED));
+    assert(caught_calls == 0 && fled_calls == 1 && spin_calls == 0 && button_presses == 0);
+
+    reset(0);
+    call_led(LED_SPIN, sizeof(LED_SPIN));
+    assert(caught_calls == 0 && fled_calls == 0 && spin_calls == 1 && button_presses == 0);
+
+    // unknown pattern: pressed only while an auto feature is on
+    reset(0);
+    call_led(LED_UNHANDLED, sizeof(LED_UNHANDLED));
+    assert(button_presses == 1);
+    g_state.settings.autocatch = false;
+    call_led(LED_UNHANDLED, sizeof(LED_UNHANDLED));
+    assert(button_presses == 1);
+    printf("PASS: led events classified\n");
 }
 
 static void test_cccd_short_write_ignored(void) {
@@ -252,6 +294,7 @@ static void test_cert_read_slice(void) {
 
 int main(void) {
     test_led_short_writes_ignored();
+    test_led_events_classified();
     test_cccd_short_write_ignored();
     test_handshake_short_writes_ignored();
     test_cert_read_slice();

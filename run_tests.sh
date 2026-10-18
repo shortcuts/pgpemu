@@ -48,7 +48,7 @@ print_header "PGPemu PC Unit Test Runner"
 # Get list of test files
 if [ -z "$1" ]; then
 	# Run all tests except those with ESP dependencies
-	TEST_FILES=$(ls "$TEST_DIR"/test_*.c 2>/dev/null | grep -v "test_nvs_helper" || echo "")
+	TEST_FILES=$(ls "$TEST_DIR"/test_*.c 2>/dev/null || echo "")
 else
 	# Run specific test
 	TEST_FILES="$TEST_DIR/test_$1.c"
@@ -75,8 +75,8 @@ for test_file in $TEST_FILES; do
 	print_header "Running: $test_name"
 
 	# Compile
-	compile_output=$(cd "$TEST_DIR" && gcc -o "$test_name" "$test_name.c" -std=c99 -Istubs 2>&1)
-	compile_status=$?
+	compile_status=0
+	compile_output=$(cd "$TEST_DIR" && gcc -o "$test_name" "$test_name.c" -std=c99 -Istubs 2>&1) || compile_status=$?
 
 	if [ $compile_status -ne 0 ]; then
 		print_error "Compilation failed for $test_name"
@@ -87,8 +87,8 @@ for test_file in $TEST_FILES; do
 	print_success "Compiled: $test_name"
 
 	# Run
-	test_output=$("$TEST_DIR/$test_name" 2>&1)
-	test_status=$?
+	test_status=0
+	test_output=$("$TEST_DIR/$test_name" 2>&1) || test_status=$?
 
 	if [ $test_status -eq 0 ]; then
 		# Show test output

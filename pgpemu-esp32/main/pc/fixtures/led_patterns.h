@@ -1,0 +1,37 @@
+// LED characteristic writes by game event. Layout: 3 header bytes, then count|priority<<5,
+// then 3 bytes per pattern: duration (50 ms), green<<4|red, flags<<4|blue.
+// synthetic: layout from pgp_led_handler.c, replace with capture
+#pragma once
+#include <stdint.h>
+
+#define W 0x03, 0x88, 0x08  // white
+#define OFF 0x03, 0x00, 0x00
+static const uint8_t LED_POKEMON_IN_RANGE[] = { 0, 0, 0, 3, 0x14, 0x80, 0x00, 0x0a, 0x00, 0x00, 0x14, 0x80, 0x00 };
+static const uint8_t LED_POKESTOP_IN_RANGE[] = { 0, 0, 0, 3, 0x14, 0x00, 0x08, 0x0a, 0x00, 0x00, 0x14, 0x00, 0x08 };
+static const uint8_t LED_CAUGHT[] = { 0, 0, 0, 8, W, OFF, W, OFF, W, OFF, 0x10, 0x00, 0x08, 0x10, 0x80, 0x00 };
+static const uint8_t LED_FLED[] = { 0, 0, 0, 7, W, OFF, W, OFF, W, OFF, 0x10, 0x08, 0x00 };
+static const uint8_t LED_SPIN[] = { 0,
+    0,
+    0,
+    6,
+    0x05,
+    0x08,
+    0x00,
+    0x05,
+    0x80,
+    0x00,
+    0x05,
+    0x00,
+    0x08,
+    0x05,
+    0x08,
+    0x00,
+    0x05,
+    0x80,
+    0x00,
+    0x05,
+    0x00,
+    0x08 };
+static const uint8_t LED_UNHANDLED[] = { 0, 0, 0, 2, 0x14, 0x80, 0x08, 0x14, 0x80, 0x08 };  // cyan
+#undef W
+#undef OFF

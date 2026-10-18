@@ -73,8 +73,7 @@ typedef uint8_t state_t[4][4];
 // The lookup-tables are marked const so they can be placed in read-only storage instead of RAM
 // The numbers below can be computed dynamically trading ROM for RAM -
 // This can be useful in (embedded) bootloader applications, where ROM is often limited.
-static const uint8_t sbox[256] = {
-    // 0     1    2      3     4    5     6     7      8    9     A      B    C     D     E     F
+static const uint8_t sbox[256] = { // 0     1    2      3     4    5     6     7      8    9     A      B    C     D E F
     0x63,
     0x7c,
     0x77,

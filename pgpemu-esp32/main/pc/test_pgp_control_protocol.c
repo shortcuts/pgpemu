@@ -1,278 +1,249 @@
-// Unit tests for the Control Service wire-format protocol (PC build)
-// Tests opcode/status constants and the [status][opcode][payload] framing
+// Unit tests for the real pgp_control.c: dispatch, response framing, indication gating (PC build)
 #ifndef ESP_PLATFORM
 
+#define CONFIG_BT_ACL_CONNECTIONS 4
+
+#include "../config_secrets.h"
+#include "../led_output.h"
+#include "../pgp_autobutton.h"
+#include "../pgp_gap.h"
+
 #include <assert.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 
-// Mirrors pgp_control.h's opcode table
-typedef enum {
-    CONTROL_OP_HELP = 0x01,
-    CONTROL_OP_GET_GLOBAL_SETTINGS = 0x02,
-    CONTROL_OP_SAVE_SETTINGS = 0x03,
-    CONTROL_OP_GET_SECRETS = 0x04,
-    CONTROL_OP_RESET_SECRETS = 0x05,
-    CONTROL_OP_RESTART = 0x06,
-    CONTROL_OP_GET_LED_STATE = 0x07,
-    CONTROL_OP_CYCLE_LOG_LEVEL = 0x08,
-    CONTROL_OP_GET_RUNTIME_STATS = 0x09,
-    CONTROL_OP_GET_TASK_LIST = 0x0A,
-    CONTROL_OP_ADVERTISE_START = 0x0B,
-    CONTROL_OP_ADVERTISE_STOP = 0x0C,
-    CONTROL_OP_GET_CLIENT_STATES = 0x0D,
-    CONTROL_OP_RESET_CLIENT_STATES = 0x0E,
-    CONTROL_OP_SET_MAX_CONNECTIONS = 0x0F,
-    CONTROL_OP_TOGGLE_AUTOSPIN = 0x10,
-    CONTROL_OP_TOGGLE_AUTOCATCH = 0x11,
-    CONTROL_OP_GET_CLIENT_SUMMARY = 0x12,
-} control_opcode_t;
+// ---- mocks of everything the units under test call outside the real modules ----
+char PGP_CLONE_NAME[16] = "clone";
+uint8_t PGP_MAC[6] = { 1, 2, 3, 4, 5, 6 };
+uint8_t PGP_DEVICE_KEY[16] = { 0xd0 };
+uint8_t PGP_BLOB[256] = { 0xb0 };
 
-// Mirrors pgp_control.h's status table
-typedef enum {
-    CONTROL_STATUS_OK = 0x00,
-    CONTROL_STATUS_ERR_UNKNOWN_OPCODE = 0x01,
-    CONTROL_STATUS_ERR_MALFORMED_PAYLOAD = 0x02,
-    CONTROL_STATUS_ERR_NOT_BONDED = 0x03,
-    CONTROL_STATUS_ERR_BUSY = 0x04,
-    CONTROL_STATUS_ERR_INTERNAL = 0x05,
-} control_status_t;
+static uint8_t sent[600];
+static uint16_t sent_len, sent_conn;
+static int sent_count, advertise_calls, reset_secrets_ok = 1, save_ok = 1;
 
-// Mirrors pgp_control.h's CONTROL_MAX_RESPONSE_PAYLOAD (500 - 2)
-#define CONTROL_MAX_RESPONSE_PAYLOAD (500 - 2)
-
-// Mirrors pgp_control_send_response's [status][opcode][payload] framing and truncation rule.
-// Returns the total frame length written to out.
-static size_t build_frame(control_status_t status,
-    uint8_t opcode,
-    const uint8_t* payload,
-    size_t payload_len,
-    uint8_t* out) {
-    if (payload_len > CONTROL_MAX_RESPONSE_PAYLOAD) {
-        payload_len = CONTROL_MAX_RESPONSE_PAYLOAD;
-    }
-    out[0] = (uint8_t)status;
-    out[1] = opcode;
-    if (payload_len > 0) {
-        memcpy(out + 2, payload, payload_len);
-    }
-    return 2 + payload_len;
+int esp_ble_gatts_create_attr_tab(const esp_gatts_attr_db_t* db, esp_gatt_if_t i, uint8_t n, uint8_t inst) {
+    (void)db, (void)i, (void)n, (void)inst;
+    return 0;
 }
-
-// Mirrors pgp_control_handle_command_write's split of value[0] / value+1.
-// Returns false (and leaves outputs unset) when len == 0.
-static bool parse_request(const uint8_t* value,
-    uint16_t len,
-    uint8_t* opcode,
-    const uint8_t** payload,
-    uint16_t* payload_len) {
-    if (len < 1) {
-        return false;
-    }
-    *opcode = value[0];
-    *payload = value + 1;
-    *payload_len = len - 1;
+int esp_ble_gatts_start_service(uint16_t h) {
+    (void)h;
+    return 0;
+}
+int esp_ble_gatts_send_indicate(esp_gatt_if_t i, uint16_t conn, uint16_t h, uint16_t len, uint8_t* v, bool confirm) {
+    (void)i, (void)h, (void)confirm;
+    memcpy(sent, v, len);
+    sent_len = len;
+    sent_conn = conn;
+    sent_count++;
+    return 0;
+}
+int esp_ble_gap_disconnect(unsigned char* bda) {
+    (void)bda;
+    return 0;
+}
+void advertise_if_needed(void) {
+    advertise_calls++;
+}
+adv_state_t pgp_adv_get_state(void) {
+    return (adv_state_t)2;
+}
+void purge_button_queue_for_connection(uint16_t c) {
+    (void)c;
+}
+bool clear_device_session(esp_bd_addr_t bda) {
+    (void)bda;
     return true;
 }
+bool write_global_settings_to_nvs(void) {
+    return save_ok;
+}
+bool write_devices_settings_to_nvs(void) {
+    return true;
+}
+bool reset_secrets(void) {
+    return reset_secrets_ok;
+}
+bool get_led_advertising(void) {
+    return true;
+}
+void log_levels_debug(void) {
+}
+void log_levels_info(void) {
+}
+void log_levels_verbose(void) {
+}
 
-static void test_opcode_constants() {
-    printf("\n=== Test: Opcode Constants ===\n");
+#include "../buf_writer.c"
+#include "../pgp_control.c"
+#include "../pgp_handshake_multi.c"
+#include "../settings.c"
+#include "../stats.c"
 
-    control_opcode_t opcodes[] = { CONTROL_OP_HELP,
-        CONTROL_OP_GET_GLOBAL_SETTINGS,
-        CONTROL_OP_SAVE_SETTINGS,
-        CONTROL_OP_GET_SECRETS,
-        CONTROL_OP_RESET_SECRETS,
-        CONTROL_OP_RESTART,
-        CONTROL_OP_GET_LED_STATE,
-        CONTROL_OP_CYCLE_LOG_LEVEL,
-        CONTROL_OP_GET_RUNTIME_STATS,
-        CONTROL_OP_GET_TASK_LIST,
-        CONTROL_OP_ADVERTISE_START,
-        CONTROL_OP_ADVERTISE_STOP,
-        CONTROL_OP_GET_CLIENT_STATES,
-        CONTROL_OP_RESET_CLIENT_STATES,
-        CONTROL_OP_SET_MAX_CONNECTIONS,
-        CONTROL_OP_TOGGLE_AUTOSPIN,
-        CONTROL_OP_TOGGLE_AUTOCATCH,
-        CONTROL_OP_GET_CLIENT_SUMMARY };
-    size_t count = sizeof(opcodes) / sizeof(opcodes[0]);
-    assert(count == 0x12);
-    printf("✓ Table has 18 opcodes (0x01-0x12)\n");
+// ---- helpers ----
+static void reset(void) {
+    memset(client_states, 0, sizeof(client_states));
+    memset(indicate_in_flight, 0, sizeof(indicate_in_flight));
+    active_connections_mutex = NULL;
+    active_connections = 0;
+    init_handshake_multi();
+    init_global_settings();
+    global_settings_ready();
+    global_settings.target_active_connections = 1;
+    global_settings.advertising_enabled = true;
+    global_settings.log_level = 1;
+    sent_count = advertise_calls = 0;
+    sent_len = 0;
+    save_ok = reset_secrets_ok = 1;
+    control_handle_table[IDX_CHAR_CONTROL_COMMAND_VAL] = 40;
+    control_handle_table[IDX_CHAR_CONTROL_RESPONSE_CFG] = 43;
+}
 
-    for (size_t i = 0; i < count; i++) {
-        assert((uint8_t)opcodes[i] == (uint8_t)(i + 1));
+// Writes `len` bytes to the Command characteristic of conn_id and reports whether the stack handled it.
+static bool write_cmd(uint16_t conn_id, const uint8_t* bytes, uint16_t len) {
+    esp_ble_gatts_cb_param_t p = { .write = {
+                                       .conn_id = conn_id, .handle = 40, .len = len, .value = (uint8_t*)bytes } };
+    return pgp_control_try_handle_write(3, &p);
+}
+static void cmd1(uint8_t op, uint8_t arg, int with_arg) {
+    uint8_t b[2] = { op, arg };
+    assert(write_cmd(0, b, with_arg ? 2 : 1));
+}
+
+// ---- tests ----
+static void test_unknown_opcode_and_empty_write(void) {
+    reset();
+    cmd1(0x7f, 0, 0);
+    assert(sent_len == 2 && sent[0] == CONTROL_STATUS_ERR_UNKNOWN_OPCODE && sent[1] == 0x7f);
+
+    pgp_control_on_conf(0);
+    assert(write_cmd(0, (uint8_t*)"", 0));
+    assert(sent_len == 2 && sent[0] == CONTROL_STATUS_ERR_MALFORMED_PAYLOAD && sent[1] == 0);
+}
+
+static void test_foreign_handles(void) {
+    reset();
+    esp_ble_gatts_cb_param_t p = { .write = { .conn_id = 0, .handle = 43, .len = 2 } };
+    assert(pgp_control_try_handle_write(3, &p) && sent_count == 0);  // CCCD write: handled, no reply
+    p.write.handle = 99;
+    assert(!pgp_control_try_handle_write(3, &p));
+}
+
+static void test_global_settings_frame(void) {
+    reset();
+    global_settings.log_level = 2;
+    cmd1(CONTROL_OP_GET_GLOBAL_SETTINGS, 0, 0);
+    const uint8_t want[] = { CONTROL_STATUS_OK, CONTROL_OP_GET_GLOBAL_SETTINGS, 2, 1, 0, 1, 2 };
+    assert(sent_len == sizeof(want) && memcmp(sent, want, sizeof(want)) == 0);
+}
+
+static void test_set_max_connections_validates_payload(void) {
+    reset();
+    cmd1(CONTROL_OP_SET_MAX_CONNECTIONS, 0, 0);
+    assert(sent[0] == CONTROL_STATUS_ERR_MALFORMED_PAYLOAD);
+    pgp_control_on_conf(0);
+    cmd1(CONTROL_OP_SET_MAX_CONNECTIONS, 5, 1);
+    assert(sent[0] == CONTROL_STATUS_ERR_MALFORMED_PAYLOAD && global_settings.target_active_connections == 1);
+    pgp_control_on_conf(0);
+    cmd1(CONTROL_OP_SET_MAX_CONNECTIONS, 3, 1);
+    assert(sent[0] == CONTROL_STATUS_OK && global_settings.target_active_connections == 3);
+}
+
+static void test_advertise_and_save_and_restart(void) {
+    reset();
+    cmd1(CONTROL_OP_ADVERTISE_STOP, 0, 0);
+    assert(sent[0] == CONTROL_STATUS_OK && !global_settings.advertising_enabled && advertise_calls == 1);
+
+    pgp_control_on_conf(0);
+    save_ok = 0;
+    cmd1(CONTROL_OP_SAVE_SETTINGS, 0, 0);
+    assert(sent[0] == CONTROL_STATUS_ERR_INTERNAL && sent[1] == CONTROL_OP_SAVE_SETTINGS);
+
+    pgp_control_on_conf(0);
+    esp_restart_calls = 0;
+    cmd1(CONTROL_OP_RESTART, 0, 0);
+    assert(sent[0] == CONTROL_STATUS_OK && esp_restart_calls == 1);  // ack goes out before the reboot
+}
+
+// ATT allows one unconfirmed indication per link: later responses are dropped until the CONF event.
+static void test_indication_gate(void) {
+    reset();
+    cmd1(CONTROL_OP_GET_LED_STATE, 0, 0);
+    assert(sent_count == 1 && sent_len == 3 && sent[2] == 1);
+    cmd1(CONTROL_OP_GET_LED_STATE, 0, 0);
+    assert(sent_count == 1);
+    pgp_control_on_conf(0);
+    cmd1(CONTROL_OP_GET_LED_STATE, 0, 0);
+    assert(sent_count == 2);
+
+    cmd1(CONTROL_OP_GET_LED_STATE, 0, 0);
+    assert(sent_count == 2);
+    pgp_control_on_disconnect(0);
+    cmd1(CONTROL_OP_GET_LED_STATE, 0, 0);
+    assert(sent_count == 3);
+
+    uint8_t b[1] = { CONTROL_OP_GET_LED_STATE };
+    assert(write_cmd(CONFIG_BT_ACL_CONNECTIONS, b, 1) && sent_count == 3);  // out-of-range conn_id: dropped
+}
+
+// HELP is longer than one response: the frame is cut to MAX_VALUE_LENGTH.
+static void test_oversized_payload_is_truncated(void) {
+    reset();
+    cmd1(CONTROL_OP_HELP, 0, 0);
+    assert(sent_len == 2 + CONTROL_MAX_RESPONSE_PAYLOAD);
+    assert(sent[0] == CONTROL_STATUS_OK && sent[1] == CONTROL_OP_HELP && memcmp(sent + 2, "---HELP---", 10) == 0);
+}
+
+static void test_client_summary_layout(void) {
+    reset();
+    client_state_t* e = get_or_create_client_state_entry(7);
+    e->has_settings = true;
+    e->settings.autospin = true;
+    e->settings.autocatch = false;
+    e->cert_state = PGP_CERT_DONE;
+    increment_caught(7);
+    increment_caught(7);
+    increment_fled(7);
+    for (int i = 0; i < 3; i++) {
+        increment_spin(7);
     }
-    printf("✓ Opcodes are 0x01..0x12, no gaps\n");
 
-    for (size_t i = 0; i < count; i++) {
-        for (size_t j = i + 1; j < count; j++) {
-            assert(opcodes[i] != opcodes[j]);
-        }
+    cmd1(CONTROL_OP_GET_CLIENT_SUMMARY, 0, 0);
+    assert(sent_len == 2 + 4 * 11);
+    const uint8_t slot0[11] = { 0x07, 0x00, 0x07, 1, 0, 2, 0, 1, 0, 3, 0 };  // flags: settings|stats|handshake done
+    assert(memcmp(sent + 2, slot0, 11) == 0);
+    const uint8_t empty[11] = { 0xff, 0xff };
+    for (int i = 1; i < 4; i++) {
+        assert(memcmp(sent + 2 + 11 * i, empty, 11) == 0);
     }
-    printf("✓ No duplicate opcodes\n");
 }
 
-static void test_status_constants() {
-    printf("\n=== Test: Status Constants ===\n");
+static void test_toggle_device_payload(void) {
+    reset();
+    cmd1(CONTROL_OP_TOGGLE_AUTOSPIN, 0, 0);
+    assert(sent[0] == CONTROL_STATUS_ERR_MALFORMED_PAYLOAD);
+    pgp_control_on_conf(0);
+    cmd1(CONTROL_OP_TOGGLE_AUTOCATCH, 4, 1);
+    assert(sent[0] == CONTROL_STATUS_ERR_MALFORMED_PAYLOAD);
 
-    assert(CONTROL_STATUS_OK == 0x00);
-    assert(CONTROL_STATUS_ERR_UNKNOWN_OPCODE == 0x01);
-    assert(CONTROL_STATUS_ERR_MALFORMED_PAYLOAD == 0x02);
-    assert(CONTROL_STATUS_ERR_NOT_BONDED == 0x03);
-    assert(CONTROL_STATUS_ERR_BUSY == 0x04);
-    assert(CONTROL_STATUS_ERR_INTERNAL == 0x05);
-    printf("✓ Status codes are OK=0x00..ERR_INTERNAL=0x05\n");
+    pgp_control_on_conf(0);
+    client_state_t* e = get_or_create_client_state_entry(1);
+    e->has_settings = true;
+    cmd1(CONTROL_OP_TOGGLE_AUTOSPIN, 0, 1);
+    assert(sent[0] == CONTROL_STATUS_OK && sent_len == 3 && sent[2] == 1 && e->settings.autospin);
 }
 
-static void test_build_frame_layout() {
-    printf("\n=== Test: Response Frame Layout ===\n");
-
-    uint8_t out[2 + CONTROL_MAX_RESPONSE_PAYLOAD];
-
-    // 0-length payload
-    size_t frame_len = build_frame(CONTROL_STATUS_OK, CONTROL_OP_HELP, NULL, 0, out);
-    assert(frame_len == 2);
-    assert(out[0] == CONTROL_STATUS_OK);
-    assert(out[1] == CONTROL_OP_HELP);
-    printf("✓ 0-length payload produces a 2-byte frame\n");
-
-    // payload at exactly the cap
-    uint8_t payload[CONTROL_MAX_RESPONSE_PAYLOAD];
-    for (size_t i = 0; i < sizeof(payload); i++) {
-        payload[i] = (uint8_t)(i & 0xff);
-    }
-    frame_len = build_frame(CONTROL_STATUS_ERR_INTERNAL, CONTROL_OP_GET_SECRETS, payload, sizeof(payload), out);
-    assert(frame_len == 2 + CONTROL_MAX_RESPONSE_PAYLOAD);
-    assert(out[0] == CONTROL_STATUS_ERR_INTERNAL);
-    assert(out[1] == CONTROL_OP_GET_SECRETS);
-    assert(memcmp(out + 2, payload, sizeof(payload)) == 0);
-    printf("✓ Payload at exactly CONTROL_MAX_RESPONSE_PAYLOAD (498) bytes is preserved\n");
-}
-
-static void test_build_frame_truncation() {
-    printf("\n=== Test: Response Frame Truncation ===\n");
-
-    uint8_t oversized[CONTROL_MAX_RESPONSE_PAYLOAD + 50];
-    for (size_t i = 0; i < sizeof(oversized); i++) {
-        oversized[i] = (uint8_t)(i & 0xff);
-    }
-
-    uint8_t out[2 + CONTROL_MAX_RESPONSE_PAYLOAD];
-    size_t frame_len = build_frame(CONTROL_STATUS_OK, CONTROL_OP_GET_TASK_LIST, oversized, sizeof(oversized), out);
-
-    assert(frame_len == 2 + CONTROL_MAX_RESPONSE_PAYLOAD);
-    printf("✓ Truncated frame is exactly 2 + CONTROL_MAX_RESPONSE_PAYLOAD bytes\n");
-
-    assert(frame_len <= 500);
-    printf("✓ Frame never exceeds MAX_VALUE_LENGTH (500)\n");
-
-    assert(memcmp(out + 2, oversized, CONTROL_MAX_RESPONSE_PAYLOAD) == 0);
-    printf("✓ Truncated payload matches the first CONTROL_MAX_RESPONSE_PAYLOAD bytes\n");
-}
-
-static void test_parse_request() {
-    printf("\n=== Test: Request Parsing ===\n");
-
-    uint8_t opcode = 0;
-    const uint8_t* payload = NULL;
-    uint16_t payload_len = 0xffff;
-
-    // len == 0 is rejected
-    bool ok = parse_request(NULL, 0, &opcode, &payload, &payload_len);
-    assert(!ok);
-    printf("✓ len == 0 is rejected\n");
-
-    // opcode-only write (len == 1)
-    uint8_t value1[] = { CONTROL_OP_ADVERTISE_START };
-    ok = parse_request(value1, sizeof(value1), &opcode, &payload, &payload_len);
-    assert(ok);
-    assert(opcode == CONTROL_OP_ADVERTISE_START);
-    assert(payload_len == 0);
-    printf("✓ len == 1 splits into opcode + empty payload\n");
-
-    // opcode + payload
-    uint8_t value2[] = { CONTROL_OP_SET_MAX_CONNECTIONS, 0x03 };
-    ok = parse_request(value2, sizeof(value2), &opcode, &payload, &payload_len);
-    assert(ok);
-    assert(opcode == CONTROL_OP_SET_MAX_CONNECTIONS);
-    assert(payload_len == 1);
-    assert(payload[0] == 0x03);
-    printf("✓ len >= 1 correctly splits value[0] / value+1\n");
-}
-
-// Mirrors CONTROL_OP_GET_CLIENT_SUMMARY's per-slot record layout from pgp_control.c
-static void encode_client_summary_slot(uint16_t conn_id,
-    bool has_settings,
-    bool autospin,
-    bool autocatch,
-    bool has_stats,
-    uint16_t caught,
-    uint16_t fled,
-    uint16_t spin,
-    uint8_t* out) {
-    uint8_t flags = (has_settings ? 0x01 : 0) | (has_stats ? 0x02 : 0);
-    out[0] = (uint8_t)(conn_id & 0xFF);
-    out[1] = (uint8_t)(conn_id >> 8);
-    out[2] = flags;
-    out[3] = autospin ? 1 : 0;
-    out[4] = autocatch ? 1 : 0;
-    out[5] = (uint8_t)(caught & 0xFF);
-    out[6] = (uint8_t)(caught >> 8);
-    out[7] = (uint8_t)(fled & 0xFF);
-    out[8] = (uint8_t)(fled >> 8);
-    out[9] = (uint8_t)(spin & 0xFF);
-    out[10] = (uint8_t)(spin >> 8);
-}
-
-static void test_client_summary_record_layout() {
-    printf("\n=== Test: GET_CLIENT_SUMMARY Record Layout ===\n");
-
-    uint8_t rec[11];
-
-    // Empty slot: 0xFFFF sentinel, no flags
-    encode_client_summary_slot(0xffff, false, false, false, false, 0, 0, 0, rec);
-    uint8_t expected_empty[11] = { 0xff, 0xff, 0x00, 0, 0, 0, 0, 0, 0, 0, 0 };
-    assert(memcmp(rec, expected_empty, 11) == 0);
-    printf("✓ Empty slot encodes as 0xFFFF conn_id with flags 0\n");
-
-    // Connected, settings attached, no stats yet
-    encode_client_summary_slot(1, true, true, false, false, 0, 0, 0, rec);
-    uint8_t expected_settings[11] = { 0x01, 0x00, 0x01, 0x01, 0x00, 0, 0, 0, 0, 0, 0 };
-    assert(memcmp(rec, expected_settings, 11) == 0);
-    printf("✓ Settings-only slot sets flags bit0, leaves stats bytes zero\n");
-
-    // Connected, stats present, no settings
-    encode_client_summary_slot(3, false, false, false, true, 5, 2, 7, rec);
-    uint8_t expected_stats[11] = { 0x03, 0x00, 0x02, 0x00, 0x00, 0x05, 0x00, 0x02, 0x00, 0x07, 0x00 };
-    assert(memcmp(rec, expected_stats, 11) == 0);
-    printf("✓ Stats-only slot sets flags bit1 with little-endian uint16 fields\n");
-
-    // conn_id above 0xFF exercises the little-endian high byte
-    encode_client_summary_slot(0x0102, false, false, false, false, 0, 0, 0, rec);
-    assert(rec[0] == 0x02 && rec[1] == 0x01);
-    printf("✓ conn_id is little-endian (low byte first)\n");
-}
-
-int main() {
-    printf("========================================\n");
-    printf("Control Service Protocol Unit Tests\n");
-    printf("========================================\n");
-
-    test_opcode_constants();
-    test_status_constants();
-    test_build_frame_layout();
-    test_build_frame_truncation();
-    test_parse_request();
-    test_client_summary_record_layout();
-
-    printf("\n========================================\n");
-    printf("✓ All control protocol tests passed!\n");
-    printf("========================================\n");
-
+int main(void) {
+    test_unknown_opcode_and_empty_write();
+    test_foreign_handles();
+    test_global_settings_frame();
+    test_set_max_connections_validates_payload();
+    test_advertise_and_save_and_restart();
+    test_indication_gate();
+    test_oversized_payload_is_truncated();
+    test_client_summary_layout();
+    test_toggle_device_payload();
+    printf("test_pgp_control_protocol: all passed\n");
     return 0;
 }
 

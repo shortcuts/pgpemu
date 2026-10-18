@@ -10,9 +10,7 @@ typedef struct {
     esp_timer_dispatch_t dispatch_method;
     const char* name;
 } esp_timer_create_args_t;
-typedef int esp_err_t;
-#define ESP_OK 0
-#define ESP_FAIL -1
+#include "esp_system.h"
 esp_err_t esp_timer_create(const esp_timer_create_args_t* args, esp_timer_handle_t* out);
 esp_err_t esp_timer_start_once(esp_timer_handle_t timer, uint64_t timeout_us);
 esp_err_t esp_timer_stop(esp_timer_handle_t timer);
