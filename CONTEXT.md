@@ -24,6 +24,9 @@ _Avoid_: device, client, slot
 The Pokémon-GO pairing material persisted per Device Profile in NVS (`pgpsecret` namespace): clone name, MAC, device key, blob. Readable/resettable through the Control Service once bonded.
 _Avoid_: pairing data, credentials
 
+**Advertising state**:
+The Advertising flag (`advertising_enabled`, the only intent) plus the radio state (off, starting, on, stopping) reported by GET_GLOBAL_SETTINGS. The flag says what the user wants; the radio state says what the controller does.
+
 **Global Settings** / **Device Settings**:
 The two existing NVS-backed config structs (`global_settings`, `device_settings` namespaces) the Control Service reads and writes in place of the removed UART commands.
 _Avoid_: config, settings (unqualified)

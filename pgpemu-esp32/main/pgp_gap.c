@@ -1,8 +1,10 @@
 #include "pgp_gap.h"
 
 #include "esp_log.h"
+#include "esp_timer.h"
 #include "led_output.h"
 #include "log_tags.h"
+#include "pgp_adv_state.h"
 #include "pgp_handshake_multi.h"
 #include "settings.h"
 
@@ -10,8 +12,11 @@
 
 uint8_t adv_config_done = 0;
 
-#define ADV_START_MAX_RETRIES 3
-static uint8_t adv_start_retry_count = 0;
+static adv_state_t adv_state = ADV_OFF;
+static uint8_t adv_failures = 0;
+// guards the two vars above; never held across an esp_ble_gap_* call
+static portMUX_TYPE adv_lock = portMUX_INITIALIZER_UNLOCKED;
+static esp_timer_handle_t adv_retry_timer = NULL;
 
 // review with
 // https://github.com/espressif/esp-idf/blob/master/examples/bluetooth/bluedroid/ble/gatt_security_client/main/example_ble_sec_gattc_demo.c
@@ -26,27 +31,75 @@ static esp_ble_adv_params_t adv_params = {
     .adv_filter_policy = ADV_FILTER_ALLOW_SCAN_ANY_CON_ANY,
 };
 
-void advertise_if_needed() {
-    if (!get_setting(&global_settings.advertising_enabled)) {
-        ESP_LOGD(BT_GAP_TAG, "advertising disabled, not starting");
-        return;
+static void adv_retry_cb(void* arg) {
+    (void)arg;
+    advertise_if_needed();
+}
+
+bool pgp_adv_init(void) {
+    esp_timer_create_args_t args = { .callback = adv_retry_cb, .name = "adv_retry" };
+    return esp_timer_create(&args, &adv_retry_timer) == ESP_OK;
+}
+
+adv_state_t pgp_adv_get_state(void) {
+    portENTER_CRITICAL(&adv_lock);
+    adv_state_t state = adv_state;
+    portEXIT_CRITICAL(&adv_lock);
+    return state;
+}
+
+// Moves the state under the lock; the LED mirrors the radio, so it follows only ON and OFF.
+static void adv_set_state(adv_state_t state) {
+    portENTER_CRITICAL(&adv_lock);
+    adv_state = state;
+    portEXIT_CRITICAL(&adv_lock);
+    set_led_advertising(state == ADV_ON);
+}
+
+static void adv_start_failed(void) {
+    portENTER_CRITICAL(&adv_lock);
+    uint8_t failures = adv_failures;
+    if (adv_failures < UINT8_MAX) {
+        adv_failures++;
     }
+    portEXIT_CRITICAL(&adv_lock);
+    adv_set_state(ADV_OFF);
+
+    uint32_t delay_ms = adv_backoff_ms(failures);
+    ESP_LOGW(BT_GAP_TAG, "advertising start failed, retry in %lu ms", (unsigned long)delay_ms);
+    // INVALID_STATE means a retry is already pending
+    if (adv_retry_timer) {
+        esp_timer_start_once(adv_retry_timer, (uint64_t)delay_ms * 1000);
+    }
+}
+
+void advertise_if_needed() {
     int target_active_connections = get_setting_uint8(&global_settings.target_active_connections);
-    if (get_active_connections() < target_active_connections) {
-        pgp_advertise();
-    } else {
+    bool enabled = get_setting(&global_settings.advertising_enabled);
+    bool want = enabled && get_active_connections() < target_active_connections;
+    if (enabled && !want) {
         ESP_LOGI(BT_GAP_TAG, "not advertising again, %d connections reached", target_active_connections);
     }
+
+    portENTER_CRITICAL(&adv_lock);
+    adv_action_t action = adv_decide(&adv_state, want);
+    portEXIT_CRITICAL(&adv_lock);
+
+    if (action == ADV_ACT_START) {
+        if (esp_ble_gap_start_advertising(&adv_params) != ESP_OK) {
+            adv_start_failed();
+        }
+    } else if (action == ADV_ACT_STOP) {
+        // no stop event follows a rejected call
+        if (esp_ble_gap_stop_advertising() != ESP_OK) {
+            adv_set_state(ADV_OFF);
+        }
+    }
 }
 
-void pgp_advertise() {
-    esp_ble_gap_start_advertising(&adv_params);
-    set_led_advertising(true);
-}
-
-void pgp_advertise_stop() {
-    esp_ble_gap_stop_advertising();
-    set_led_advertising(false);
+// Bluedroid stops connectable advertising when a link comes up and sends no stop event.
+void pgp_adv_on_connect(void) {
+    adv_set_state(ADV_OFF);
 }
 
 void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t* param) {
@@ -54,37 +107,29 @@ void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t* par
     case ESP_GAP_BLE_ADV_DATA_RAW_SET_COMPLETE_EVT:
         adv_config_done &= (~ADV_CONFIG_FLAG);
         if (adv_config_done == 0) {
-            pgp_advertise();
+            advertise_if_needed();
         }
         break;
     case ESP_GAP_BLE_SCAN_RSP_DATA_RAW_SET_COMPLETE_EVT:
         adv_config_done &= (~SCAN_RSP_CONFIG_FLAG);
         if (adv_config_done == 0) {
-            pgp_advertise();
+            advertise_if_needed();
         }
         break;
     case ESP_GAP_BLE_ADV_START_COMPLETE_EVT:
-        /* advertising start complete event to indicate advertising start successfully or failed
-         */
-        if (param->adv_start_cmpl.status != ESP_BT_STATUS_SUCCESS) {
-            if (adv_start_retry_count < ADV_START_MAX_RETRIES) {
-                adv_start_retry_count++;
-                ESP_LOGW(BT_GAP_TAG,
-                    "advertising start failed, retrying (%d/%d)",
-                    adv_start_retry_count,
-                    ADV_START_MAX_RETRIES);
-                pgp_advertise();
+        // a stop or connect may have moved the state while the start was in flight
+        if (pgp_adv_get_state() == ADV_STARTING) {
+            if (param->adv_start_cmpl.status != ESP_BT_STATUS_SUCCESS) {
+                adv_start_failed();
             } else {
-                ESP_LOGE(BT_GAP_TAG,
-                    "advertising start failed after %d attempts, giving up — device will stay "
-                    "undiscoverable until the next advertise_if_needed()/pgp_advertise() call",
-                    ADV_START_MAX_RETRIES);
-                adv_start_retry_count = 0;
+                ESP_LOGI(BT_GAP_TAG, "advertising start successful");
+                portENTER_CRITICAL(&adv_lock);
+                adv_failures = 0;
+                portEXIT_CRITICAL(&adv_lock);
+                adv_set_state(ADV_ON);
             }
-        } else {
-            ESP_LOGI(BT_GAP_TAG, "advertising start successful");
-            adv_start_retry_count = 0;
         }
+        advertise_if_needed();
         break;
     case ESP_GAP_BLE_ADV_STOP_COMPLETE_EVT:
         if (param->adv_stop_cmpl.status != ESP_BT_STATUS_SUCCESS) {
@@ -92,6 +137,9 @@ void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t* par
         } else {
             ESP_LOGI(BT_GAP_TAG, "advertising stop successful");
         }
+        // a failed stop means the radio was already off
+        adv_set_state(ADV_OFF);
+        advertise_if_needed();
         break;
     case ESP_GAP_BLE_AUTH_CMPL_EVT: {
         ESP_LOGI(BT_GAP_TAG,

@@ -10,7 +10,7 @@
 #include "freertos/task.h"  // vTaskList
 #include "led_output.h"     // get_led_advertising
 #include "log_tags.h"
-#include "pgp_gap.h"              // pgp_advertise, pgp_advertise_stop
+#include "pgp_gap.h"              // advertise_if_needed, pgp_adv_get_state
 #include "pgp_gatts.h"            // MAX_VALUE_LENGTH
 #include "pgp_handshake_multi.h"  // dump_client_states_format, get_active_connections, reset_client_states
 #include "secrets.h"              // PGP_CLONE_NAME, PGP_MAC, PGP_DEVICE_KEY, PGP_BLOB
@@ -247,7 +247,8 @@ static void pgp_control_handle_command_write(esp_gatt_if_t gatts_if,
         resp[1] = get_setting(&global_settings.advertising_enabled) ? 1 : 0;
         resp[2] = (uint8_t)get_active_connections();
         resp[3] = get_setting_uint8(&global_settings.target_active_connections);
-        resp_len = 4;
+        resp[4] = (uint8_t)pgp_adv_get_state();
+        resp_len = 5;
         break;
     }
     case CONTROL_OP_SAVE_SETTINGS: {
@@ -314,11 +315,15 @@ static void pgp_control_handle_command_write(esp_gatt_if_t gatts_if,
         break;
     }
     case CONTROL_OP_ADVERTISE_START: {
-        pgp_advertise();
+        status = set_setting_bool(&global_settings.advertising_enabled, true) ? CONTROL_STATUS_OK
+                                                                              : CONTROL_STATUS_ERR_INTERNAL;
+        advertise_if_needed();
         break;
     }
     case CONTROL_OP_ADVERTISE_STOP: {
-        pgp_advertise_stop();
+        status = set_setting_bool(&global_settings.advertising_enabled, false) ? CONTROL_STATUS_OK
+                                                                               : CONTROL_STATUS_ERR_INTERNAL;
+        advertise_if_needed();
         break;
     }
     case CONTROL_OP_GET_CLIENT_STATES: {

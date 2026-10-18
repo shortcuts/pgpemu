@@ -10,6 +10,9 @@
     <string name="device_disconnect">Disconnect</string>
     <string name="status_led">LED</string>
     <string name="status_advertising">Advertising</string>
+    <string name="status_radio">Radio</string>
+    <string name="status_radio_active">Active</string>
+    <string name="status_radio_idle">Idle</string>
     <string name="status_connections">Connections</string>
     <string name="status_log_level">Log level</string>
     <string name="device_no_devices_connected">No devices connected</string>

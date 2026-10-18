@@ -721,6 +721,8 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
             ESP_LOGD(BT_GATTS_TAG, "[%d] already BLE-bonded, skipping encryption request", param->connect.conn_id);
         }
 
+        pgp_adv_on_connect();
+
         // The BLE controller stops advertising as soon as this connection completes, even
         // though active_connections only increments once (if ever) the PGP handshake finishes.
         // A connection that never runs the handshake (e.g. the companion app, which only talks

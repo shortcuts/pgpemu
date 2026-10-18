@@ -44,6 +44,7 @@ bool cycle_log_level(uint8_t* var);
 bool get_setting(bool* var);
 char* get_setting_log_value(bool* var);
 uint8_t get_setting_uint8(uint8_t* var);
+bool set_setting_bool(bool* var, bool val);
 bool set_setting_uint8(uint8_t* var, const uint8_t val);
 
 #endif /* SETTINGS_H */

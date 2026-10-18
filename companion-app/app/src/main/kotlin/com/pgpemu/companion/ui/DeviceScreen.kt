@@ -355,6 +355,12 @@ private fun StatusSection(status: StatusState) {
             stringResource(R.string.status_advertising),
             status.advertisingEnabled?.let { if (it) "Enabled" else "Disabled" } ?: "—",
         )
+        LabeledValue(
+            stringResource(R.string.status_radio),
+            status.advertisingActive?.let {
+                stringResource(if (it) R.string.status_radio_active else R.string.status_radio_idle)
+            } ?: "—",
+        )
         LabeledValue(stringResource(R.string.status_connections), status.activeConnections?.toString() ?: "—")
         LabeledValue(stringResource(R.string.status_log_level), status.logLevel?.let { logLevelName(it) } ?: "—", isLast = true)
     }

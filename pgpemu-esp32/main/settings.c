@@ -84,6 +84,17 @@ bool toggle_device_autocatch(uint8_t c) {
     return new_value;
 }
 
+bool set_setting_bool(bool* var, bool val) {
+    if (!var || !mutex_acquire_timeout(global_settings.mutex, 10000)) {
+        return false;
+    }
+
+    *var = val;
+
+    mutex_release(global_settings.mutex);
+    return true;
+}
+
 bool get_setting(bool* var) {
     if (!var || !xSemaphoreTake(global_settings.mutex, portMAX_DELAY)) {
         return false;

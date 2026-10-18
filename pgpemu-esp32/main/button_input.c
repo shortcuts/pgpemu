@@ -65,14 +65,10 @@ static void button_input_task(void* pvParameters) {
                     continue;
                 }
 
-                bool adv_enabled = get_setting(&global_settings.advertising_enabled);
-                if (adv_enabled) {
-                    ESP_LOGI(BUTTON_INPUT_TAG, "button1 -> advertising enabled");
-                    pgp_advertise();
-                } else {
-                    ESP_LOGI(BUTTON_INPUT_TAG, "button1 -> advertising disabled");
-                    pgp_advertise_stop();
-                }
+                ESP_LOGI(BUTTON_INPUT_TAG,
+                    "button1 -> advertising %s",
+                    get_setting(&global_settings.advertising_enabled) ? "enabled" : "disabled");
+                advertise_if_needed();
             }
         }
     }

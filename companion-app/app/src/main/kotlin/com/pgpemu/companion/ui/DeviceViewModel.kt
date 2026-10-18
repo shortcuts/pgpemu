@@ -44,6 +44,8 @@ data class DeviceUiState(
 data class StatusState(
     val ledOn: Boolean? = null,
     val advertisingEnabled: Boolean? = null,
+    /** Radio state (starting or on); null when the device firmware is too old to report it. */
+    val advertisingActive: Boolean? = null,
     val activeConnections: Int? = null,
     val logLevel: Int? = null,
 )
@@ -195,6 +197,7 @@ class DeviceViewModel
                                 it.status.copy(
                                     logLevel = p[0].toInt(),
                                     advertisingEnabled = p[1] == 1.toByte(),
+                                    advertisingActive = p.getOrNull(4)?.let { it == 1.toByte() || it == 2.toByte() },
                                     activeConnections = p[2].toInt() and 0xFF,
                                 ),
                             settings = it.settings.copy(maxConnections = p[3].toInt() and 0xFF),

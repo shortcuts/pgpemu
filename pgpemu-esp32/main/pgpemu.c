@@ -67,6 +67,11 @@ void app_main() {
         return;
     }
 
+    if (!pgp_adv_init()) {
+        ESP_LOGE(PGPEMU_TAG, "advertising retry timer failed");
+        return;
+    }
+
     // set clone mac and start bluetooth
     if (!init_bluetooth()) {
         ESP_LOGI(PGPEMU_TAG, "bluetooth init failed");
@@ -89,5 +94,5 @@ void app_main() {
     // This prevents deadlock during boot window when advertising needs to query settings.
     global_settings_ready();
 
-    pgp_advertise();
+    advertise_if_needed();
 }

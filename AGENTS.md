@@ -91,6 +91,7 @@ make companion-lint    # when companion-app/ changed
 | `pgp_handshake.c` / `pgp_cert.c` | Handshake crypto and certificate handling |
 | `pgp_control.c` | Custom Control Service (Command/Response characteristics) for the Companion App, bonded link only |
 | `pgp_gap.c` / `pgp_bluetooth.c` | Advertising, pairing/bonding, BLE stack init |
+| `pgp_adv_state.c` | Pure advertising state machine and retry backoff (PC-tested) |
 | `pgp_led_handler.c` | Parses LED patterns from the game into events |
 | `pgp_autobutton.c` | Per-profile autospin/autocatch button simulation |
 | `config_storage.c` / `config_secrets.c` / `nvs_helper.c` / `settings.c` | NVS persistence for Global/Device Settings and Session Secrets |

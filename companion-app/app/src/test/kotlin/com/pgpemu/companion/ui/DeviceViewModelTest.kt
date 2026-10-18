@@ -245,6 +245,7 @@ class DeviceViewModelTest {
             val state = viewModel.uiState.value
             assertEquals(2, state.status.logLevel)
             assertEquals(true, state.status.advertisingEnabled)
+            assertNull(state.status.advertisingActive)
             assertEquals(3, state.status.activeConnections)
             assertEquals(4, state.settings.maxConnections)
             assertEquals(true, state.status.ledOn)
@@ -253,6 +254,23 @@ class DeviceViewModelTest {
             assertNull(state.profiles[1].autospin)
             assertEquals(false, state.profiles[2].autospin)
             assertEquals(true, state.profiles[2].autocatch)
+        }
+
+    @Test
+    fun `refreshStatus reads the radio state from byte 4 of GET_GLOBAL_SETTINGS`() =
+        runTest {
+            val repository = FakeBleControlRepository()
+            repository.stubResponse(
+                Opcode.GET_GLOBAL_SETTINGS,
+                Result.success(ResponseFrame(StatusCode.OK, Opcode.GET_GLOBAL_SETTINGS.toByte(), byteArrayOf(2, 0, 1, 4, 0))),
+            )
+            val viewModel = DeviceViewModel(repository)
+
+            viewModel.refreshStatus()
+            dispatcher.scheduler.advanceUntilIdle()
+
+            assertEquals(false, viewModel.uiState.value.status.advertisingEnabled)
+            assertEquals(false, viewModel.uiState.value.status.advertisingActive)
         }
 
     @Test

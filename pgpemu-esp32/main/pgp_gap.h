@@ -2,6 +2,7 @@
 #define PGP_GAP_H
 
 #include "esp_gap_ble_api.h"
+#include "pgp_adv_state.h"
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -16,11 +17,14 @@ void advertise_if_needed();
 // close every connections
 void pgp_disconnect();
 
-// explicitly start BT advertising
-void pgp_advertise();
+// create the retry timer; call once before bluetooth init
+bool pgp_adv_init(void);
 
-// explicitly stop BT advertising
-void pgp_advertise_stop();
+// current radio state, for status reports
+adv_state_t pgp_adv_get_state(void);
+
+// tell the state machine a client link came up (the radio stops by itself)
+void pgp_adv_on_connect(void);
 
 void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t* param);
 
