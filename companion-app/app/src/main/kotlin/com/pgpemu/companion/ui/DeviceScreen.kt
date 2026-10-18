@@ -1,8 +1,16 @@
 package com.pgpemu.companion.ui
 
 import android.Manifest
+import android.app.Activity
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothManager
+import android.content.Context
+import android.content.ContextWrapper
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -59,6 +67,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleStartEffect
@@ -84,16 +93,34 @@ fun DeviceScreen(viewModel: DeviceViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val colors = LocalPgpColors.current
     val context = LocalContext.current
-    var permissionDenied by remember { mutableStateOf(false) }
+    var blocker by remember { mutableStateOf<ScanBlocker?>(null) }
+
+    fun granted() = BLE_PERMISSIONS.all { ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED }
+
+    fun adapterOn() = (context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager).adapter?.isEnabled == true
+
+    // Rationale is false both before the first ask and after "don't ask again"; callers only use it after a denial.
+    fun canAskAgain(): Boolean {
+        var c = context
+        while (c is ContextWrapper && c !is Activity) c = c.baseContext
+        val activity = c as? Activity ?: return true
+        return BLE_PERMISSIONS.any { ActivityCompat.shouldShowRequestPermissionRationale(activity, it) }
+    }
+
+    fun requestScan() {
+        blocker = scanBlocker(granted(), true, adapterOn())
+        if (blocker == null) viewModel.startScan()
+    }
 
     val permissionLauncher =
-        rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
-            if (result.values.all { it }) {
-                permissionDenied = false
-                viewModel.startScan()
-            } else {
-                permissionDenied = true
-            }
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+            blocker = scanBlocker(granted(), canAskAgain(), adapterOn())
+            if (blocker == null) viewModel.startScan()
+        }
+
+    val enableBluetoothLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+            if (adapterOn()) requestScan()
         }
 
     LifecycleStartEffect(viewModel) {
@@ -105,16 +132,6 @@ fun DeviceScreen(viewModel: DeviceViewModel = hiltViewModel()) {
     val associationLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) {}
     LaunchedEffect(Unit) {
         viewModel.associationRequests.collect { associationLauncher.launch(IntentSenderRequest.Builder(it).build()) }
-    }
-
-    fun requestScan() {
-        val granted = BLE_PERMISSIONS.all { ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED }
-        if (granted) {
-            permissionDenied = false
-            viewModel.startScan()
-        } else {
-            permissionLauncher.launch(BLE_PERMISSIONS)
-        }
     }
 
     val snackbarHost = remember { SnackbarHostState() }
@@ -175,10 +192,18 @@ fun DeviceScreen(viewModel: DeviceViewModel = hiltViewModel()) {
                 ConnectPanel(
                     connectionState = uiState.connectionState,
                     errorMessage = (uiState.connectionState as? ConnectionState.Disconnected)?.reason?.let { disconnectText(it) },
-                    permissionDenied = permissionDenied,
+                    blocker = blocker,
                     devices = uiState.discoveredDevices,
                     hasScanned = uiState.hasScanned,
-                    onScan = ::requestScan,
+                    onScan = {
+                        if (granted()) requestScan() else permissionLauncher.launch(BLE_PERMISSIONS)
+                    },
+                    onEnableBluetooth = { enableBluetoothLauncher.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)) },
+                    onOpenSettings = {
+                        context.startActivity(
+                            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null)),
+                        )
+                    },
                     onConnect = viewModel::connectTo,
                 )
             }
@@ -274,10 +299,12 @@ private fun StatusPill(connectionState: ConnectionState) {
 private fun ConnectPanel(
     connectionState: ConnectionState,
     errorMessage: String?,
-    permissionDenied: Boolean,
+    blocker: ScanBlocker?,
     devices: List<ScannedDevice>,
     hasScanned: Boolean,
     onScan: () -> Unit,
+    onEnableBluetooth: () -> Unit,
+    onOpenSettings: () -> Unit,
     onConnect: (String) -> Unit,
 ) {
     val colors = LocalPgpColors.current
@@ -349,9 +376,33 @@ private fun ConnectPanel(
             ) { Text(if (hasScanned) stringResource(R.string.device_scan_again) else stringResource(R.string.device_scan)) }
         }
 
-        if (permissionDenied) {
+        blocker?.let {
             Spacer(modifier = Modifier.height(16.dp))
-            Text(text = stringResource(R.string.device_permission_required), color = colors.danger, textAlign = TextAlign.Center)
+            Text(
+                text =
+                    stringResource(
+                        if (it ==
+                            ScanBlocker.BluetoothOff
+                        ) {
+                            R.string.device_bluetooth_off
+                        } else {
+                            R.string.device_permission_required
+                        },
+                    ),
+                color = colors.danger,
+                textAlign = TextAlign.Center,
+            )
+            when (it) {
+                ScanBlocker.BluetoothOff ->
+                    TextButton(
+                        onClick = onEnableBluetooth,
+                    ) { Text(stringResource(R.string.device_turn_on_bluetooth)) }
+                ScanBlocker.PermissionPermanentlyDenied ->
+                    TextButton(
+                        onClick = onOpenSettings,
+                    ) { Text(stringResource(R.string.device_open_app_settings)) }
+                ScanBlocker.PermissionDenied -> Unit
+            }
         }
         (errorMessage ?: (connectionState as? ConnectionState.Error)?.reason)?.let {
             Spacer(modifier = Modifier.height(16.dp))

@@ -7,6 +7,9 @@
     <string name="device_scan_hint">Scan for your device, then pick it from the list to view status and change settings.</string>
     <string name="device_none_found">No devices found. Make sure the device is powered on and nearby.</string>
     <string name="device_permission_required">Bluetooth permission is required to scan for the device.</string>
+    <string name="device_bluetooth_off">Bluetooth is off. Turn it on to scan for the device.</string>
+    <string name="device_turn_on_bluetooth">Turn on Bluetooth</string>
+    <string name="device_open_app_settings">Open app settings</string>
     <string name="device_disconnect">Disconnect</string>
     <string name="status_led">LED</string>
     <string name="status_advertising">Advertising</string>
