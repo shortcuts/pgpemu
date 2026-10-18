@@ -45,11 +45,12 @@ bool stats_get_for_conn(uint16_t conn_id, Stats* out) {
     return false;
 }
 
-void delete_conn_entry(uint16_t conn_id) {
+void stats_clear_for_conn(uint16_t conn_id) {
     for (size_t i = 0; i < stats_len; i++) {
         if (stats[i].conn_id == conn_id) {
             stats[i] = stats[stats_len - 1];
             stats_len--;
+            return;
         }
     }
 }

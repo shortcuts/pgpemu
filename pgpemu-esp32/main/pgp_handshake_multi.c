@@ -9,6 +9,7 @@
 #include "mutex_helpers.h"
 #include "pgp_autobutton.h"
 #include "pgp_gap.h"
+#include "stats.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -233,6 +234,8 @@ void connection_stop(uint16_t conn_id, uint8_t reason) {
         pdTICKS_TO_MS(entry->connection_end - entry->connection_start));
 
     purge_button_queue_for_connection(conn_id);
+    // Bluedroid reuses conn_id values; stale counters would show on the next phone's profile
+    stats_clear_for_conn(conn_id);
     delete_client_state_entry(entry);
 }
 

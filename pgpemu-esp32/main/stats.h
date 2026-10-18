@@ -30,4 +30,7 @@ typedef struct {
 // Unlike the internal get_conn_entry(), never creates a new entry.
 bool stats_get_for_conn(uint16_t conn_id, Stats* out);
 
+// Drops conn_id's entry so a later connection reusing the id starts from zero.
+void stats_clear_for_conn(uint16_t conn_id);
+
 #endif /* STATS_H */
