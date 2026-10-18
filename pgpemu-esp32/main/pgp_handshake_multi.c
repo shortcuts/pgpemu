@@ -210,7 +210,7 @@ void connection_stop(uint16_t conn_id, uint8_t reason) {
     }
 
     entry->connection_end = xTaskGetTickCount();
-    entry->cert_state = 0;
+    entry->cert_state = PGP_CERT_FRESH;
 
     // Detect early disconnect with cached session (potential stale cache)
     uint32_t conn_duration_ms = pdTICKS_TO_MS(entry->connection_end - entry->connection_start);
@@ -251,7 +251,7 @@ size_t dump_client_states_format(char* buf, size_t buf_len) {
             "  handshake=%lu reconnection=%lu conn_start=%lu conn_end=%lu\n",
             i,
             entry->conn_id,
-            entry->cert_state,
+            (int)entry->cert_state,
             entry->has_reconnect_key,
             entry->notify,
             entry->handshake_start,

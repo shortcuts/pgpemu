@@ -162,13 +162,13 @@ static void test_cccd_short_write_ignored(void) {
     reset(0);
     g_state.has_reconnect_key = true;
     call_hs1(on, 2);
-    assert(g_state.notify && g_state.cert_state == 3 && indicate_calls == 1);
+    assert(g_state.notify && g_state.cert_state == PGP_CERT_RECON_CHALLENGE_SENT && indicate_calls == 1);
 
     for (uint16_t len = 0; len < 2; len++) {
         reset(0);
         g_state.has_reconnect_key = true;
         call_hs1(on, len);
-        assert(!g_state.notify && g_state.cert_state == 0 && indicate_calls == 0);
+        assert(!g_state.notify && g_state.cert_state == PGP_CERT_FRESH && indicate_calls == 0);
     }
     printf("PASS: cccd short writes ignored\n");
 }
@@ -180,40 +180,40 @@ static void test_handshake_short_writes_ignored(void) {
     // state 1: needs a whole struct next_challenge (52 bytes)
     reset(1);
     call_hs2(buf, 52);
-    assert(decrypt_calls == 1 && g_state.cert_state == 2);
+    assert(decrypt_calls == 1 && g_state.cert_state == PGP_CERT_FULL_RESPONSE_PENDING);
     reset(1);
     call_hs2(buf, 51);
-    assert(decrypt_calls == 0 && g_state.cert_state == 1 && indicate_calls == 0);
+    assert(decrypt_calls == 0 && g_state.cert_state == PGP_CERT_FULL_CHALLENGE_SENT && indicate_calls == 0);
 
     // state 2
     reset(2);
     call_hs2(buf, 52);
-    assert(decrypt_calls == 1 && g_state.cert_state == 6 && persist_calls == 1);
+    assert(decrypt_calls == 1 && g_state.cert_state == PGP_CERT_DONE && persist_calls == 1);
     reset(2);
     call_hs2(buf, 51);
-    assert(decrypt_calls == 0 && g_state.cert_state == 2 && persist_calls == 0);
+    assert(decrypt_calls == 0 && g_state.cert_state == PGP_CERT_FULL_RESPONSE_PENDING && persist_calls == 0);
 
     // state 4: 4-byte header + 32-byte challenge
     reset(4);
     call_hs2(buf, 36);
-    assert(reconnect_calls == 1 && g_state.cert_state == 5);
+    assert(reconnect_calls == 1 && g_state.cert_state == PGP_CERT_RECON_ESTABLISHED_PENDING);
     reset(4);
     call_hs2(buf, 35);
-    assert(reconnect_calls == 0 && g_state.cert_state == 4 && indicate_calls == 0);
+    assert(reconnect_calls == 0 && g_state.cert_state == PGP_CERT_RECON_RESPONSE_PENDING && indicate_calls == 0);
     reset(4);
     call_hs2(buf, 0);
-    assert(reconnect_calls == 0 && g_state.cert_state == 4);
+    assert(reconnect_calls == 0 && g_state.cert_state == PGP_CERT_RECON_RESPONSE_PENDING);
 
     // states 0, 3, 5 keep their exact-length checks
     reset(0);
     call_hs2(buf, 20);
-    assert(g_state.cert_state == 1);
+    assert(g_state.cert_state == PGP_CERT_FULL_CHALLENGE_SENT);
     reset(3);
     call_hs2(buf, 20);
-    assert(g_state.cert_state == 4);
+    assert(g_state.cert_state == PGP_CERT_RECON_RESPONSE_PENDING);
     reset(5);
     call_hs2(buf, 5);
-    assert(g_state.cert_state == 6);
+    assert(g_state.cert_state == PGP_CERT_DONE);
     printf("PASS: handshake short writes ignored\n");
 }
 

@@ -571,7 +571,7 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
             "[%d] ESP_GATTS_READ_EVT: %s",
             param->read.conn_id,
             char_name_from_handle(param->read.handle));
-        if (pgp_get_handshake_state(param->read.conn_id) == 1) {
+        if (pgp_get_handshake_state(param->read.conn_id) == PGP_CERT_FULL_CHALLENGE_SENT) {
             if (esp_log_level_get(BT_GATTS_TAG) >= ESP_LOG_VERBOSE) {
                 ESP_LOGV(BT_GATTS_TAG, "DATA SENT TO APP");
                 if (gatt_db_certificate[IDX_CHAR_SFIDA_TO_CENTRAL_VAL].att_desc.value) {

@@ -58,7 +58,7 @@ void handle_pgp_handshake_first(esp_gatt_if_t gatts_if, const uint8_t* value, ui
             esp_ble_gatts_set_attr_value(
                 certificate_handle_table[IDX_CHAR_SFIDA_TO_CENTRAL_VAL], 36, client_state->cert_buffer);
 
-            client_state->cert_state = 3;
+            client_state->cert_state = PGP_CERT_RECON_CHALLENGE_SENT;
         } else if (has_cached_session(client_state->remote_bda)) {
             // Try to use cached session keys for faster reconnection
             if (retrieve_device_session_keys(
@@ -76,7 +76,7 @@ void handle_pgp_handshake_first(esp_gatt_if_t gatts_if, const uint8_t* value, ui
                 esp_ble_gatts_set_attr_value(
                     certificate_handle_table[IDX_CHAR_SFIDA_TO_CENTRAL_VAL], 36, client_state->cert_buffer);
 
-                client_state->cert_state = 3;
+                client_state->cert_state = PGP_CERT_RECON_CHALLENGE_SENT;
             } else {
                 // Cache retrieval failed, fall through to full handshake
                 ESP_LOGW(
@@ -133,29 +133,33 @@ void handle_pgp_handshake_second(esp_gatt_if_t gatts_if, const uint8_t* prepare_
         return;
     }
 
-    if (client_state->cert_state >= 1) {
-        ESP_LOGD(HANDSHAKE_TAG, "[%d] Handshake state=%d, received %d b", conn_id, client_state->cert_state, datalen);
+    if (client_state->cert_state >= PGP_CERT_FULL_CHALLENGE_SENT) {
+        ESP_LOGD(
+            HANDSHAKE_TAG, "[%d] Handshake state=%d, received %d b", conn_id, (int)client_state->cert_state, datalen);
     }
 
     // decrypt_next() reads a whole struct next_challenge; generate_reconnect_response() reads 32 bytes after a 4-byte
     // header
     int min_len = 0;
     switch (client_state->cert_state) {
-    case 1:
-    case 2:
+    case PGP_CERT_FULL_CHALLENGE_SENT:
+    case PGP_CERT_FULL_RESPONSE_PENDING:
         min_len = sizeof(struct next_challenge);
         break;
-    case 4:
+    case PGP_CERT_RECON_RESPONSE_PENDING:
         min_len = 4 + 32;
+        break;
+    default:
         break;
     }
     if (datalen < min_len) {
-        ESP_LOGW(HANDSHAKE_TAG, "[%d] state %d write too short: len=%d", conn_id, client_state->cert_state, datalen);
+        ESP_LOGW(
+            HANDSHAKE_TAG, "[%d] state %d write too short: len=%d", conn_id, (int)client_state->cert_state, datalen);
         return;
     }
 
     switch (client_state->cert_state) {
-    case 0:  // normal challenge+response entry point
+    case PGP_CERT_FRESH:  // normal challenge+response entry point
     {
         if (datalen == 20) {
             // just assume server responds correctly
@@ -190,13 +194,13 @@ void handle_pgp_handshake_second(esp_gatt_if_t gatts_if, const uint8_t* prepare_
                 notify_data,
                 false);
 
-            client_state->cert_state = 1;
+            client_state->cert_state = PGP_CERT_FULL_CHALLENGE_SENT;
         } else {
             ESP_LOGE(HANDSHAKE_TAG, "App sends incorrect len=%d", datalen);
         }
         break;
     }
-    case 1: {
+    case PGP_CERT_FULL_CHALLENGE_SENT: {
         // we need to decrypt and send challenge data from APP
         uint8_t temp[20];
         memset(temp, 0, sizeof(temp));
@@ -223,10 +227,10 @@ void handle_pgp_handshake_second(esp_gatt_if_t gatts_if, const uint8_t* prepare_
             notify_data,
             false);
 
-        client_state->cert_state = 2;
+        client_state->cert_state = PGP_CERT_FULL_RESPONSE_PENDING;
         break;
     }
-    case 2: {
+    case PGP_CERT_FULL_RESPONSE_PENDING: {
         ESP_LOGD(HANDSHAKE_TAG, "OK");
 
         uint8_t temp[20];
@@ -257,12 +261,12 @@ void handle_pgp_handshake_second(esp_gatt_if_t gatts_if, const uint8_t* prepare_
             notify_data,
             false);
 
-        client_state->cert_state = 6;
+        client_state->cert_state = PGP_CERT_DONE;
         connection_start(conn_id);
         advertise_if_needed();
         break;
     }
-    case 3:  // reconnection #1: entry point
+    case PGP_CERT_RECON_CHALLENGE_SENT:  // reconnection #1: entry point
     {
         if (datalen == 20) {
             // just assume server responds correctly
@@ -279,13 +283,13 @@ void handle_pgp_handshake_second(esp_gatt_if_t gatts_if, const uint8_t* prepare_
                 notify_data,
                 false);
 
-            client_state->cert_state = 4;
+            client_state->cert_state = PGP_CERT_RECON_RESPONSE_PENDING;
         } else {
             ESP_LOGW(HANDSHAKE_TAG, "[%d] reconnection #1 unexpected datalen=%d", conn_id, datalen);
         }
         break;
     }
-    case 4:  // reconnection #2
+    case PGP_CERT_RECON_RESPONSE_PENDING:  // reconnection #2
     {
         ESP_LOGI(HANDSHAKE_TAG, "[%d] reconnection response received (state 4->5)", conn_id);
 
@@ -310,10 +314,10 @@ void handle_pgp_handshake_second(esp_gatt_if_t gatts_if, const uint8_t* prepare_
             notify_data,
             false);
 
-        client_state->cert_state = 5;
+        client_state->cert_state = PGP_CERT_RECON_ESTABLISHED_PENDING;
         break;
     }
-    case 5:  // reconnection #3: established
+    case PGP_CERT_RECON_ESTABLISHED_PENDING:  // reconnection #3: established
     {
         if (datalen == 5) {
             // just assume server responds correctly
@@ -327,7 +331,7 @@ void handle_pgp_handshake_second(esp_gatt_if_t gatts_if, const uint8_t* prepare_
                 notify_data,
                 false);
 
-            client_state->cert_state = 6;
+            client_state->cert_state = PGP_CERT_DONE;
             // For reconnections on a fresh entry (connection_start == 0), increment the counter.
             // For reconnections on an existing entry (connection_start != 0), just update timestamp.
             // This handles both scenarios: fresh slots vs reconnections within same slot.
@@ -343,7 +347,7 @@ void handle_pgp_handshake_second(esp_gatt_if_t gatts_if, const uint8_t* prepare_
         break;
     }
     default:
-        ESP_LOGE(HANDSHAKE_TAG, "Unhandled state: %d", client_state->cert_state);
+        ESP_LOGE(HANDSHAKE_TAG, "Unhandled state: %d", (int)client_state->cert_state);
         break;
     }
 }

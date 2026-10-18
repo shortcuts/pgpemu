@@ -14,6 +14,17 @@
 
 static const size_t CERT_BUFFER_LEN = 378;
 
+// Values are the numbers the logs and diagnostics dump print; keep them stable.
+typedef enum {
+    PGP_CERT_FRESH = 0,
+    PGP_CERT_FULL_CHALLENGE_SENT = 1,
+    PGP_CERT_FULL_RESPONSE_PENDING = 2,
+    PGP_CERT_RECON_CHALLENGE_SENT = 3,
+    PGP_CERT_RECON_RESPONSE_PENDING = 4,
+    PGP_CERT_RECON_ESTABLISHED_PENDING = 5,
+    PGP_CERT_DONE = 6,
+} pgp_cert_state_t;
+
 typedef struct {
     // connection informations
     uint16_t conn_id;
@@ -21,7 +32,7 @@ typedef struct {
     DeviceSettings* settings;
 
     // cert informations
-    int cert_state;
+    pgp_cert_state_t cert_state;
     // TODO: we probably need to save the remote mac address so that we associate a reconnecting
     // client with its previous client state
     bool has_reconnect_key;
