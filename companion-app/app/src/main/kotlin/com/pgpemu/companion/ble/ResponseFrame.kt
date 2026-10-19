@@ -27,4 +27,6 @@ object StatusCode {
     const val ERR_BUSY: Byte = 0x04
     const val ERR_INTERNAL: Byte = 0x05
     const val ERR_NOT_PROVISIONING: Byte = 0x06
+    const val ERR_OTA_NOT_ARMED: Byte = 0x07
+    const val ERR_OTA_STATE: Byte = 0x08
 }

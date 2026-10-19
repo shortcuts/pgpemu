@@ -38,6 +38,7 @@ Autocatcher/Gotcha/Pokemon Go Plus device emulator for Pokemon Go, with autospin
 - Statically loaded secrets (see [Load Pokemon Go Plus Secrets](#load-pokemon-go-plus-secrets)) in [NVS](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/storage/nvs_flash.html)
 - Provisioning mode: a device without secrets starts a setup-only Bluetooth service, and the companion app uploads `secrets.csv` (see [Load Pokemon Go Plus Secrets](#load-pokemon-go-plus-secrets))
 - Toggle autocatch/autospin
+- Firmware update from the companion app over Bluetooth, with automatic rollback if the new firmware does not start
 - Android 15+ support
 - iOS support
 
@@ -198,6 +199,9 @@ The app is a single scrolling screen, ordered by risk/frequency:
   irreversible BLE operations with no undo.
   **Forget all pairings** keeps the clone identity; holding the board button
   for 10 seconds does the same without the app.
+- **Update firmware** — pick a release `pgpemu.bin`, hold the board button
+  for 3 seconds to allow the update, then confirm with `UPDATE`. The app
+  streams the image over Bluetooth and restarts the device.
 - **Set up device** — shown instead of the sections above when the device has
   no secrets. **Import secrets.csv** uploads the file and restarts the device.
 
@@ -312,6 +316,7 @@ pgpemu/
 │   │   ├── Features:
 │   │   │   ├── pgp_led_handler.c(.h)        # LED pattern → action
 │   │   │   ├── pgp_autobutton.c(.h)         # Button press simulation
+│   │   │   ├── pgp_ota.c(.h)                # OTA firmware update
 │   │   │   └── button_input.c(.h)           # GPIO handler
 │   │   │
 │   │   ├── Communication:

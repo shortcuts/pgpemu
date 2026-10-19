@@ -32,6 +32,9 @@ class FakeBleControlRepository : BleControlRepository {
     val gates = mutableMapOf<Int, CompletableDeferred<Unit>>()
     val sentCommands = mutableListOf<Pair<Int, ByteArray>>()
 
+    /** Answers a command from its payload (e.g. an OTA offset); null falls back to [stubResponse]. */
+    var responder: ((Int, ByteArray) -> Result<ResponseFrame>?)? = null
+
     fun setConnectionState(state: ConnectionState) {
         _connectionState.value = state
     }
@@ -67,6 +70,7 @@ class FakeBleControlRepository : BleControlRepository {
     ): Result<ResponseFrame> {
         sentCommands.add(opcode to payload)
         gates[opcode]?.await()
+        responder?.invoke(opcode, payload)?.let { return it }
         return responses[opcode] ?: Result.failure(UnsupportedOperationException("not stubbed: opcode=$opcode"))
     }
 }

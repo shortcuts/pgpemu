@@ -25,4 +25,8 @@ object Opcode {
     const val SET_LOG_LEVEL: Int = 0x16
     const val PROVISION_SECRETS: Int = 0x17
     const val FORGET_PAIRINGS: Int = 0x18
+    const val OTA_BEGIN: Int = 0x19
+    const val OTA_DATA: Int = 0x1A
+    const val OTA_END: Int = 0x1B
+    const val OTA_ABORT: Int = 0x1C
 }

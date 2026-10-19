@@ -7,6 +7,9 @@ import com.pgpemu.companion.ble.BleControlRepository
 import com.pgpemu.companion.ble.ConnectionState
 import com.pgpemu.companion.ble.DeviceInfo
 import com.pgpemu.companion.ble.Opcode
+import com.pgpemu.companion.ble.OtaException
+import com.pgpemu.companion.ble.OtaImage
+import com.pgpemu.companion.ble.OtaTransfer
 import com.pgpemu.companion.ble.ResponseFrame
 import com.pgpemu.companion.ble.ScannedDevice
 import com.pgpemu.companion.ble.StatusCode
@@ -15,6 +18,7 @@ import com.pgpemu.companion.ble.decodeDeviceInfo
 import com.pgpemu.companion.ble.decodeFlag
 import com.pgpemu.companion.ble.decodeGlobalSettings
 import com.pgpemu.companion.ble.decodeLogLevel
+import com.pgpemu.companion.ble.parseOtaImage
 import com.pgpemu.companion.ble.parseSecretsCsv
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -37,6 +41,9 @@ const val DEFAULT_PROFILE_COUNT = 4
 // Oldest GET_DEVICE_INFO layout version this app decodes.
 const val MIN_PROTOCOL_VERSION = 4
 
+// First GET_DEVICE_INFO layout version with the OTA opcodes.
+const val OTA_MIN_PROTOCOL_VERSION = 5
+
 // Poll interval while connected — other phones can connect/disconnect and
 // toggle profiles without this app knowing, so state can go stale otherwise.
 const val STATUS_POLL_INTERVAL_MS = 5000L
@@ -55,7 +62,11 @@ data class DeviceUiState(
     val deviceInfo: DeviceInfo? = null,
     /** The device cannot answer GET_DEVICE_INFO, or speaks a protocol older than this app supports. */
     val firmwareOutdated: Boolean = false,
-)
+    /** Percent of the firmware image sent; null while no update runs. */
+    val otaProgress: Int? = null,
+) {
+    val otaSupported: Boolean get() = (deviceInfo?.protocolVersion ?: 0) >= OTA_MIN_PROTOCOL_VERSION
+}
 
 /** Text for the user; the screen maps each case to a string resource, raw codes ride along for bug reports. */
 sealed interface UiMessage {
@@ -76,6 +87,15 @@ sealed interface UiMessage {
     data class InvalidSecretsFile(
         val detail: String?,
     ) : UiMessage
+
+    data class InvalidFirmwareFile(
+        val detail: String?,
+    ) : UiMessage
+
+    /** The new image is selected and the device is restarting into it. */
+    data object FirmwareInstalled : UiMessage {
+        override val isError = false
+    }
 
     /** The device stored the secrets and is restarting; it reappears under its new Bluetooth address. */
     data object SecretsProvisioned : UiMessage {
@@ -129,6 +149,12 @@ sealed interface ConfirmAction {
         override val bodyRes = R.string.confirm_forget_body
     }
 
+    data object UpdateFirmware : ConfirmAction {
+        override val confirmWord = "UPDATE"
+        override val titleRes = R.string.confirm_ota_title
+        override val bodyRes = R.string.confirm_ota_body
+    }
+
     data object Restart : ConfirmAction {
         override val confirmWord = "RESTART"
         override val titleRes = R.string.danger_restart
@@ -147,6 +173,7 @@ class DeviceViewModel
         val associationRequests = repository.associationRequests
 
         private var pollJob: Job? = null
+        private var pendingOta: OtaImage? = null
 
         // Default true: the ViewModel is created by a started screen, which then reports every change.
         private val foreground = MutableStateFlow(true)
@@ -489,11 +516,50 @@ class DeviceViewModel
             }
         }
 
+        /** Checks the picked pgpemu.bin and asks for confirmation; the device must be armed with its board button. */
+        fun requestFirmwareUpdate(bytes: ByteArray?) {
+            if (!_uiState.value.otaSupported) return
+            val parsed = parseOtaImage(bytes ?: ByteArray(0))
+            val image = parsed.getOrNull()
+            if (image == null) {
+                _uiState.update { it.copy(message = UiMessage.InvalidFirmwareFile(parsed.exceptionOrNull()?.message)) }
+                return
+            }
+            pendingOta = image
+            _uiState.update { it.copy(pendingConfirmation = ConfirmAction.UpdateFirmware) }
+        }
+
+        private fun startOta() {
+            val image = pendingOta ?: return
+            pendingOta = null
+            viewModelScope.launch {
+                commandLock.withLock {
+                    _uiState.update { it.copy(isBusy = true, message = null, otaProgress = 0) }
+                    try {
+                        OtaTransfer(repository).run(image).collect { p -> _uiState.update { it.copy(otaProgress = p.percent) } }
+                        // The new image only boots after a restart; END already acknowledged it.
+                        runStep(Opcode.RESTART) { _uiState.update { it.copy(message = UiMessage.FirmwareInstalled) } }
+                    } catch (e: OtaException) {
+                        val status = e.status
+                        _uiState.update {
+                            it.copy(
+                                message =
+                                    if (status != null) UiMessage.DeviceStatus(status.toInt()) else UiMessage.CommandFailed(e.message),
+                            )
+                        }
+                    } finally {
+                        _uiState.update { it.copy(isBusy = false, otaProgress = null) }
+                    }
+                }
+            }
+        }
+
         fun requestRestart() {
             _uiState.update { it.copy(pendingConfirmation = ConfirmAction.Restart) }
         }
 
         fun dismissConfirmation() {
+            pendingOta = null
             _uiState.update { it.copy(pendingConfirmation = null) }
         }
 
@@ -501,6 +567,10 @@ class DeviceViewModel
             when (_uiState.value.pendingConfirmation) {
                 ConfirmAction.ResetSecrets -> runCommand(Opcode.RESET_SECRETS) { dismissConfirmation() }
                 ConfirmAction.ForgetPairings -> runCommand(Opcode.FORGET_PAIRINGS) { dismissConfirmation() }
+                ConfirmAction.UpdateFirmware -> {
+                    _uiState.update { it.copy(pendingConfirmation = null) }
+                    startOta()
+                }
                 ConfirmAction.Restart -> runCommand(Opcode.RESTART) { dismissConfirmation() }
                 null -> Unit
             }

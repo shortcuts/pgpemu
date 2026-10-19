@@ -44,6 +44,16 @@
     <string name="msg_status_busy">Device is busy, try again (%1$d)</string>
     <string name="msg_status_internal">Device hit an internal error (%1$d)</string>
     <string name="msg_status_not_provisioning">This device already has secrets (%1$d)</string>
+    <string name="msg_status_ota_not_armed">Hold the board button for 3 seconds, then try again (%1$d)</string>
+    <string name="msg_status_ota_state">The update was interrupted, try again (%1$d)</string>
+    <string name="msg_invalid_firmware_file">Not a valid pgpemu.bin: %1$s</string>
+    <string name="msg_firmware_installed">Update installed. The device restarts: reconnect in a few seconds.</string>
+    <string name="section_ota">Update firmware</string>
+    <string name="ota_body">Pick the pgpemu.bin of a release. First hold the board button for 3 seconds, then start the update. It takes a few minutes: keep the phone close.</string>
+    <string name="ota_pick">Choose pgpemu.bin</string>
+    <string name="ota_progress">Sending: %1$d%%</string>
+    <string name="confirm_ota_title">Update firmware</string>
+    <string name="confirm_ota_body">The device installs this image and restarts. Pokémon GO must be disconnected from it. If the new firmware fails to start, the device returns to the old one.</string>
     <string name="msg_invalid_secrets_file">Not a valid secrets.csv: %1$s</string>
     <string name="msg_secrets_provisioned">Secrets saved. The device restarts and shows up under a new Bluetooth address: scan and connect again.</string>
     <string name="provisioning_title">Set up device</string>

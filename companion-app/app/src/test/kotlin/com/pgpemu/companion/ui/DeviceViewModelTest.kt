@@ -5,6 +5,7 @@ import com.pgpemu.companion.ble.Opcode
 import com.pgpemu.companion.ble.ResponseFrame
 import com.pgpemu.companion.ble.ScannedDevice
 import com.pgpemu.companion.ble.StatusCode
+import com.pgpemu.companion.ble.otaImageBytes
 import com.pgpemu.companion.core.testing.FakeBleControlRepository
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
@@ -739,5 +740,97 @@ class DeviceViewModelTest {
                 listOf(Opcode.GET_RUNTIME_STATS, Opcode.GET_CLIENT_SUMMARY),
                 repository.sentCommands.map { it.first },
             )
+        }
+
+    private fun otaDevice(protocol: Int): FakeBleControlRepository {
+        val repository = FakeBleControlRepository()
+        stubStatusReplies(repository)
+        repository.stubResponse(
+            Opcode.GET_DEVICE_INFO,
+            Result.success(ResponseFrame(StatusCode.OK, Opcode.GET_DEVICE_INFO.toByte(), deviceInfoBytes(protocol, 4))),
+        )
+        repository.responder = { opcode, payload ->
+            val reply =
+                when (opcode) {
+                    Opcode.OTA_BEGIN -> byteArrayOf(0xE0.toByte(), 0x01)
+                    Opcode.OTA_DATA -> {
+                        val next = (0 until 4).sumOf { (payload[it].toInt() and 0xFF) shl (8 * it) } + payload.size - 4
+                        ByteArray(4) { (next shr (8 * it)).toByte() }
+                    }
+                    else -> byteArrayOf()
+                }
+            if (opcode in Opcode.OTA_BEGIN..Opcode.OTA_ABORT || opcode == Opcode.RESTART) {
+                Result.success(ResponseFrame(StatusCode.OK, opcode.toByte(), reply))
+            } else {
+                null
+            }
+        }
+        return repository
+    }
+
+    @Test
+    fun `firmware update sends the image after confirmation, then restarts`() =
+        runTest {
+            val repository = otaDevice(5)
+            val viewModel = DeviceViewModel(repository)
+            viewModel.refreshStatus()
+            dispatcher.scheduler.advanceUntilIdle()
+            assertTrue(viewModel.uiState.value.otaSupported)
+
+            viewModel.requestFirmwareUpdate(otaImageBytes(size = 1000))
+            assertEquals(ConfirmAction.UpdateFirmware, viewModel.uiState.value.pendingConfirmation)
+            assertFalse(repository.sentCommands.any { it.first == Opcode.OTA_BEGIN })
+
+            viewModel.confirmPendingAction()
+            dispatcher.scheduler.advanceUntilIdle()
+            assertEquals(
+                listOf(Opcode.OTA_BEGIN, Opcode.OTA_DATA, Opcode.OTA_DATA, Opcode.OTA_DATA, Opcode.OTA_END, Opcode.RESTART),
+                repository.sentCommands.map { it.first }.dropWhile { it !in Opcode.OTA_BEGIN..Opcode.OTA_ABORT },
+            )
+            assertEquals(UiMessage.FirmwareInstalled, viewModel.uiState.value.message)
+            assertNull(viewModel.uiState.value.otaProgress)
+            assertNull(viewModel.uiState.value.pendingConfirmation)
+        }
+
+    @Test
+    fun `firmware update reports a device that is not armed`() =
+        runTest {
+            val repository = otaDevice(5)
+            repository.responder = { opcode, _ ->
+                if (opcode == Opcode.OTA_BEGIN) {
+                    Result.success(ResponseFrame(StatusCode.ERR_OTA_NOT_ARMED, opcode.toByte(), byteArrayOf()))
+                } else {
+                    null
+                }
+            }
+            val viewModel = DeviceViewModel(repository)
+            viewModel.refreshStatus()
+            dispatcher.scheduler.advanceUntilIdle()
+
+            viewModel.requestFirmwareUpdate(otaImageBytes(size = 1000))
+            viewModel.confirmPendingAction()
+            dispatcher.scheduler.advanceUntilIdle()
+            assertEquals(UiMessage.DeviceStatus(StatusCode.ERR_OTA_NOT_ARMED.toInt()), viewModel.uiState.value.message)
+            assertFalse(repository.sentCommands.any { it.first == Opcode.RESTART })
+            assertFalse(viewModel.uiState.value.isBusy)
+        }
+
+    @Test
+    fun `firmware update is refused on protocol 4 and for a bad image`() =
+        runTest {
+            val old = otaDevice(4)
+            val oldVm = DeviceViewModel(old)
+            oldVm.refreshStatus()
+            dispatcher.scheduler.advanceUntilIdle()
+            assertFalse(oldVm.uiState.value.otaSupported)
+            oldVm.requestFirmwareUpdate(otaImageBytes())
+            assertNull(oldVm.uiState.value.pendingConfirmation)
+
+            val vm = DeviceViewModel(otaDevice(5))
+            vm.refreshStatus()
+            dispatcher.scheduler.advanceUntilIdle()
+            vm.requestFirmwareUpdate(otaImageBytes(project = "other"))
+            assertTrue(vm.uiState.value.message is UiMessage.InvalidFirmwareFile)
+            assertNull(vm.uiState.value.pendingConfirmation)
         }
 }

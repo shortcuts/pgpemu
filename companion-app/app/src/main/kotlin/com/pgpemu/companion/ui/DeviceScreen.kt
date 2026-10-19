@@ -45,6 +45,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -191,6 +192,11 @@ fun DeviceScreen(viewModel: DeviceViewModel = hiltViewModel()) {
                             onDisconnectAll = viewModel::disconnectAllClients,
                         )
                     }
+                    if (uiState.otaSupported) {
+                        item {
+                            OtaSection(progress = uiState.otaProgress, isBusy = uiState.isBusy, onPicked = viewModel::requestFirmwareUpdate)
+                        }
+                    }
                     item {
                         DangerZoneSection(
                             onForgetPairings = viewModel::requestForgetPairings,
@@ -245,6 +251,8 @@ private fun messageText(message: UiMessage): String =
                     StatusCode.ERR_BUSY -> R.string.msg_status_busy
                     StatusCode.ERR_INTERNAL -> R.string.msg_status_internal
                     StatusCode.ERR_NOT_PROVISIONING -> R.string.msg_status_not_provisioning
+                    StatusCode.ERR_OTA_NOT_ARMED -> R.string.msg_status_ota_not_armed
+                    StatusCode.ERR_OTA_STATE -> R.string.msg_status_ota_state
                     else -> R.string.msg_status_other
                 },
                 message.code,
@@ -258,6 +266,9 @@ private fun messageText(message: UiMessage): String =
                 message.detail ?: stringResource(R.string.dash),
             )
         UiMessage.SecretsProvisioned -> stringResource(R.string.msg_secrets_provisioned)
+        is UiMessage.InvalidFirmwareFile ->
+            stringResource(R.string.msg_invalid_firmware_file, message.detail ?: stringResource(R.string.dash))
+        UiMessage.FirmwareInstalled -> stringResource(R.string.msg_firmware_installed)
     }
 
 // GATT 8 = supervision timeout, the usual out-of-range drop; 0 = clean local disconnect.
@@ -736,6 +747,35 @@ private fun DiagnosticsSection(
         DiagnosticDump(stringResource(R.string.diag_client_states), diagnostics.clientStates, onRefreshClientStates)
         Spacer(modifier = Modifier.height(6.dp))
         TextRow(label = stringResource(R.string.diag_disconnect_all), onClick = onDisconnectAll, isLast = true)
+    }
+}
+
+@Composable
+private fun OtaSection(
+    progress: Int?,
+    isBusy: Boolean,
+    onPicked: (ByteArray?) -> Unit,
+) {
+    val context = LocalContext.current
+    val picker =
+        rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            if (uri != null) {
+                onPicked(runCatching { context.contentResolver.openInputStream(uri)?.use { it.readBytes() } }.getOrNull())
+            }
+        }
+    SectionCard(title = stringResource(R.string.section_ota)) {
+        Text(text = stringResource(R.string.ota_body), color = LocalPgpColors.current.text)
+        Spacer(modifier = Modifier.height(12.dp))
+        if (progress != null) {
+            Text(text = stringResource(R.string.ota_progress, progress), color = LocalPgpColors.current.muted)
+            LinearProgressIndicator(progress = { progress / 100f }, modifier = Modifier.fillMaxWidth().padding(top = 6.dp))
+        } else {
+            Button(
+                onClick = { picker.launch(arrayOf("*/*")) },
+                enabled = !isBusy,
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text(stringResource(R.string.ota_pick)) }
+        }
     }
 }
 
