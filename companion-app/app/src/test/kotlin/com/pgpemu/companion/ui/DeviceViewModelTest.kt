@@ -488,6 +488,26 @@ class DeviceViewModelTest {
         }
 
     @Test
+    fun `forget pairings sends one command only after confirmation`() =
+        runTest {
+            val repository = FakeBleControlRepository()
+            repository.stubResponse(
+                Opcode.FORGET_PAIRINGS,
+                Result.success(ResponseFrame(StatusCode.OK, Opcode.FORGET_PAIRINGS.toByte(), byteArrayOf())),
+            )
+            val viewModel = DeviceViewModel(repository)
+
+            viewModel.requestForgetPairings()
+            assertEquals(ConfirmAction.ForgetPairings, viewModel.uiState.value.pendingConfirmation)
+            assertEquals(emptyList<Int>(), repository.sentCommands.map { it.first })
+
+            viewModel.confirmPendingAction()
+            dispatcher.scheduler.advanceUntilIdle()
+            assertEquals(listOf(Opcode.FORGET_PAIRINGS), repository.sentCommands.map { it.first })
+            assertNull(viewModel.uiState.value.pendingConfirmation)
+        }
+
+    @Test
     fun `failed provisioning does not restart the device`() =
         runTest {
             val repository = FakeBleControlRepository()

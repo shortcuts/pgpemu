@@ -24,6 +24,8 @@ static inline uint32_t esp_get_free_heap_size(void) {
 static inline uint32_t esp_get_minimum_free_heap_size(void) {
     return 0;
 }
+#define ESP_RST_SW 3
+static int esp_reset_reason_value = ESP_RST_SW;
 static inline int esp_reset_reason(void) {
-    return 3;
+    return esp_reset_reason_value;
 }

@@ -3,6 +3,7 @@
 #include "config_storage.h"
 #include "esp_log.h"
 #include "esp_system.h"
+#include "forget_pairings.h"
 #include "led_output.h"
 #include "log_tags.h"
 #include "pgp_autobutton.h"
@@ -24,6 +25,8 @@ void app_main() {
         // keep it from bootlooping too quick when powering from low battery
         vTaskDelay(60000 / portTICK_PERIOD_MS);
     }
+
+    forget_pairings_if_requested();
 
     init_settings_nvs_partition();
     init_secrets_partition();

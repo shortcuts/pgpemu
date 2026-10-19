@@ -4,6 +4,7 @@
 #include "driver/gpio.h"
 #include "esp_err.h"
 #include "esp_log.h"
+#include "forget_pairings.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/FreeRTOSConfig.h"
 #include "freertos/queue.h"
@@ -14,6 +15,9 @@
 #include "settings.h"
 
 static const int CONFIG_GPIO_INPUT_BUTTON1 = GPIO_NUM_9;
+// GPIO 9 is a strapping pin: held low at reset the ROM enters download mode, so the hold happens at run time.
+#define FORGET_HOLD_MS 10000
+#define FORGET_POLL_MS 100
 
 static void button_input_task(void* pvParameters);
 static QueueHandle_t button_input_queue;
@@ -57,6 +61,17 @@ static void button_input_task(void* pvParameters) {
                 vTaskDelay(200 / portTICK_PERIOD_MS);
                 if (gpio_get_level(CONFIG_GPIO_INPUT_BUTTON1) != 0) {
                     continue;
+                }
+
+                // Toggling waits for the release, so a long hold never flips advertising first.
+                int held_ms = 0;
+                while (held_ms < FORGET_HOLD_MS && gpio_get_level(CONFIG_GPIO_INPUT_BUTTON1) == 0) {
+                    vTaskDelay(FORGET_POLL_MS / portTICK_PERIOD_MS);
+                    held_ms += FORGET_POLL_MS;
+                }
+                if (held_ms >= FORGET_HOLD_MS) {
+                    ESP_LOGW(BUTTON_INPUT_TAG, "button1 held -> forget pairings");
+                    forget_pairings_and_restart();
                 }
 
                 ESP_LOGD(BUTTON_INPUT_TAG, "button1 pressed");

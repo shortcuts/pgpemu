@@ -123,6 +123,12 @@ sealed interface ConfirmAction {
         override val bodyRes = R.string.confirm_reset_body
     }
 
+    data object ForgetPairings : ConfirmAction {
+        override val confirmWord = "FORGET"
+        override val titleRes = R.string.confirm_forget_title
+        override val bodyRes = R.string.confirm_forget_body
+    }
+
     data object Restart : ConfirmAction {
         override val confirmWord = "RESTART"
         override val titleRes = R.string.danger_restart
@@ -460,6 +466,10 @@ class DeviceViewModel
             runCommand(Opcode.RESET_CLIENT_STATES) { refreshClientStates() }
         }
 
+        fun requestForgetPairings() {
+            _uiState.update { it.copy(pendingConfirmation = ConfirmAction.ForgetPairings) }
+        }
+
         fun requestResetSecrets() {
             _uiState.update { it.copy(pendingConfirmation = ConfirmAction.ResetSecrets) }
         }
@@ -490,6 +500,7 @@ class DeviceViewModel
         fun confirmPendingAction() {
             when (_uiState.value.pendingConfirmation) {
                 ConfirmAction.ResetSecrets -> runCommand(Opcode.RESET_SECRETS) { dismissConfirmation() }
+                ConfirmAction.ForgetPairings -> runCommand(Opcode.FORGET_PAIRINGS) { dismissConfirmation() }
                 ConfirmAction.Restart -> runCommand(Opcode.RESTART) { dismissConfirmation() }
                 null -> Unit
             }

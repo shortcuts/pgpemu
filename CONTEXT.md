@@ -27,6 +27,10 @@ _Avoid_: device, client, slot
 The Pokémon-GO pairing material persisted per Device Profile in the dedicated `pgpsecret` NVS partition, never auto-erased: clone name, MAC, device key, blob. Readable/resettable through the Control Service once bonded; writable only in Provisioning Mode.
 _Avoid_: pairing data, credentials
 
+**Forget Pairings**:
+Erases the default `nvs` partition (bonds, session keys, Global and Device Settings) and restarts. Keeps Session Secrets. Triggered by FORGET_PAIRINGS or a 10 s button hold; the erase runs at the next boot.
+_Avoid_: factory reset
+
 **Provisioning Mode**:
 The boot mode of a device with no Session Secrets: BLE runs with only the Control Service, advertised as "PGPemu Setup". The Companion App uploads the secrets with PROVISION_SECRETS, then restarts the device. Not a stored flag: it is `!PGP_VALID()`.
 _Avoid_: setup mode, recovery mode

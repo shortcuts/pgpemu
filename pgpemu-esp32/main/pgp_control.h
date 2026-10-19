@@ -49,6 +49,7 @@ typedef enum {
     CONTROL_OP_SET_AUTOCATCH = 0x15,
     CONTROL_OP_SET_LOG_LEVEL = 0x16,
     CONTROL_OP_PROVISION_SECRETS = 0x17,
+    CONTROL_OP_FORGET_PAIRINGS = 0x18,
 } control_opcode_t;
 
 typedef enum {

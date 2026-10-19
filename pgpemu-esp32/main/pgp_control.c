@@ -5,8 +5,9 @@
 #include "esp_gap_ble_api.h"
 #include "esp_gatt_defs.h"
 #include "esp_log.h"
-#include "esp_system.h"  // esp_restart, esp_get_free_heap_size
-#include "esp_timer.h"   // esp_timer_get_time
+#include "esp_system.h"       // esp_restart, esp_get_free_heap_size
+#include "esp_timer.h"        // esp_timer_get_time
+#include "forget_pairings.h"  // forget_pairings_and_restart
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"  // vTaskList
 #include "fw_version.h"     // PGP_FW_VERSION
@@ -359,6 +360,11 @@ static void pgp_control_handle_command_write(esp_gatt_if_t gatts_if,
         pgp_control_send_response(gatts_if, conn_id, CONTROL_STATUS_OK, opcode, NULL, 0);
         fflush(stdout);
         esp_restart();
+        return;  // unreachable
+    }
+    case CONTROL_OP_FORGET_PAIRINGS: {
+        pgp_control_send_response(gatts_if, conn_id, CONTROL_STATUS_OK, opcode, NULL, 0);
+        forget_pairings_and_restart();
         return;  // unreachable
     }
     case CONTROL_OP_GET_LED_STATE: {

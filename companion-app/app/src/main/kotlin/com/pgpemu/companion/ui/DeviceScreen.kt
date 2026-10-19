@@ -193,6 +193,7 @@ fun DeviceScreen(viewModel: DeviceViewModel = hiltViewModel()) {
                     }
                     item {
                         DangerZoneSection(
+                            onForgetPairings = viewModel::requestForgetPairings,
                             onResetSecrets = viewModel::requestResetSecrets,
                             onRestart = viewModel::requestRestart,
                         )
@@ -740,11 +741,14 @@ private fun DiagnosticsSection(
 
 @Composable
 private fun DangerZoneSection(
+    onForgetPairings: () -> Unit,
     onResetSecrets: () -> Unit,
     onRestart: () -> Unit,
 ) {
     val colors = LocalPgpColors.current
     SectionCard(title = stringResource(R.string.section_danger), titleColor = colors.danger) {
+        DangerButton(stringResource(R.string.danger_forget_pairings), onForgetPairings)
+        Spacer(modifier = Modifier.height(8.dp))
         DangerButton(stringResource(R.string.danger_reset_secrets), onResetSecrets)
         Spacer(modifier = Modifier.height(8.dp))
         DangerButton(stringResource(R.string.danger_restart), onRestart)

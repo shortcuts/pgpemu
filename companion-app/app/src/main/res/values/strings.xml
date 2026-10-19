@@ -27,6 +27,7 @@
     <string name="diag_task_list">Task list</string>
     <string name="diag_client_states">Client states</string>
     <string name="diag_disconnect_all">Disconnect all clients</string>
+    <string name="danger_forget_pairings">Forget all pairings</string>
     <string name="danger_reset_secrets">Reset session secrets</string>
     <string name="danger_restart">Restart device</string>
     <string name="arrow">→</string>
@@ -95,6 +96,8 @@
     <string name="settings_log_level">Log level: %1$s</string>
     <string name="profile_counters">C:%1$s F:%2$s S:%3$s</string>
     <string name="confirm_type_word">Type %1$s to confirm</string>
+    <string name="confirm_forget_title">Forget pairings</string>
+    <string name="confirm_forget_body">This erases every pairing and setting on this device. Your clone identity stays. The device restarts and you pair your phone again.</string>
     <string name="confirm_reset_title">Reset secrets</string>
     <string name="confirm_reset_body">This erases this device\'s clone identity, MAC, and keys. The device restarts in setup mode and needs your secrets.csv imported again. This cannot be undone.</string>
     <string name="confirm_restart_body">This restarts the device immediately. The BLE connection will drop.</string>

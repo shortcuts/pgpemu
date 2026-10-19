@@ -94,6 +94,7 @@ make companion-lint    # when companion-app/ changed
 | `pgp_gap.c` / `pgp_bluetooth.c` | Advertising, pairing/bonding, BLE stack init |
 | `pgp_adv_state.c` | Pure advertising state machine and retry backoff (PC-tested) |
 | `pgp_led_handler.c` | Parses LED patterns from the game into events |
+| `forget_pairings.c` | Forget Pairings: RTC flag set by the app opcode or a 10 s button hold, `nvs` erased on the next boot; secrets stay |
 | `pgp_autobutton.c` | Per-profile autospin/autocatch button simulation |
 | `config_storage.c` / `config_secrets.c` / `nvs_helper.c` / `settings.c` | NVS persistence for Global/Device Settings and Session Secrets (`config_secrets.c` also writes them for the Control Service's PROVISION_SECRETS) |
 | `stats.c` / `log_tags.c` | Runtime stats and log tags |

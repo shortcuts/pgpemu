@@ -4,6 +4,7 @@
 #define CONFIG_BT_ACL_CONNECTIONS 4
 
 #include "../config_secrets.h"
+#include "../forget_pairings.h"
 #include "../led_output.h"
 #include "../pgp_autobutton.h"
 #include "../pgp_gap.h"
@@ -84,6 +85,10 @@ bool write_secrets(const char* name, const uint8_t* mac, const uint8_t* key, con
     memcpy(written_key, key, 16);
     memcpy(written_blob, blob, 256);
     return write_secrets_ok;
+}
+static int forget_calls;
+void forget_pairings_and_restart(void) {
+    forget_calls++;
 }
 bool get_led_advertising(void) {
     return true;
@@ -189,6 +194,14 @@ static void test_advertise_and_save_and_restart(void) {
     esp_restart_calls = 0;
     cmd1(CONTROL_OP_RESTART, 0, 0);
     assert(sent[0] == CONTROL_STATUS_OK && esp_restart_calls == 1);  // ack goes out before the reboot
+}
+
+static void test_forget_pairings(void) {
+    reset();
+    forget_calls = 0;
+    cmd1(CONTROL_OP_FORGET_PAIRINGS, 0, 0);
+    assert(sent_len == 2 && sent[0] == CONTROL_STATUS_OK && sent[1] == CONTROL_OP_FORGET_PAIRINGS);
+    assert(sent_count == 1 && forget_calls == 1);  // ack goes out before the reboot
 }
 
 // ATT allows one unconfirmed indication per link: later responses are dropped until the CONF event.
@@ -458,6 +471,7 @@ int main(void) {
     test_global_settings_frame();
     test_set_max_connections_validates_payload();
     test_advertise_and_save_and_restart();
+    test_forget_pairings();
     test_indication_gate();
     test_oversized_payload_is_truncated();
     test_client_summary_layout();

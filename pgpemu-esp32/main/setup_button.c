@@ -2,18 +2,8 @@
 
 #include "button_input.h"
 #include "esp_log.h"
-#include "esp_system.h"
 #include "log_tags.h"
-#include "nvs_flash.h"
 #include "rom/ets_sys.h"
-
-void factory_reset_and_reboot(void) {
-    // this will erase the NVS partition only, then re-init it
-    nvs_flash_init();
-    nvs_flash_erase();
-    nvs_flash_init();
-    esp_restart();
-}
 
 bool setup_button_pressed_on_boot(void) {
     /* use GPIO 9 (boot button) - same as button_input.c uses */

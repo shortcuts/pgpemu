@@ -192,10 +192,12 @@ The app is a single scrolling screen, ordered by risk/frequency:
 - **Diagnostics** — on-demand dumps (runtime stats, FreeRTOS task list,
   BLE client states), each with its own **Refresh** button, plus
   **Disconnect all** clients.
-- **Danger Zone** — **Reset secrets** and **Restart device**. Both open a
-  confirmation sheet that requires typing
-  `RESET` or `RESTART` before the action is enabled — these are silent,
+- **Danger Zone** — **Forget all pairings**, **Reset secrets** and **Restart
+  device**. Each opens a confirmation sheet that requires typing
+  `FORGET`, `RESET` or `RESTART` before the action is enabled — these are silent,
   irreversible BLE operations with no undo.
+  **Forget all pairings** keeps the clone identity; holding the board button
+  for 10 seconds does the same without the app.
 - **Set up device** — shown instead of the sections above when the device has
   no secrets. **Import secrets.csv** uploads the file and restarts the device.
 
