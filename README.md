@@ -36,6 +36,7 @@ Autocatcher/Gotcha/Pokemon Go Plus device emulator for Pokemon Go, with autospin
 - Tailored for ESP32-C3, draws around 0.05A on average
 - Settings menu using serial port
 - Statically loaded secrets (see [Load Pokemon Go Plus Secrets](#load-pokemon-go-plus-secrets)) in [NVS](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/storage/nvs_flash.html)
+- Provisioning mode: a device without secrets starts a setup-only Bluetooth service, and the companion app uploads `secrets.csv` (see [Load Pokemon Go Plus Secrets](#load-pokemon-go-plus-secrets))
 - Toggle autocatch/autospin
 - Android 15+ support
 - iOS support
@@ -144,7 +145,11 @@ dkey,data,hex2bin,9b.........   # <- the device key you've extracted - should be
 blob,data,hex2bin,16.........   # <- the blob data you've extracted - should be 512 char long
 ```
 
-After updating `secrets.csv`, rebuild and flash your device. The secrets live in their own flash partition. Companion app settings (log level, max connections, advertising) start at their defaults.
+After updating `secrets.csv`, rebuild and flash your device. The secrets live in their own flash partition.
+
+Alternative without rebuilding: flash a device with no secrets (or run **Reset secrets** in the app). It boots into provisioning mode and advertises as "PGPemu Setup". Connect with the companion app and tap **Import secrets.csv**. The device stores the values and restarts. Anyone in Bluetooth range can do this to a device that has no secrets.
+
+ Companion app settings (log level, max connections, advertising) start at their defaults.
 
 ---
 
@@ -191,6 +196,8 @@ The app is a single scrolling screen, ordered by risk/frequency:
   confirmation sheet that requires typing
   `RESET` or `RESTART` before the action is enabled — these are silent,
   irreversible BLE operations with no undo.
+- **Set up device** — shown instead of the sections above when the device has
+  no secrets. **Import secrets.csv** uploads the file and restarts the device.
 
 ---
 

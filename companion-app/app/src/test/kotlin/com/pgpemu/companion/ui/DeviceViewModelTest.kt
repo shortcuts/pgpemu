@@ -51,6 +51,10 @@ private fun clientSummarySlotBytes(
     )
 }
 
+private fun validSecretsCsv() =
+    "key,type,encoding,value\npgpsecret,namespace,,\nname,data,string,\"PKLMGOPLUS\"\n" +
+        "mac,data,hex2bin,e4cb0bc35963\ndkey,data,hex2bin,${"ab".repeat(16)}\nblob,data,hex2bin,${"cd".repeat(256)}\n"
+
 private fun emptyClientSummarySlot(): ByteArray = clientSummarySlotBytes(connId = 0xFFFF)
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -377,7 +381,8 @@ class DeviceViewModelTest {
     private fun deviceInfoBytes(
         protocol: Int,
         slots: Int,
-    ) = byteArrayOf(protocol.toByte(), slots.toByte(), 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0) + "1.0.1".toByteArray()
+        flags: Int = 0,
+    ) = byteArrayOf(protocol.toByte(), slots.toByte(), 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, flags.toByte()) + "1.0.1".toByteArray()
 
     @Test
     fun `device info sizes profiles and the max connections cap, and is read once`() =
@@ -386,7 +391,7 @@ class DeviceViewModelTest {
             stubStatusReplies(repository)
             repository.stubResponse(
                 Opcode.GET_DEVICE_INFO,
-                Result.success(ResponseFrame(StatusCode.OK, Opcode.GET_DEVICE_INFO.toByte(), deviceInfoBytes(3, 2))),
+                Result.success(ResponseFrame(StatusCode.OK, Opcode.GET_DEVICE_INFO.toByte(), deviceInfoBytes(4, 2))),
             )
             repository.stubResponse(
                 Opcode.SET_MAX_CONNECTIONS,
@@ -438,12 +443,65 @@ class DeviceViewModelTest {
 
             repository.stubResponse(
                 Opcode.GET_DEVICE_INFO,
-                Result.success(ResponseFrame(StatusCode.OK, Opcode.GET_DEVICE_INFO.toByte(), deviceInfoBytes(2, 2))),
+                Result.success(ResponseFrame(StatusCode.OK, Opcode.GET_DEVICE_INFO.toByte(), deviceInfoBytes(3, 2))),
             )
             viewModel.refreshStatus()
             dispatcher.scheduler.advanceUntilIdle()
             assertTrue(viewModel.uiState.value.firmwareOutdated)
             assertNull(viewModel.uiState.value.deviceInfo)
+        }
+
+    @Test
+    fun `provisioning device skips status reads and import sends the secrets then restarts`() =
+        runTest {
+            val repository = FakeBleControlRepository()
+            repository.stubResponse(
+                Opcode.GET_DEVICE_INFO,
+                Result.success(ResponseFrame(StatusCode.OK, Opcode.GET_DEVICE_INFO.toByte(), deviceInfoBytes(4, 4, flags = 1))),
+            )
+            for (op in listOf(Opcode.PROVISION_SECRETS, Opcode.RESTART)) {
+                repository.stubResponse(op, Result.success(ResponseFrame(StatusCode.OK, op.toByte(), byteArrayOf())))
+            }
+            val viewModel = DeviceViewModel(repository)
+
+            viewModel.refreshStatus()
+            dispatcher.scheduler.advanceUntilIdle()
+            assertTrue(
+                viewModel.uiState.value.deviceInfo
+                    ?.provisioning == true,
+            )
+            assertEquals(listOf(Opcode.GET_DEVICE_INFO), repository.sentCommands.map { it.first })
+
+            viewModel.importSecrets("name,data,string,\"\"\n")
+            dispatcher.scheduler.advanceUntilIdle()
+            assertTrue(viewModel.uiState.value.message is UiMessage.InvalidSecretsFile)
+            assertEquals(1, repository.sentCommands.size)
+
+            viewModel.importSecrets(validSecretsCsv())
+            dispatcher.scheduler.advanceUntilIdle()
+            assertEquals(
+                listOf(Opcode.GET_DEVICE_INFO, Opcode.PROVISION_SECRETS, Opcode.RESTART),
+                repository.sentCommands.map { it.first },
+            )
+            assertEquals(294, repository.sentCommands[1].second.size)
+            assertEquals(UiMessage.SecretsProvisioned, viewModel.uiState.value.message)
+        }
+
+    @Test
+    fun `failed provisioning does not restart the device`() =
+        runTest {
+            val repository = FakeBleControlRepository()
+            repository.stubResponse(
+                Opcode.PROVISION_SECRETS,
+                Result.success(ResponseFrame(StatusCode.ERR_INTERNAL, Opcode.PROVISION_SECRETS.toByte(), byteArrayOf())),
+            )
+            val viewModel = DeviceViewModel(repository)
+
+            viewModel.importSecrets(validSecretsCsv())
+            dispatcher.scheduler.advanceUntilIdle()
+
+            assertEquals(listOf(Opcode.PROVISION_SECRETS), repository.sentCommands.map { it.first })
+            assertEquals(UiMessage.DeviceStatus(StatusCode.ERR_INTERNAL.toInt()), viewModel.uiState.value.message)
         }
 
     @Test

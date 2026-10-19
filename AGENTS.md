@@ -95,7 +95,7 @@ make companion-lint    # when companion-app/ changed
 | `pgp_adv_state.c` | Pure advertising state machine and retry backoff (PC-tested) |
 | `pgp_led_handler.c` | Parses LED patterns from the game into events |
 | `pgp_autobutton.c` | Per-profile autospin/autocatch button simulation |
-| `config_storage.c` / `config_secrets.c` / `nvs_helper.c` / `settings.c` | NVS persistence for Global/Device Settings and Session Secrets |
+| `config_storage.c` / `config_secrets.c` / `nvs_helper.c` / `settings.c` | NVS persistence for Global/Device Settings and Session Secrets (`config_secrets.c` also writes them for the Control Service's PROVISION_SECRETS) |
 | `stats.c` / `log_tags.c` | Runtime stats and log tags |
 
 Architecture details: docs/architecture.md. Domain vocabulary: CONTEXT.md.

@@ -71,6 +71,20 @@ bool write_devices_settings_to_nvs(void) {
 bool reset_secrets(void) {
     return reset_secrets_ok;
 }
+static int pgp_valid = 1, write_secrets_calls, write_secrets_ok = 1;
+static char written_name[16];
+static uint8_t written_mac[6], written_key[16], written_blob[256];
+bool PGP_VALID(void) {
+    return pgp_valid;
+}
+bool write_secrets(const char* name, const uint8_t* mac, const uint8_t* key, const uint8_t* blob) {
+    write_secrets_calls++;
+    strcpy(written_name, name);
+    memcpy(written_mac, mac, 6);
+    memcpy(written_key, key, 16);
+    memcpy(written_blob, blob, 256);
+    return write_secrets_ok;
+}
 bool get_led_advertising(void) {
     return true;
 }
@@ -101,7 +115,8 @@ static void reset(void) {
     global_settings.log_level = 1;
     sent_count = advertise_calls = global_writes = device_writes = 0;
     sent_len = 0;
-    save_ok = reset_secrets_ok = 1;
+    save_ok = reset_secrets_ok = write_secrets_ok = pgp_valid = 1;
+    write_secrets_calls = 0;
     control_handle_table[IDX_CHAR_CONTROL_COMMAND_VAL] = 40;
     control_handle_table[IDX_CHAR_CONTROL_RESPONSE_CFG] = 43;
 }
@@ -236,8 +251,76 @@ static void test_device_info_frame(void) {
         CONTROL_STATUS_OK, CONTROL_OP_GET_DEVICE_INFO, CONTROL_PROTOCOL_VERSION, 4, 3, 5, 0, 0, 0
     };
     assert(memcmp(sent, want, sizeof(want)) == 0);
-    assert(sent_len == 2 + 15 + strlen(PGP_FW_VERSION));
-    assert(memcmp(sent + 2 + 15, PGP_FW_VERSION, strlen(PGP_FW_VERSION)) == 0);
+    assert(sent[2 + 15] == 0);  // flags: not provisioning
+    assert(sent_len == 2 + 16 + strlen(PGP_FW_VERSION));
+    assert(memcmp(sent + 2 + 16, PGP_FW_VERSION, strlen(PGP_FW_VERSION)) == 0);
+
+    pgp_control_on_conf(0);
+    pgp_valid = 0;
+    cmd1(CONTROL_OP_GET_DEVICE_INFO, 0, 0);
+    assert(sent[2 + 15] == 1);
+}
+
+// 294-byte secrets payload behind the opcode byte: name[16] mac[6] dkey[16] blob[256]
+static void provision(const uint8_t* payload, uint16_t payload_len) {
+    uint8_t frame[1 + 300];
+    frame[0] = CONTROL_OP_PROVISION_SECRETS;
+    memcpy(frame + 1, payload, payload_len);
+    assert(write_cmd(0, frame, 1 + payload_len));
+}
+
+static void test_provision_secrets(void) {
+    reset();
+    uint8_t p[294] = { 0 };
+    memcpy(p, "MYCLONE", 8);
+    const uint8_t mac[6] = { 0xe4, 0xcb, 0x0b, 0xc3, 0x59, 0x63 };
+    memcpy(p + 16, mac, 6);
+    p[22] = 0xaa;
+    p[38] = 0xbb;
+    p[293] = 0xcc;
+
+    provision(p, 294);  // provisioned device: refused
+    assert(sent_len == 2 && sent[0] == CONTROL_STATUS_ERR_NOT_PROVISIONING && sent[1] == CONTROL_OP_PROVISION_SECRETS);
+    assert(write_secrets_calls == 0);
+
+    pgp_valid = 0;
+    uint8_t bad[294];
+    const struct {
+        uint16_t len;
+        int off, val;
+    } cases[] = {
+        { 293, -1, 0 },    // short
+        { 294, 6, 0 },     // no NUL in name: bytes 0..15 non-zero
+        { 294, 0, 0 },     // empty name
+        { 294, 1, 0x07 },  // control char in name
+        { 294, 16, 0 },    // mac byte 0 cleared below
+    };
+    for (size_t k = 0; k < sizeof(cases) / sizeof(cases[0]); k++) {
+        memcpy(bad, p, 294);
+        if (k == 1) {
+            memset(bad, 'A', 16);
+        } else if (k == 4) {
+            memset(bad + 16, 0, 6);
+        } else if (cases[k].off >= 0) {
+            bad[cases[k].off] = (uint8_t)cases[k].val;
+        }
+        pgp_control_on_conf(0);
+        provision(bad, cases[k].len);
+        assert(sent_len == 2 && sent[0] == CONTROL_STATUS_ERR_MALFORMED_PAYLOAD);
+        assert(write_secrets_calls == 0);
+    }
+
+    pgp_control_on_conf(0);
+    provision(p, 294);
+    assert(sent_len == 2 && sent[0] == CONTROL_STATUS_OK && sent[1] == CONTROL_OP_PROVISION_SECRETS);
+    assert(write_secrets_calls == 1 && strcmp(written_name, "MYCLONE") == 0);
+    assert(memcmp(written_mac, mac, 6) == 0 && written_key[0] == 0xaa && written_blob[0] == 0xbb);
+    assert(written_blob[255] == 0xcc);
+
+    pgp_control_on_conf(0);
+    write_secrets_ok = 0;
+    provision(p, 294);
+    assert(sent[0] == CONTROL_STATUS_ERR_INTERNAL);
 }
 
 static void test_toggle_device_payload(void) {
@@ -379,6 +462,7 @@ int main(void) {
     test_oversized_payload_is_truncated();
     test_client_summary_layout();
     test_device_info_frame();
+    test_provision_secrets();
     test_toggle_device_payload();
     test_set_device_payload();
     test_set_log_level();

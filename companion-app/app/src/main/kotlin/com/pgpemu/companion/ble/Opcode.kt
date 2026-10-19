@@ -23,4 +23,5 @@ object Opcode {
     const val SET_AUTOSPIN: Int = 0x14
     const val SET_AUTOCATCH: Int = 0x15
     const val SET_LOG_LEVEL: Int = 0x16
+    const val PROVISION_SECRETS: Int = 0x17
 }

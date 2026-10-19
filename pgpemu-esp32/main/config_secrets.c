@@ -59,6 +59,27 @@ bool reset_secrets() {
     return true;
 }
 
+bool write_secrets(const char* name, const uint8_t* mac, const uint8_t* key, const uint8_t* blob) {
+    nvs_handle_t handle;
+    if (!open_secrets(NVS_READWRITE, &handle)) {
+        return false;
+    }
+
+    // mac last: read_secrets() treats a zero mac as "no secrets", so a cut-off write stays in provisioning mode
+    bool ok = nvs_set_str(handle, KEY_CLONE_NAME, name) == ESP_OK
+              && nvs_set_blob(handle, KEY_DEVICE_KEY, key, sizeof(PGP_DEVICE_KEY)) == ESP_OK
+              && nvs_set_blob(handle, KEY_BLOB, blob, sizeof(PGP_BLOB)) == ESP_OK
+              && nvs_set_blob(handle, KEY_MAC, mac, sizeof(PGP_MAC)) == ESP_OK && nvs_commit(handle) == ESP_OK;
+    if (!ok) {
+        ESP_LOGE(CONFIG_SECRETS_TAG, "cannot write secrets");
+        nvs_erase_all(handle);
+        nvs_commit(handle);
+    }
+
+    nvs_close(handle);
+    return ok;
+}
+
 bool read_secrets(char* name, uint8_t* mac, uint8_t* key, uint8_t* blob) {
     esp_err_t err;
     nvs_handle_t handle;

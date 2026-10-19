@@ -1,6 +1,6 @@
 #include "pgp_control.h"
 
-#include "config_secrets.h"  // reset_secrets()
+#include "config_secrets.h"  // reset_secrets(), write_secrets()
 #include "config_storage.h"  // write_global_settings_to_nvs, write_device(s)_settings_to_nvs
 #include "esp_gap_ble_api.h"
 #include "esp_gatt_defs.h"
@@ -317,6 +317,40 @@ static void pgp_control_handle_command_write(esp_gatt_if_t gatts_if,
         resp_len = sizeof(PGP_CLONE_NAME) + sizeof(PGP_MAC) + sizeof(PGP_DEVICE_KEY) + sizeof(PGP_BLOB);  // 294
         break;
     }
+    case CONTROL_OP_PROVISION_SECRETS: {
+        // Same layout as GET_SECRETS: name[16] mac[6] dkey[16] blob[256].
+        const size_t name_len = sizeof(PGP_CLONE_NAME), mac_off = name_len, key_off = mac_off + sizeof(PGP_MAC),
+                     blob_off = key_off + sizeof(PGP_DEVICE_KEY);
+        if (PGP_VALID()) {
+            // Only an empty device is open: Control is Just Works, so a provisioned one must not be overwritable.
+            status = CONTROL_STATUS_ERR_NOT_PROVISIONING;
+            break;
+        }
+        if (payload_len != blob_off + sizeof(PGP_BLOB)) {
+            status = CONTROL_STATUS_ERR_MALFORMED_PAYLOAD;
+            break;
+        }
+        // read_secrets() reads the name into 16 bytes, so it needs a NUL inside them; a zero mac would re-enter
+        // provisioning after the restart.
+        size_t n = strnlen((const char*)payload, name_len);
+        bool mac_zero = true;
+        for (size_t i = 0; i < sizeof(PGP_MAC); i++) {
+            mac_zero = mac_zero && payload[mac_off + i] == 0;
+        }
+        bool printable = n > 0 && n < name_len;
+        for (size_t i = 0; i < n; i++) {
+            printable = printable && payload[i] >= 0x20 && payload[i] <= 0x7E;
+        }
+        if (!printable || mac_zero) {
+            status = CONTROL_STATUS_ERR_MALFORMED_PAYLOAD;
+            break;
+        }
+        // RAM secrets stay empty: the app restarts the device next.
+        status = write_secrets((const char*)payload, payload + mac_off, payload + key_off, payload + blob_off)
+                     ? CONTROL_STATUS_OK
+                     : CONTROL_STATUS_ERR_INTERNAL;
+        break;
+    }
     case CONTROL_OP_RESET_SECRETS: {
         status = reset_secrets() ? CONTROL_STATUS_OK : CONTROL_STATUS_ERR_INTERNAL;
         break;
@@ -493,15 +527,17 @@ static void pgp_control_handle_command_write(esp_gatt_if_t gatts_if,
         break;
     }
     case CONTROL_OP_GET_DEVICE_INFO: {
-        // Fixed prefix, then the version string up to the end of the payload; append-only so old apps keep decoding.
+        // Fixed prefix, then the version string up to the end of the payload; a new field goes before it with a
+        // CONTROL_PROTOCOL_VERSION bump.
         resp[0] = CONTROL_PROTOCOL_VERSION;
         resp[1] = CONFIG_BT_ACL_CONNECTIONS;
         resp[2] = (uint8_t)esp_reset_reason();
         put_u32_le(resp + 3, (uint32_t)(esp_timer_get_time() / 1000000));
         put_u32_le(resp + 7, esp_get_free_heap_size());
         put_u32_le(resp + 11, esp_get_minimum_free_heap_size());
-        memcpy(resp + 15, PGP_FW_VERSION, sizeof(PGP_FW_VERSION) - 1);
-        resp_len = 15 + sizeof(PGP_FW_VERSION) - 1;
+        resp[15] = PGP_VALID() ? 0 : 0x01;  // bit 0: provisioning mode
+        memcpy(resp + 16, PGP_FW_VERSION, sizeof(PGP_FW_VERSION) - 1);
+        resp_len = 16 + sizeof(PGP_FW_VERSION) - 1;
         break;
     }
     default:

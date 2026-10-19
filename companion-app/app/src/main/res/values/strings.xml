@@ -42,6 +42,12 @@
     <string name="msg_status_not_bonded">Pair with the device first (%1$d)</string>
     <string name="msg_status_busy">Device is busy, try again (%1$d)</string>
     <string name="msg_status_internal">Device hit an internal error (%1$d)</string>
+    <string name="msg_status_not_provisioning">This device already has secrets (%1$d)</string>
+    <string name="msg_invalid_secrets_file">Not a valid secrets.csv: %1$s</string>
+    <string name="msg_secrets_provisioned">Secrets saved. The device restarts and shows up under a new Bluetooth address: scan and connect again.</string>
+    <string name="provisioning_title">Set up device</string>
+    <string name="provisioning_body">This device has no secrets yet. Import your secrets.csv to set it up. Anyone in Bluetooth range can do this until it is done.</string>
+    <string name="provisioning_import">Import secrets.csv</string>
     <string name="msg_status_other">Device returned an error (%1$d)</string>
     <string name="msg_disconnected_lost">Connection lost, device out of range? (%1$d)</string>
     <string name="msg_disconnected">Device disconnected (%1$d)</string>
@@ -90,7 +96,7 @@
     <string name="profile_counters">C:%1$s F:%2$s S:%3$s</string>
     <string name="confirm_type_word">Type %1$s to confirm</string>
     <string name="confirm_reset_title">Reset secrets</string>
-    <string name="confirm_reset_body">This erases this device\'s clone identity, MAC, and keys. It will need to be re-paired from scratch. This cannot be undone.</string>
+    <string name="confirm_reset_body">This erases this device\'s clone identity, MAC, and keys. The device restarts in setup mode and needs your secrets.csv imported again. This cannot be undone.</string>
     <string name="confirm_restart_body">This restarts the device immediately. The BLE connection will drop.</string>
     <plurals name="device_found">
         <item quantity="one">Found %d device</item>

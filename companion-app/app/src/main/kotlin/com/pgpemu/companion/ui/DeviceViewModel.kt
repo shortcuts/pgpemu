@@ -15,6 +15,7 @@ import com.pgpemu.companion.ble.decodeDeviceInfo
 import com.pgpemu.companion.ble.decodeFlag
 import com.pgpemu.companion.ble.decodeGlobalSettings
 import com.pgpemu.companion.ble.decodeLogLevel
+import com.pgpemu.companion.ble.parseSecretsCsv
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -34,7 +35,7 @@ import javax.inject.Inject
 const val DEFAULT_PROFILE_COUNT = 4
 
 // Oldest GET_DEVICE_INFO layout version this app decodes.
-const val MIN_PROTOCOL_VERSION = 3
+const val MIN_PROTOCOL_VERSION = 4
 
 // Poll interval while connected — other phones can connect/disconnect and
 // toggle profiles without this app knowing, so state can go stale otherwise.
@@ -71,6 +72,15 @@ sealed interface UiMessage {
     data object UnexpectedReply : UiMessage
 
     data object FirmwareOutdated : UiMessage
+
+    data class InvalidSecretsFile(
+        val detail: String?,
+    ) : UiMessage
+
+    /** The device stored the secrets and is restarting; it reappears under its new Bluetooth address. */
+    data object SecretsProvisioned : UiMessage {
+        override val isError = false
+    }
 }
 
 data class StatusState(
@@ -259,6 +269,11 @@ class DeviceViewModel
                 commandLock.withLock {
                     _uiState.update { it.copy(isBusy = true, message = if (clearError) null else it.message) }
                     if (_uiState.value.let { it.deviceInfo == null && !it.firmwareOutdated }) fetchDeviceInfo()
+                    // A device without secrets runs only the Control Service: nothing else to read.
+                    if (_uiState.value.deviceInfo?.provisioning == true) {
+                        _uiState.update { it.copy(isBusy = false) }
+                        return@withLock
+                    }
                     runStep(Opcode.GET_GLOBAL_SETTINGS) { frame ->
                         decoded(decodeGlobalSettings(frame.payload)) { g ->
                             _uiState.update {
@@ -447,6 +462,21 @@ class DeviceViewModel
 
         fun requestResetSecrets() {
             _uiState.update { it.copy(pendingConfirmation = ConfirmAction.ResetSecrets) }
+        }
+
+        /** Uploads the picked secrets.csv text, then restarts the device into normal mode. */
+        fun importSecrets(text: String?) {
+            val parsed = parseSecretsCsv(text.orEmpty())
+            val secrets = parsed.getOrNull()
+            if (secrets == null) {
+                _uiState.update { it.copy(message = UiMessage.InvalidSecretsFile(parsed.exceptionOrNull()?.message)) }
+                return
+            }
+            runCommand(Opcode.PROVISION_SECRETS, secrets.toPayload()) {
+                runCommand(Opcode.RESTART) {
+                    _uiState.update { it.copy(message = UiMessage.SecretsProvisioned) }
+                }
+            }
         }
 
         fun requestRestart() {

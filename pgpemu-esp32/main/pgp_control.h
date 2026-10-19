@@ -23,7 +23,7 @@ extern uint16_t control_handle_table[CONTROL_LAST_IDX];
 // 2-byte [status][opcode] response header.
 #define CONTROL_MAX_RESPONSE_PAYLOAD (500 - 2)
 // Layout version of GET_DEVICE_INFO; bump on a breaking change (new fields are appended).
-#define CONTROL_PROTOCOL_VERSION 3
+#define CONTROL_PROTOCOL_VERSION 4
 
 typedef enum {
     CONTROL_OP_HELP = 0x01,
@@ -48,6 +48,7 @@ typedef enum {
     CONTROL_OP_SET_AUTOSPIN = 0x14,
     CONTROL_OP_SET_AUTOCATCH = 0x15,
     CONTROL_OP_SET_LOG_LEVEL = 0x16,
+    CONTROL_OP_PROVISION_SECRETS = 0x17,
 } control_opcode_t;
 
 typedef enum {
@@ -57,6 +58,7 @@ typedef enum {
     CONTROL_STATUS_ERR_NOT_BONDED = 0x03,
     CONTROL_STATUS_ERR_BUSY = 0x04,
     CONTROL_STATUS_ERR_INTERNAL = 0x05,
+    CONTROL_STATUS_ERR_NOT_PROVISIONING = 0x06,
 } control_status_t;
 
 // Called from pgp_gatts.c's ESP_GATTS_REG_EVT, alongside the other

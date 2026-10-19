@@ -37,10 +37,12 @@ class ControlDecodersTest {
 
     @Test
     fun `device info rejects short payload, decodes fields and version tail`() {
-        val head = byteArrayOf(1, 2, 4, 5, 0, 0, 0, 0, 0, 1, 0, 0, 0, 2, 0)
-        assertTrue(decodeDeviceInfo(head.copyOf(14)).exceptionOrNull() is DecodeError)
+        val head = byteArrayOf(1, 2, 4, 5, 0, 0, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0)
+        assertTrue(decodeDeviceInfo(head.copyOf(15)).exceptionOrNull() is DecodeError)
         val info = decodeDeviceInfo(head + "1.0.1".toByteArray()).getOrThrow()
-        assertEquals(DeviceInfo(1, 2, 4, 5L, 65536L, 131072L, "1.0.1"), info)
+        assertEquals(DeviceInfo(1, 2, 4, 5L, 65536L, 131072L, "1.0.1", false), info)
         assertEquals("", decodeDeviceInfo(head).getOrThrow().firmwareVersion)
+        val setup = head.copyOf().also { it[15] = 1 }
+        assertTrue(decodeDeviceInfo(setup + "1.0.1".toByteArray()).getOrThrow().provisioning)
     }
 }

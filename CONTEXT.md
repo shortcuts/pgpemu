@@ -24,8 +24,12 @@ One of the firmware's four emulated-accessory slots (index 0–3), each with its
 _Avoid_: device, client, slot
 
 **Session Secrets**:
-The Pokémon-GO pairing material persisted per Device Profile in the dedicated `pgpsecret` NVS partition, never auto-erased: clone name, MAC, device key, blob. Readable/resettable through the Control Service once bonded.
+The Pokémon-GO pairing material persisted per Device Profile in the dedicated `pgpsecret` NVS partition, never auto-erased: clone name, MAC, device key, blob. Readable/resettable through the Control Service once bonded; writable only in Provisioning Mode.
 _Avoid_: pairing data, credentials
+
+**Provisioning Mode**:
+The boot mode of a device with no Session Secrets: BLE runs with only the Control Service, advertised as "PGPemu Setup". The Companion App uploads the secrets with PROVISION_SECRETS, then restarts the device. Not a stored flag: it is `!PGP_VALID()`.
+_Avoid_: setup mode, recovery mode
 
 **Advertising state**:
 The Advertising flag (`advertising_enabled`, the only intent) plus the radio state (off, starting, on, stopping) reported by GET_GLOBAL_SETTINGS. The flag says what the user wants; the radio state says what the controller does.

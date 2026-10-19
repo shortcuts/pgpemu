@@ -46,26 +46,25 @@ void app_main() {
     // read secrets from nvs (settings are safe to use because mutex is still locked)
     read_secrets(PGP_CLONE_NAME, PGP_MAC, PGP_DEVICE_KEY, PGP_BLOB);
 
-    if (!PGP_VALID()) {
-        // release mutex
-        global_settings_ready();
-        ESP_LOGE(PGPEMU_TAG, "NO PGP SECRETS AVAILABLE! See README.md to set them");
-        return;
-    }
-
-    if (setup_button_pressed_on_boot()) {
+    // Without secrets only the Control Service runs, so the app can upload them; no game logic starts.
+    const bool provisioning = !PGP_VALID();
+    if (provisioning) {
+        ESP_LOGW(PGPEMU_TAG, "provisioning mode: no secrets");
+    } else if (setup_button_pressed_on_boot()) {
         global_settings_ready();  // release mutex
         ESP_LOGI(PGPEMU_TAG, "setup button pressed on boot; continuing startup");
     }
 
     init_led_output();
 
-    init_button_input();
+    if (!provisioning) {
+        init_button_input();
 
-    // start autobutton task
-    if (!init_autobutton()) {
-        ESP_LOGI(PGPEMU_TAG, "creating button task failed");
-        return;
+        // start autobutton task
+        if (!init_autobutton()) {
+            ESP_LOGI(PGPEMU_TAG, "creating button task failed");
+            return;
+        }
     }
 
     if (!pgp_adv_init()) {

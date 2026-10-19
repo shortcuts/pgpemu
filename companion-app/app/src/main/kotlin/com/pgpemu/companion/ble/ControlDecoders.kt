@@ -23,7 +23,7 @@ data class ClientSummary(
     val spin: Int?,
 )
 
-/** Firmware facts from GET_DEVICE_INFO; the firmware version string is last so the record can grow. */
+/** Firmware facts from GET_DEVICE_INFO; the firmware version string is last, so a new field goes before it with a protocol bump. */
 data class DeviceInfo(
     val protocolVersion: Int,
     val maxConnections: Int,
@@ -33,11 +33,13 @@ data class DeviceInfo(
     val freeHeap: Long,
     val minFreeHeap: Long,
     val firmwareVersion: String,
+    /** The device has no secrets and runs only the Control Service, waiting for PROVISION_SECRETS. */
+    val provisioning: Boolean,
 )
 
 const val CLIENT_SUMMARY_RECORD_SIZE = 11
 private const val GLOBAL_SETTINGS_MIN_SIZE = 4
-private const val DEVICE_INFO_MIN_SIZE = 15
+private const val DEVICE_INFO_MIN_SIZE = 16
 
 private fun ByteArray.require(
     size: Int,
@@ -73,6 +75,7 @@ fun decodeDeviceInfo(p: ByteArray): Result<DeviceInfo> =
             freeHeap = u32(7),
             minFreeHeap = u32(11),
             firmwareVersion = String(p, DEVICE_INFO_MIN_SIZE, p.size - DEVICE_INFO_MIN_SIZE, Charsets.UTF_8),
+            provisioning = p[15].toInt() and 0x01 != 0,
         )
     }
 

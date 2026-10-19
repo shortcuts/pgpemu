@@ -150,7 +150,15 @@ fun DeviceScreen(viewModel: DeviceViewModel = hiltViewModel()) {
         Column(modifier = Modifier.fillMaxSize()) {
             TopBar(connectionState = uiState.connectionState)
 
-            if (uiState.connectionState is ConnectionState.Ready) {
+            if (uiState.connectionState is ConnectionState.Ready && uiState.deviceInfo?.provisioning == true) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    ProvisioningSection(isBusy = uiState.isBusy, onImport = viewModel::importSecrets)
+                    DisconnectRow(onDisconnect = viewModel::disconnect)
+                }
+            } else if (uiState.connectionState is ConnectionState.Ready) {
                 LazyColumn(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -235,6 +243,7 @@ private fun messageText(message: UiMessage): String =
                     StatusCode.ERR_NOT_BONDED -> R.string.msg_status_not_bonded
                     StatusCode.ERR_BUSY -> R.string.msg_status_busy
                     StatusCode.ERR_INTERNAL -> R.string.msg_status_internal
+                    StatusCode.ERR_NOT_PROVISIONING -> R.string.msg_status_not_provisioning
                     else -> R.string.msg_status_other
                 },
                 message.code,
@@ -242,6 +251,12 @@ private fun messageText(message: UiMessage): String =
         is UiMessage.CommandFailed -> stringResource(R.string.msg_command_failed, message.detail ?: stringResource(R.string.dash))
         UiMessage.UnexpectedReply -> stringResource(R.string.msg_unexpected_reply)
         UiMessage.FirmwareOutdated -> stringResource(R.string.msg_firmware_outdated)
+        is UiMessage.InvalidSecretsFile ->
+            stringResource(
+                R.string.msg_invalid_secrets_file,
+                message.detail ?: stringResource(R.string.dash),
+            )
+        UiMessage.SecretsProvisioned -> stringResource(R.string.msg_secrets_provisioned)
     }
 
 // GATT 8 = supervision timeout, the usual out-of-range drop; 0 = clean local disconnect.
@@ -451,6 +466,29 @@ private fun DeviceRow(
             color = colors.muted,
             fontSize = 12.sp,
         )
+    }
+}
+
+@Composable
+private fun ProvisioningSection(
+    isBusy: Boolean,
+    onImport: (String?) -> Unit,
+) {
+    val context = LocalContext.current
+    val picker =
+        rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            if (uri != null) {
+                onImport(runCatching { context.contentResolver.openInputStream(uri)?.use { it.readBytes().decodeToString() } }.getOrNull())
+            }
+        }
+    SectionCard(title = stringResource(R.string.provisioning_title)) {
+        Text(text = stringResource(R.string.provisioning_body), color = LocalPgpColors.current.text)
+        Spacer(modifier = Modifier.height(12.dp))
+        Button(
+            onClick = { picker.launch(arrayOf("*/*")) },
+            enabled = !isBusy,
+            modifier = Modifier.fillMaxWidth(),
+        ) { Text(stringResource(R.string.provisioning_import)) }
     }
 }
 

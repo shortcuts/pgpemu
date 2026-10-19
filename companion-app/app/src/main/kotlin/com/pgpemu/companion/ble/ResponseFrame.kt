@@ -26,4 +26,5 @@ object StatusCode {
     const val ERR_NOT_BONDED: Byte = 0x03
     const val ERR_BUSY: Byte = 0x04
     const val ERR_INTERNAL: Byte = 0x05
+    const val ERR_NOT_PROVISIONING: Byte = 0x06
 }

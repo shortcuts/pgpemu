@@ -39,6 +39,7 @@ import javax.inject.Inject
 private val CONTROL_SERVICE_UUID: UUID = UUID.fromString("bbe87709-5b89-4433-ab7f-8b8eef0d8e40")
 private val COMMAND_CHARACTERISTIC_UUID: UUID = UUID.fromString("bbe87709-5b89-4433-ab7f-8b8eef0d8e41")
 private val RESPONSE_CHARACTERISTIC_UUID: UUID = UUID.fromString("bbe87709-5b89-4433-ab7f-8b8eef0d8e42")
+private const val PROVISIONING_ADVERTISED_NAME = "PGPemu Setup" // matches PROVISIONING_DEVICE_NAME in pgp_gatts.c
 private const val PGP_ADVERTISED_NAME = "Pokemon GO Plus" // matches PGP_DEVICE_NAME in pgpemu-esp32/main/pgp_gatts.c
 private const val COMMAND_TIMEOUT_MS = 5_000L
 private const val SCAN_TIMEOUT_MS = 15_000L
@@ -131,12 +132,13 @@ class NordicBleControlRepository
                         failed.complete(errorCode)
                     }
                 }
-            val filter = ScanFilter.Builder().setDeviceName(PGP_ADVERTISED_NAME).build()
+            val filters =
+                listOf(PGP_ADVERTISED_NAME, PROVISIONING_ADVERTISED_NAME).map { ScanFilter.Builder().setDeviceName(it).build() }
             val settings = ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build()
             _connectionState.value = ConnectionState.Scanning
             activeScanCallback = callback
             try {
-                scanner.startScan(listOf(filter), settings, callback)
+                scanner.startScan(filters, settings, callback)
                 val errorCode = withTimeoutOrNull(SCAN_TIMEOUT_MS) { failed.await() }
                 if (errorCode != null) {
                     _connectionState.value = ConnectionState.Error("scan failed: $errorCode")

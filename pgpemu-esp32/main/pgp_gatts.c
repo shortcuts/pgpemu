@@ -27,6 +27,10 @@
 #define PROFILE_APP_IDX 0
 
 static const char* PGP_DEVICE_NAME = "Pokemon GO Plus";
+// Setup mode must never look like an accessory to Pokemon GO: own name, flags only.
+static const char* PROVISIONING_DEVICE_NAME = "PGPemu Setup";
+static uint8_t provisioning_adv_data
+    [] = { 0x02, 0x01, 0x06, 0x0d, 0x09, 'P', 'G', 'P', 'e', 'm', 'u', ' ', 'S', 'e', 't', 'u', 'p' };
 static const uint8_t BATTERY_INST_ID = 0;
 static const uint8_t LED_BUTTON_INST_ID = 1;
 static const uint8_t CERT_INST_ID = 2;
@@ -515,6 +519,14 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
     ESP_LOGD(BT_GATTS_TAG, "%s: received event %d", __func__, event);
     switch (event) {
     case ESP_GATTS_REG_EVT: {
+        if (!PGP_VALID()) {
+            // Provisioning mode: Control Service only, no scan response, no PGP services.
+            esp_ble_gap_set_device_name(PROVISIONING_DEVICE_NAME);
+            esp_ble_gap_config_adv_data_raw(provisioning_adv_data, sizeof(provisioning_adv_data));
+            adv_config_done |= ADV_CONFIG_FLAG;
+            pgp_control_create_attr_table(gatts_if);
+            break;
+        }
         esp_err_t set_dev_name_ret = esp_ble_gap_set_device_name(PGP_DEVICE_NAME);
         if (set_dev_name_ret) {
             ESP_LOGE(BT_GATTS_TAG, "set device name failed, error code = %x", set_dev_name_ret);

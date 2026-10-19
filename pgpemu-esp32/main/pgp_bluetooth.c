@@ -28,13 +28,15 @@ bool init_bluetooth() {
 
     ESP_ERROR_CHECK(esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT));
 
-    // set mac address for pgp clone device
-    memcpy(bt_mac, PGP_MAC, 6);
-    memcpy(mac, PGP_MAC, 6);
+    // set mac address for pgp clone device; without secrets PGP_MAC is zero, so keep the efuse address
+    if (PGP_VALID()) {
+        memcpy(bt_mac, PGP_MAC, 6);
+        memcpy(mac, PGP_MAC, 6);
 
-    mac[5] -= 2;
+        mac[5] -= 2;
 
-    esp_base_mac_addr_set(mac);
+        esp_base_mac_addr_set(mac);
+    }
 
     esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
     esp_err_t ret = esp_bt_controller_init(&bt_cfg);

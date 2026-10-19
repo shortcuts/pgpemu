@@ -6,6 +6,7 @@
 #include "log_tags.h"
 #include "pgp_adv_state.h"
 #include "pgp_handshake_multi.h"
+#include "secrets.h"
 #include "settings.h"
 
 #include <string.h>
@@ -76,7 +77,8 @@ static void adv_start_failed(void) {
 void advertise_if_needed() {
     int target_active_connections = get_setting_uint8(&global_settings.target_active_connections);
     bool enabled = get_setting(&global_settings.advertising_enabled);
-    bool want = enabled && get_active_connections() < target_active_connections;
+    // Without secrets the Control Service is the only way back in, so advertising ignores the saved setting.
+    bool want = !PGP_VALID() || (enabled && get_active_connections() < target_active_connections);
     if (enabled && !want) {
         ESP_LOGI(BT_GAP_TAG, "not advertising again, %d connections reached", target_active_connections);
     }
