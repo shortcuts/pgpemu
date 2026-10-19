@@ -31,6 +31,14 @@ _Avoid_: pairing data, credentials
 Erases the default `nvs` partition (bonds, session keys, Global and Device Settings) and restarts. Keeps Session Secrets. Triggered by FORGET_PAIRINGS or a 10 s button hold; the erase runs at the next boot.
 _Avoid_: factory reset
 
+**OTA Arm**:
+The 120 s window opened by holding the board button for 3 s to 10 s. OTA_BEGIN is refused outside it, because Control pairing is Just Works. A successful OTA_BEGIN closes it.
+_Avoid_: unlock
+
+**Firmware Update**:
+A new image streamed by the Companion App with OTA_BEGIN, OTA_DATA, OTA_END into the inactive OTA slot. The bootloader returns to the old slot if the new image does not confirm itself within 60 s of boot.
+_Avoid_: flash, upgrade
+
 **Provisioning Mode**:
 The boot mode of a device with no Session Secrets: BLE runs with only the Control Service, advertised as "PGPemu Setup". The Companion App uploads the secrets with PROVISION_SECRETS, then restarts the device. Not a stored flag: it is `!PGP_VALID()`.
 _Avoid_: setup mode, recovery mode

@@ -9,6 +9,7 @@
 #include "pgp_autobutton.h"
 #include "pgp_bluetooth.h"
 #include "pgp_gap.h"
+#include "pgp_ota.h"
 #include "secrets.h"
 #include "settings.h"
 #include "setup_button.h"
@@ -80,6 +81,8 @@ void app_main() {
         ESP_LOGI(PGPEMU_TAG, "bluetooth init failed");
         return;
     }
+
+    pgp_ota_init();
 
     // done
     ESP_LOGI(PGPEMU_TAG, "Device: %s", PGP_CLONE_NAME);

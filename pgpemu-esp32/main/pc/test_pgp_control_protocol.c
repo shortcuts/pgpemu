@@ -8,6 +8,7 @@
 #include "../led_output.h"
 #include "../pgp_autobutton.h"
 #include "../pgp_gap.h"
+#include "esp_timer.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -103,6 +104,7 @@ void log_levels_verbose(void) {
 #include "../buf_writer.c"
 #include "../pgp_control.c"
 #include "../pgp_handshake_multi.c"
+#include "../pgp_ota.c"
 #include "../settings.c"
 #include "../stats.c"
 
@@ -139,6 +141,14 @@ static void cmd1(uint8_t op, uint8_t arg, int with_arg) {
 
 int64_t esp_timer_get_time(void) {
     return 5000000;
+}
+esp_err_t esp_timer_create(const esp_timer_create_args_t* args, esp_timer_handle_t* out) {
+    (void)args, (void)out;
+    return ESP_OK;
+}
+esp_err_t esp_timer_start_once(esp_timer_handle_t t, uint64_t us) {
+    (void)t, (void)us;
+    return ESP_OK;
 }
 
 // ---- tests ----
@@ -272,6 +282,59 @@ static void test_device_info_frame(void) {
     pgp_valid = 0;
     cmd1(CONTROL_OP_GET_DEVICE_INFO, 0, 0);
     assert(sent[2 + 15] == 1);
+}
+
+// OTA frames: [op][payload]; every reply must be confirmed before the next write.
+static void ota_frame(uint8_t op, const uint8_t* payload, uint16_t len) {
+    uint8_t frame[1 + 8];
+    frame[0] = op;
+    memcpy(frame + 1, payload, len);
+    pgp_control_on_conf(0);
+    assert(write_cmd(0, frame, 1 + len));
+}
+
+static void test_ota_frames(void) {
+    reset();
+    pgp_ota_abort(0);
+    armed_until_ms = 0;
+    client_state_t* e = get_or_create_client_state_entry(0);
+    e->mtu = 517;
+    const uint8_t size[4] = { 0xe8, 0x03, 0, 0 };  // 1000
+    ota_frame(CONTROL_OP_OTA_BEGIN, size, 3);
+    assert(sent[0] == CONTROL_STATUS_ERR_MALFORMED_PAYLOAD);
+    ota_frame(CONTROL_OP_OTA_BEGIN, size, 4);
+    assert(sent[0] == CONTROL_STATUS_ERR_OTA_NOT_ARMED && sent_len == 2);
+
+    pgp_ota_arm();
+    e->cert_state = PGP_CERT_DONE;
+    ota_frame(CONTROL_OP_OTA_BEGIN, size, 4);
+    assert(sent[0] == CONTROL_STATUS_ERR_BUSY);
+    e->cert_state = PGP_CERT_FRESH;
+    ota_frame(CONTROL_OP_OTA_BEGIN, size, 4);
+    const uint8_t begin_ok[] = { CONTROL_STATUS_OK, CONTROL_OP_OTA_BEGIN, 0xe0, 0x01 };  // chunk 480
+    assert(sent_len == sizeof(begin_ok) && memcmp(sent, begin_ok, sizeof(begin_ok)) == 0);
+
+    const uint8_t d0[] = { 0, 0, 0, 0, 0xaa, 0xbb };  // offset 0, 2 bytes
+    ota_frame(CONTROL_OP_OTA_DATA, d0, sizeof(d0));
+    const uint8_t data_ok[] = { CONTROL_STATUS_OK, CONTROL_OP_OTA_DATA, 2, 0, 0, 0 };
+    assert(sent_len == sizeof(data_ok) && memcmp(sent, data_ok, sizeof(data_ok)) == 0);
+    ota_frame(CONTROL_OP_OTA_DATA, d0, sizeof(d0));  // repeated chunk
+    assert(sent[0] == CONTROL_STATUS_ERR_OTA_STATE && sent_len == 2);
+    ota_frame(CONTROL_OP_OTA_DATA, d0, 4);  // no data bytes
+    assert(sent[0] == CONTROL_STATUS_ERR_MALFORMED_PAYLOAD);
+    ota_frame(CONTROL_OP_OTA_END, d0, 0);  // 2 of 1000 bytes
+    assert(sent[0] == CONTROL_STATUS_ERR_OTA_STATE && sent[1] == CONTROL_OP_OTA_END);
+    ota_frame(CONTROL_OP_OTA_ABORT, d0, 0);
+    assert(sent[0] == CONTROL_STATUS_OK && sent_len == 2);
+    ota_frame(CONTROL_OP_OTA_DATA, d0, sizeof(d0));
+    assert(sent[0] == CONTROL_STATUS_ERR_OTA_STATE);
+
+    pgp_ota_arm();
+    ota_frame(CONTROL_OP_OTA_BEGIN, size, 4);
+    assert(sent[0] == CONTROL_STATUS_OK);
+    pgp_control_on_disconnect(0);
+    ota_frame(CONTROL_OP_OTA_DATA, d0, sizeof(d0));
+    assert(sent[0] == CONTROL_STATUS_ERR_OTA_STATE);
 }
 
 // 294-byte secrets payload behind the opcode byte: name[16] mac[6] dkey[16] blob[256]
@@ -477,6 +540,7 @@ int main(void) {
     test_client_summary_layout();
     test_device_info_frame();
     test_provision_secrets();
+    test_ota_frames();
     test_toggle_device_payload();
     test_set_device_payload();
     test_set_log_level();

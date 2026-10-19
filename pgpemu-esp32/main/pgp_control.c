@@ -16,7 +16,8 @@
 #include "pgp_gap.h"              // advertise_if_needed, pgp_adv_get_state
 #include "pgp_gatts.h"            // MAX_VALUE_LENGTH
 #include "pgp_handshake_multi.h"  // dump_client_states_format, get_active_connections, reset_client_states
-#include "secrets.h"              // PGP_CLONE_NAME, PGP_MAC, PGP_DEVICE_KEY, PGP_BLOB
+#include "pgp_ota.h"
+#include "secrets.h"  // PGP_CLONE_NAME, PGP_MAC, PGP_DEVICE_KEY, PGP_BLOB
 #include "settings.h"  // global_settings, get_setting*, set_setting_uint8, cycle_log_level, toggle_device_*, set_device_*
 #include "stats.h"     // stats_format_runtime
 
@@ -43,6 +44,20 @@ static control_status_t set_advertising_persisted(bool on) {
         return CONTROL_STATUS_ERR_INTERNAL;
     }
     return (old != on && !write_global_settings_to_nvs()) ? CONTROL_STATUS_ERR_INTERNAL : CONTROL_STATUS_OK;
+}
+
+static uint32_t get_u32_le(const uint8_t* in) {
+    return (uint32_t)in[0] | (uint32_t)in[1] << 8 | (uint32_t)in[2] << 16 | (uint32_t)in[3] << 24;
+}
+
+static bool game_link_active(void) {
+    for (int i = 0; i < CONFIG_BT_ACL_CONNECTIONS; i++) {
+        client_state_t* entry = get_client_state_entry_by_idx(i);
+        if (entry != NULL && entry->cert_state == PGP_CERT_DONE) {
+            return true;
+        }
+    }
+    return false;
 }
 
 static void put_u32_le(uint8_t* out, uint32_t v) {
@@ -236,6 +251,7 @@ void pgp_control_on_conf(uint16_t conn_id) {
 
 void pgp_control_on_disconnect(uint16_t conn_id) {
     pgp_control_on_conf(conn_id);
+    pgp_ota_on_disconnect(conn_id);
 }
 
 static void pgp_control_handle_command_write(esp_gatt_if_t gatts_if,
@@ -366,6 +382,49 @@ static void pgp_control_handle_command_write(esp_gatt_if_t gatts_if,
         pgp_control_send_response(gatts_if, conn_id, CONTROL_STATUS_OK, opcode, NULL, 0);
         forget_pairings_and_restart();
         return;  // unreachable
+    }
+    case CONTROL_OP_OTA_BEGIN: {
+        if (payload_len != 4) {
+            status = CONTROL_STATUS_ERR_MALFORMED_PAYLOAD;
+            break;
+        }
+        // Flash writes stall the cache, which a live game link cannot afford.
+        if (game_link_active()) {
+            status = CONTROL_STATUS_ERR_BUSY;
+            break;
+        }
+        client_state_t* entry = get_or_create_client_state_entry(conn_id);
+        uint16_t chunk = 0;
+        status = pgp_ota_begin(conn_id, get_u32_le(payload), entry ? entry->mtu : 0, &chunk);
+        if (status == CONTROL_STATUS_OK) {
+            resp[0] = (uint8_t)chunk;
+            resp[1] = (uint8_t)(chunk >> 8);
+            resp_len = 2;
+        }
+        break;
+    }
+    case CONTROL_OP_OTA_DATA: {
+        uint32_t next = 0;
+        if (payload_len < 5) {
+            status = CONTROL_STATUS_ERR_MALFORMED_PAYLOAD;
+            break;
+        }
+        status = pgp_ota_data(conn_id, get_u32_le(payload), payload + 4, payload_len - 4, &next);
+        if (status == CONTROL_STATUS_OK) {
+            put_u32_le(resp, next);
+            resp_len = 4;
+        }
+        // No per-chunk log: this runs thousands of times per update.
+        pgp_control_send_response(gatts_if, conn_id, status, opcode, resp, resp_len);
+        return;
+    }
+    case CONTROL_OP_OTA_END: {
+        status = pgp_ota_end(conn_id);
+        break;
+    }
+    case CONTROL_OP_OTA_ABORT: {
+        status = pgp_ota_abort(conn_id);
+        break;
     }
     case CONTROL_OP_GET_LED_STATE: {
         resp[0] = get_led_advertising() ? 1 : 0;

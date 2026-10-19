@@ -12,12 +12,15 @@
 #include "log_tags.h"
 #include "pgp_gap.h"
 #include "pgp_handshake_multi.h"
+#include "pgp_ota.h"
 #include "settings.h"
 
 static const int CONFIG_GPIO_INPUT_BUTTON1 = GPIO_NUM_9;
 // GPIO 9 is a strapping pin: held low at reset the ROM enters download mode, so the hold happens at run time.
 #define FORGET_HOLD_MS 10000
 #define FORGET_POLL_MS 100
+// Between a toggle press and the forget hold; opens the window in which the app may flash a new image.
+#define OTA_ARM_HOLD_MS 3000
 
 static void button_input_task(void* pvParameters);
 static QueueHandle_t button_input_queue;
@@ -72,6 +75,12 @@ static void button_input_task(void* pvParameters) {
                 if (held_ms >= FORGET_HOLD_MS) {
                     ESP_LOGW(BUTTON_INPUT_TAG, "button1 held -> forget pairings");
                     forget_pairings_and_restart();
+                }
+
+                if (held_ms >= OTA_ARM_HOLD_MS) {
+                    pgp_ota_arm();
+                    ESP_LOGI(BUTTON_INPUT_TAG, "button1 held -> OTA armed 120 s");
+                    continue;
                 }
 
                 ESP_LOGD(BUTTON_INPUT_TAG, "button1 pressed");
