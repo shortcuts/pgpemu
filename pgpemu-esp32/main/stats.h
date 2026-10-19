@@ -5,9 +5,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-void stats_get_runtime();
-
-// Formats the same runtime stats as stats_get_runtime() into buf.
+// Formats the runtime stats into buf.
 // Returns the number of bytes written (excluding the null terminator).
 size_t stats_format_runtime(char* buf, size_t buf_len);
 

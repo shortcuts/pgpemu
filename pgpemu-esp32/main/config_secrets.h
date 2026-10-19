@@ -6,8 +6,6 @@
 
 // init the dedicated secrets partition; never erases it
 bool init_secrets_partition();
-// log secrets
-void show_secrets();
 // read secrets from nvs
 bool read_secrets(char* name, uint8_t* mac, uint8_t* key, uint8_t* blob);
 // reset loaded secrets in nvs

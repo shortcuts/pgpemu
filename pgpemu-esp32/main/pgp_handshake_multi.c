@@ -241,10 +241,7 @@ void connection_stop(uint16_t conn_id, uint8_t reason) {
     delete_client_state_entry(entry);
 }
 
-// Single source of truth for the client-state dump, shared by dump_client_states()
-// (verbose debug log) and the Control Service's GET_CLIENT_STATES opcode
-// (app-facing text). Both consumers get the same fields, so nothing can drift
-// out of sync between a "log" version and a "buffer" version.
+// Client-state dump for the Control Service's GET_CLIENT_STATES opcode (app-facing text).
 size_t dump_client_states_format(char* buf, size_t buf_len) {
     buf_writer_t writer;
     buf_writer_init(&writer, buf, buf_len);
@@ -284,12 +281,6 @@ size_t dump_client_states_format(char* buf, size_t buf_len) {
             &writer, "reconnect_challenge", entry->reconnect_challenge, sizeof(entry->reconnect_challenge));
     }
     return buf_writer_len(&writer);
-}
-
-void dump_client_states() {
-    char buf[2048];
-    dump_client_states_format(buf, sizeof(buf));
-    ESP_LOGI(HANDSHAKE_TAG, "%s", buf);
 }
 
 

@@ -88,8 +88,7 @@ bool is_connection_active(uint16_t conn_id);
 int get_cert_state(uint16_t conn_id);
 void set_remote_bda(uint16_t conn_id, esp_bd_addr_t remote_bda);
 
-void dump_client_states();
-// Formats the same client-state dump as dump_client_states() into buf.
+// Formats the client-state dump into buf.
 // Returns the number of bytes written (excluding the null terminator).
 size_t dump_client_states_format(char* buf, size_t buf_len);
 void reset_client_states();

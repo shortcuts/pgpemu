@@ -76,27 +76,6 @@ void increment_spin(uint16_t conn_id) {
     }
 }
 
-void stats_get_runtime() {
-    if (stats_len == 0) {
-        ESP_LOGI(STATS_TAG, "no stats found");
-
-        return;
-    }
-
-    for (size_t i = 0; i < stats_len; i++) {
-        ESP_LOGI(STATS_TAG,
-            "---STATS---\n"
-            "Connection %d:\n"
-            "- Caught: %d\n"
-            "- Fled: %d\n"
-            "- Spin: %d",
-            stats[i].conn_id,
-            stats[i].stats.caught,
-            stats[i].stats.fled,
-            stats[i].stats.spin);
-    }
-}
-
 size_t stats_format_runtime(char* buf, size_t buf_len) {
     if (stats_len == 0) {
         return 0;

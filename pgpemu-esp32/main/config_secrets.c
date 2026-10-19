@@ -44,40 +44,6 @@ static bool open_secrets(nvs_open_mode_t openMode, nvs_handle_t* outHandle) {
     return true;
 }
 
-void show_secrets() {
-    nvs_handle_t handle;
-    char name[sizeof(PGP_CLONE_NAME)] = { 0 };
-    char mac[sizeof(PGP_MAC)] = { 0 };
-
-    bool gotData = false;
-    if (open_secrets(NVS_READONLY, &handle)) {
-        size_t size = sizeof(name);
-        bool all_ok = nvs_get_str(handle, KEY_CLONE_NAME, name, &size) == ESP_OK;
-
-        size = sizeof(PGP_MAC);
-        all_ok = all_ok && nvs_get_blob(handle, KEY_MAC, mac, &size) == ESP_OK;
-
-        gotData = all_ok;
-
-        nvs_close(handle);
-    }
-
-    if (gotData) {
-        ESP_LOGI(CONFIG_SECRETS_TAG,
-            "- %s: device=%s mac=%02x:%02x:%02x:%02x:%02x:%02x",
-            namespace,
-            name,
-            mac[0],
-            mac[1],
-            mac[2],
-            mac[3],
-            mac[4],
-            mac[5]);
-    } else {
-        ESP_LOGI(CONFIG_SECRETS_TAG, "- %s: (none)", namespace);
-    }
-}
-
 bool reset_secrets() {
     nvs_handle_t handle;
     if (!open_secrets(NVS_READWRITE, &handle)) {
