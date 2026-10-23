@@ -39,6 +39,7 @@ Autocatcher/Gotcha/Pokemon Go Plus device emulator for Pokemon Go, with autospin
 - Provisioning mode: a device without secrets starts a setup-only Bluetooth service, and the companion app uploads `secrets.csv` (see [Load Pokemon Go Plus Secrets](#load-pokemon-go-plus-secrets))
 - Toggle autocatch/autospin
 - Firmware update from the companion app over Bluetooth, with automatic rollback if the new firmware does not start
+- Update-available notice in the companion app (checks GitHub once a day)
 - Android 15+ support
 - iOS support
 

@@ -43,6 +43,10 @@ _Avoid_: flash, upgrade
 The boot mode of a device with no Session Secrets: BLE runs with only the Control Service, advertised as "PGPemu Setup". The Companion App uploads the secrets with PROVISION_SECRETS, then restarts the device. Not a stored flag: it is `!PGP_VALID()`.
 _Avoid_: setup mode, recovery mode
 
+**Update notice**:
+The dismissible card the Companion App shows when the latest GitHub release is newer than the app or the connected firmware.
+_Avoid_: update badge
+
 **Advertising state**:
 The Advertising flag (`advertising_enabled`, the only intent) plus the radio state (off, starting, on, stopping) reported by GET_GLOBAL_SETTINGS. The flag says what the user wants; the radio state says what the controller does.
 
