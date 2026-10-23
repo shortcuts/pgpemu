@@ -75,12 +75,16 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.pgpemu.companion.BuildConfig
 import com.pgpemu.companion.R
 import com.pgpemu.companion.ble.ConnectionState
 import com.pgpemu.companion.ble.DeviceInfo
 import com.pgpemu.companion.ble.ScannedDevice
 import com.pgpemu.companion.ble.StatusCode
 import com.pgpemu.companion.ui.theme.LocalPgpColors
+import com.pgpemu.companion.update.UpdateNotice
+import com.pgpemu.companion.update.UpdateViewModel
+import com.pgpemu.companion.update.updateNotice
 
 // API 31+ (Android 12+) uses the dedicated BLUETOOTH_SCAN/CONNECT runtime permissions.
 // Below that, BLE scanning is gated on location instead (no BLUETOOTH_CONNECT equivalent
@@ -93,8 +97,13 @@ private val BLE_PERMISSIONS =
     }
 
 @Composable
-fun DeviceScreen(viewModel: DeviceViewModel = hiltViewModel()) {
+fun DeviceScreen(
+    viewModel: DeviceViewModel = hiltViewModel(),
+    updateViewModel: UpdateViewModel = hiltViewModel(),
+) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val latestTag by updateViewModel.latestTag.collectAsStateWithLifecycle()
+    val notice = updateNotice(latestTag, BuildConfig.VERSION_NAME, uiState.deviceInfo?.firmwareVersion)
     val colors = LocalPgpColors.current
     val context = LocalContext.current
     var blocker by remember { mutableStateOf<ScanBlocker?>(null) }
@@ -150,6 +159,20 @@ fun DeviceScreen(viewModel: DeviceViewModel = hiltViewModel()) {
     Box(modifier = Modifier.fillMaxSize().background(colors.bg).safeDrawingPadding()) {
         Column(modifier = Modifier.fillMaxSize()) {
             TopBar(connectionState = uiState.connectionState)
+
+            notice?.let {
+                Box(modifier = Modifier.padding(start = 16.dp, top = 16.dp, end = 16.dp)) {
+                    UpdateNoticeCard(
+                        notice = it,
+                        onOpen = {
+                            context.startActivity(
+                                Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/shortcuts/pgpemu/releases/tag/${it.tag}")),
+                            )
+                        },
+                        onDismiss = updateViewModel::dismiss,
+                    )
+                }
+            }
 
             if (uiState.connectionState is ConnectionState.Ready && uiState.deviceInfo?.provisioning == true) {
                 Column(
@@ -501,6 +524,23 @@ private fun ProvisioningSection(
             enabled = !isBusy,
             modifier = Modifier.fillMaxWidth(),
         ) { Text(stringResource(R.string.provisioning_import)) }
+    }
+}
+
+@Composable
+private fun UpdateNoticeCard(
+    notice: UpdateNotice,
+    onOpen: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    SectionCard(title = stringResource(R.string.update_title, notice.tag)) {
+        if (notice.appOutdated) Text(text = stringResource(R.string.update_app), color = LocalPgpColors.current.text)
+        if (notice.firmwareOutdated) Text(text = stringResource(R.string.update_firmware), color = LocalPgpColors.current.text)
+        Spacer(modifier = Modifier.height(12.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(onClick = onOpen) { Text(stringResource(R.string.update_view)) }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.update_dismiss)) }
+        }
     }
 }
 

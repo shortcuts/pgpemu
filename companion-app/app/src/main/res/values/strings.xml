@@ -115,4 +115,9 @@
         <item quantity="one">Found %d device</item>
         <item quantity="other">Found %d devices</item>
     </plurals>
+    <string name="update_title">Update available: %1$s</string>
+    <string name="update_app">This app is out of date.</string>
+    <string name="update_firmware">The device firmware is out of date. Download pgpemu.bin from the release, then use Update firmware.</string>
+    <string name="update_view">View release</string>
+    <string name="update_dismiss">Dismiss</string>
 </resources>
