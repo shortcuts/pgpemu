@@ -116,6 +116,7 @@ internal fun DiagnosticsTab(
     item {
         DiagnosticsSection(
             diagnostics = uiState.diagnostics,
+            info = uiState.deviceInfo,
             onRefreshStats = viewModel::refreshRuntimeStats,
             onRefreshTasks = viewModel::refreshTaskList,
             onRefreshClientStates = viewModel::refreshClientStates,

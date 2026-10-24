@@ -961,16 +961,27 @@ private fun StepperButton(
 @Composable
 internal fun DiagnosticsSection(
     diagnostics: DiagnosticsState,
+    info: DeviceInfo?,
     onRefreshStats: () -> Unit,
     onRefreshTasks: () -> Unit,
     onRefreshClientStates: () -> Unit,
     onDisconnectAll: () -> Unit,
 ) {
+    val context = LocalContext.current
+    val chooserTitle = stringResource(R.string.diag_share_title)
     SectionCard(title = stringResource(R.string.section_diagnostics)) {
         DiagnosticDump(stringResource(R.string.diag_runtime_stats), diagnostics.runtimeStats, onRefreshStats)
         DiagnosticDump(stringResource(R.string.diag_task_list), diagnostics.taskList, onRefreshTasks)
         DiagnosticDump(stringResource(R.string.diag_client_states), diagnostics.clientStates, onRefreshClientStates)
         Spacer(modifier = Modifier.height(6.dp))
+        TextRow(
+            label = stringResource(R.string.diag_share),
+            onClick = {
+                val report = formatDiagnosticsReport(diagnostics, info, BuildConfig.VERSION_NAME, Build.MODEL, Build.VERSION.RELEASE)
+                val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, report)
+                context.startActivity(Intent.createChooser(send, chooserTitle))
+            },
+        )
         TextRow(label = stringResource(R.string.diag_disconnect_all), onClick = onDisconnectAll, isLast = true)
     }
 }

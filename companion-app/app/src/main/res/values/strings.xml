@@ -30,6 +30,8 @@
     <string name="diag_runtime_stats">Runtime stats</string>
     <string name="diag_task_list">Task list</string>
     <string name="diag_client_states">Client states</string>
+    <string name="diag_share">Share report</string>
+    <string name="diag_share_title">Share diagnostics report</string>
     <string name="diag_disconnect_all">Disconnect all clients</string>
     <string name="danger_forget_pairings">Forget all pairings</string>
     <string name="danger_reset_secrets">Reset session secrets</string>
