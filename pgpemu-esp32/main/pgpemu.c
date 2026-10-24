@@ -4,6 +4,7 @@
 #include "esp_log.h"
 #include "esp_system.h"
 #include "forget_pairings.h"
+#include "known_devices.h"
 #include "led_output.h"
 #include "log_tags.h"
 #include "pgp_autobutton.h"
@@ -62,6 +63,7 @@ void app_main() {
     init_led_output();
 
     if (!provisioning) {
+        known_devices_init();
         init_button_input();
 
         // start autobutton task

@@ -45,4 +45,41 @@ class ControlDecodersTest {
         val setup = head.copyOf().also { it[15] = 1 }
         assertTrue(decodeDeviceInfo(setup + "1.0.1".toByteArray()).getOrThrow().provisioning)
     }
+
+    private fun knownRecord(
+        last: Int,
+        seq: Int,
+        flags: Int,
+        name: String,
+    ) = byteArrayOf(0xAA.toByte(), 0xBB.toByte(), 0xCC.toByte(), 0xDD.toByte(), 0xEE.toByte(), last.toByte()) +
+        byteArrayOf(seq.toByte(), 0, 0, 0, flags.toByte()) + name.toByteArray().copyOf(16)
+
+    @Test
+    fun `known devices decode empty, two records and reject a truncated list`() {
+        assertEquals(emptyList<KnownDevice>(), decodeKnownDevices(byteArrayOf(0)).getOrThrow())
+        assertTrue(decodeKnownDevices(byteArrayOf()).exceptionOrNull() is DecodeError)
+
+        val payload = byteArrayOf(2) + knownRecord(2, 2, 1, "") + knownRecord(1, 1, 0, "Pixel")
+        assertEquals(
+            listOf(
+                KnownDevice("AA:BB:CC:DD:EE:02", 2L, true, ""),
+                KnownDevice("AA:BB:CC:DD:EE:01", 1L, false, "Pixel"),
+            ),
+            decodeKnownDevices(payload).getOrThrow(),
+        )
+        assertTrue(decodeKnownDevices(payload.copyOf(payload.size - 1)).exceptionOrNull() is DecodeError)
+    }
+
+    @Test
+    fun `known device name may fill all 16 bytes without a terminator`() {
+        val record = knownRecord(1, 1, 0, "").also { "0123456789abcdef".toByteArray().copyInto(it, 11) }
+        assertEquals("0123456789abcdef", decodeKnownDevices(byteArrayOf(1) + record).getOrThrow().single().name)
+    }
+
+    @Test
+    fun `address and rename payloads are the six address bytes then the name`() {
+        assertEquals(listOf(0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0x01), parseAddress("AA:BB:CC:DD:EE:01").map { it.toInt() and 0xFF })
+        assertEquals("AABBCCDDEE01" + "41", encodeRename("AA:BB:CC:DD:EE:01", "A").joinToString("") { "%02X".format(it) })
+        assertEquals(6, encodeRename("AA:BB:CC:DD:EE:01", "").size)
+    }
 }

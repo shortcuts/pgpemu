@@ -42,11 +42,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
@@ -79,12 +81,16 @@ import com.pgpemu.companion.BuildConfig
 import com.pgpemu.companion.R
 import com.pgpemu.companion.ble.ConnectionState
 import com.pgpemu.companion.ble.DeviceInfo
+import com.pgpemu.companion.ble.KnownDevice
 import com.pgpemu.companion.ble.ScannedDevice
 import com.pgpemu.companion.ble.StatusCode
 import com.pgpemu.companion.ui.theme.LocalPgpColors
 import com.pgpemu.companion.update.UpdateNotice
 import com.pgpemu.companion.update.UpdateViewModel
 import com.pgpemu.companion.update.updateNotice
+
+// Longest name the firmware stores, without its terminator.
+private const val KNOWN_DEVICE_NAME_MAX = 15
 
 // API 31+ (Android 12+) uses the dedicated BLUETOOTH_SCAN/CONNECT runtime permissions.
 // Below that, BLE scanning is gated on location instead (no BLUETOOTH_CONNECT equivalent
@@ -199,6 +205,15 @@ fun DeviceScreen(
                             onToggleAutocatch = viewModel::toggleAutocatch,
                         )
                     }
+                    if (uiState.knownDevicesSupported) {
+                        item {
+                            KnownDevicesSection(
+                                devices = uiState.knownDevices,
+                                onRename = viewModel::renameKnownDevice,
+                                onForget = viewModel::requestForgetKnownDevice,
+                            )
+                        }
+                    }
                     item {
                         SettingsSection(
                             status = uiState.status,
@@ -278,6 +293,7 @@ private fun messageText(message: UiMessage): String =
                     StatusCode.ERR_NOT_PROVISIONING -> R.string.msg_status_not_provisioning
                     StatusCode.ERR_OTA_NOT_ARMED -> R.string.msg_status_ota_not_armed
                     StatusCode.ERR_OTA_STATE -> R.string.msg_status_ota_state
+                    StatusCode.ERR_NOT_FOUND -> R.string.msg_status_not_found
                     else -> R.string.msg_status_other
                 },
                 message.code,
@@ -658,6 +674,72 @@ private fun DeviceProfilesSection(
             }
         }
     }
+}
+
+@Composable
+private fun KnownDevicesSection(
+    devices: List<KnownDevice>,
+    onRename: (String, String) -> Unit,
+    onForget: (String) -> Unit,
+) {
+    val colors = LocalPgpColors.current
+    var renaming by remember { mutableStateOf<KnownDevice?>(null) }
+    SectionCard(title = stringResource(R.string.section_known_devices)) {
+        if (devices.isEmpty()) {
+            Text(text = stringResource(R.string.known_devices_empty), color = colors.muted, fontSize = 12.sp)
+        }
+        devices.forEachIndexed { i, device ->
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(text = device.name.ifBlank { device.address }, color = colors.text)
+                    val detail =
+                        listOfNotNull(
+                            device.address.takeIf { device.name.isNotBlank() },
+                            stringResource(R.string.known_devices_connected).takeIf { device.connected },
+                        ).joinToString(" · ")
+                    if (detail.isNotEmpty()) Text(text = detail, color = colors.muted, fontSize = 11.sp)
+                }
+                TextButton(onClick = { renaming = device }) { Text(stringResource(R.string.known_devices_rename), color = colors.accent) }
+                TextButton(onClick = { onForget(device.address) }, enabled = !device.connected) {
+                    Text(stringResource(R.string.known_devices_forget), color = if (device.connected) colors.muted else colors.danger)
+                }
+            }
+            if (i < devices.lastIndex) Divider()
+        }
+    }
+    renaming?.let { device ->
+        RenameDialog(
+            initial = device.name,
+            onConfirm = {
+                onRename(device.address, it)
+                renaming = null
+            },
+            onDismiss = { renaming = null },
+        )
+    }
+}
+
+@Composable
+private fun RenameDialog(
+    initial: String,
+    onConfirm: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var text by remember { mutableStateOf(initial) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.known_devices_rename_title)) },
+        text = {
+            OutlinedTextField(
+                value = text,
+                onValueChange = { text = it.filter { c -> c in ' '..'~' }.take(KNOWN_DEVICE_NAME_MAX) },
+                label = { Text(stringResource(R.string.known_devices_name_hint)) },
+                singleLine = true,
+            )
+        },
+        confirmButton = { TextButton(onClick = { onConfirm(text) }) { Text(stringResource(R.string.known_devices_rename_save)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.confirm_cancel)) } },
+    )
 }
 
 @Composable

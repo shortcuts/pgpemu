@@ -23,7 +23,7 @@ extern uint16_t control_handle_table[CONTROL_LAST_IDX];
 // 2-byte [status][opcode] response header.
 #define CONTROL_MAX_RESPONSE_PAYLOAD (500 - 2)
 // Layout version of GET_DEVICE_INFO; bump on a breaking change (new fields are appended).
-#define CONTROL_PROTOCOL_VERSION 5
+#define CONTROL_PROTOCOL_VERSION 6
 
 typedef enum {
     CONTROL_OP_HELP = 0x01,
@@ -54,6 +54,9 @@ typedef enum {
     CONTROL_OP_OTA_DATA = 0x1A,
     CONTROL_OP_OTA_END = 0x1B,
     CONTROL_OP_OTA_ABORT = 0x1C,
+    CONTROL_OP_LIST_KNOWN_DEVICES = 0x1D,
+    CONTROL_OP_RENAME_KNOWN_DEVICE = 0x1E,
+    CONTROL_OP_FORGET_KNOWN_DEVICE = 0x1F,
 } control_opcode_t;
 
 typedef enum {
@@ -66,6 +69,7 @@ typedef enum {
     CONTROL_STATUS_ERR_NOT_PROVISIONING = 0x06,
     CONTROL_STATUS_ERR_OTA_NOT_ARMED = 0x07,
     CONTROL_STATUS_ERR_OTA_STATE = 0x08,
+    CONTROL_STATUS_ERR_NOT_FOUND = 0x09,
 } control_status_t;
 
 // Called from pgp_gatts.c's ESP_GATTS_REG_EVT, alongside the other

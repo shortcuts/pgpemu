@@ -37,7 +37,19 @@ data class DeviceInfo(
     val provisioning: Boolean,
 )
 
+/** One game phone the firmware has seen; [name] is empty until the user sets one. */
+data class KnownDevice(
+    /** Bluetooth address, `AA:BB:CC:DD:EE:FF`. */
+    val address: String,
+    /** Recency counter: a higher value was seen later. The device has no clock. */
+    val seq: Long,
+    val connected: Boolean,
+    val name: String,
+)
+
 const val CLIENT_SUMMARY_RECORD_SIZE = 11
+private const val KNOWN_DEVICE_RECORD_SIZE = 27
+private const val KNOWN_DEVICE_NAME_OFFSET = 11
 private const val GLOBAL_SETTINGS_MIN_SIZE = 4
 private const val DEVICE_INFO_MIN_SIZE = 16
 
@@ -108,3 +120,28 @@ fun decodeClientSummary(payload: ByteArray): Result<List<ClientSummary>> =
             )
         }
     }
+
+/** Layout: see known_devices.h and protocol/control_vectors.txt: count, then one 27-byte record per phone, newest first. */
+fun decodeKnownDevices(p: ByteArray): Result<List<KnownDevice>> =
+    p.require(1, "known devices").mapCatching {
+        val count = p[0].toInt() and 0xFF
+        p.require(1 + count * KNOWN_DEVICE_RECORD_SIZE, "known devices").getOrThrow()
+        (0 until count).map { i ->
+            val base = 1 + i * KNOWN_DEVICE_RECORD_SIZE
+            val nameBytes = p.copyOfRange(base + KNOWN_DEVICE_NAME_OFFSET, base + KNOWN_DEVICE_RECORD_SIZE)
+            KnownDevice(
+                address = (0 until 6).joinToString(":") { "%02X".format(p[base + it]) },
+                seq = (0 until 4).sumOf { (p[base + 6 + it].toLong() and 0xFF) shl (8 * it) },
+                connected = p[base + 10].toInt() and 0x01 != 0,
+                name = String(nameBytes, 0, nameBytes.indexOf(0).let { if (it < 0) nameBytes.size else it }, Charsets.US_ASCII),
+            )
+        }
+    }
+
+/** The 6 address bytes the known-device opcodes take, from `AA:BB:CC:DD:EE:FF`. */
+fun parseAddress(address: String): ByteArray = address.split(":").map { it.toInt(16).toByte() }.toByteArray()
+
+fun encodeRename(
+    address: String,
+    name: String,
+): ByteArray = parseAddress(address) + name.toByteArray(Charsets.US_ASCII)

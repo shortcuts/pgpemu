@@ -19,6 +19,11 @@ class ControlWireVectorsTest {
         mapOf(
             "unknown_opcode" to StatusCode.ERR_UNKNOWN_OPCODE,
             "bad_max_connections" to StatusCode.ERR_MALFORMED_PAYLOAD,
+            "rename_known_device_unprintable" to StatusCode.ERR_MALFORMED_PAYLOAD,
+            "rename_known_device_missing" to StatusCode.ERR_NOT_FOUND,
+            "forget_known_device_connected" to StatusCode.ERR_BUSY,
+            "forget_known_device_missing" to StatusCode.ERR_NOT_FOUND,
+            "forget_known_device_short" to StatusCode.ERR_MALFORMED_PAYLOAD,
         )
 
     @Test
@@ -57,7 +62,24 @@ class ControlWireVectorsTest {
             assertTrue("$name: response does not answer its request", frame.answers(request[0].toInt()))
             assertEquals(name, errorStatuses[name] ?: StatusCode.OK, frame.status)
             when (name) {
-                "unknown_opcode", "bad_max_connections" -> Unit
+                "unknown_opcode",
+                "bad_max_connections",
+                "rename_known_device",
+                "rename_known_device_unprintable",
+                "rename_known_device_missing",
+                "forget_known_device_connected",
+                "forget_known_device_missing",
+                "forget_known_device_short",
+                -> assertEquals(0, frame.payload.size)
+                "known_devices_list" ->
+                    assertEquals(
+                        listOf(
+                            KnownDevice("AA:BB:CC:DD:EE:02", 2L, true, ""),
+                            KnownDevice("AA:BB:CC:DD:EE:01", 1L, false, "Pixel"),
+                        ),
+                        decodeKnownDevices(frame.payload).getOrThrow(),
+                    )
+                "known_devices_empty" -> assertEquals(emptyList<KnownDevice>(), decodeKnownDevices(frame.payload).getOrThrow())
                 "global_settings" ->
                     assertEquals(
                         GlobalSettings(2, true, 0, 1, true),
@@ -74,12 +96,12 @@ class ControlWireVectorsTest {
                     )
                 "device_info" ->
                     assertEquals(
-                        DeviceInfo(5, 4, 3, 5L, 0L, 0L, "", false),
+                        DeviceInfo(6, 4, 3, 5L, 0L, 0L, "", false),
                         decodeDeviceInfo(frame.payload).getOrThrow(),
                     )
                 "device_info_provisioning" ->
                     assertEquals(
-                        DeviceInfo(5, 4, 3, 5L, 0L, 0L, "", true),
+                        DeviceInfo(6, 4, 3, 5L, 0L, 0L, "", true),
                         decodeDeviceInfo(frame.payload).getOrThrow(),
                     )
                 else -> fail("no decode expectation for $name")

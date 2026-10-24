@@ -1,6 +1,7 @@
 package com.pgpemu.companion.ui
 
 import com.pgpemu.companion.ble.ConnectionState
+import com.pgpemu.companion.ble.KnownDevice
 import com.pgpemu.companion.ble.Opcode
 import com.pgpemu.companion.ble.ResponseFrame
 import com.pgpemu.companion.ble.ScannedDevice
@@ -834,6 +835,118 @@ class DeviceViewModelTest {
             vm.requestFirmwareUpdate(otaImageBytes(project = "other"))
             assertTrue(vm.uiState.value.message is UiMessage.InvalidFirmwareFile)
             assertNull(vm.uiState.value.pendingConfirmation)
+        }
+
+    private fun knownDevicesList(vararg named: Pair<Int, String>): ByteArray =
+        byteArrayOf(named.size.toByte()) +
+            named
+                .map { (last, name) ->
+                    byteArrayOf(0xAA.toByte(), 0xBB.toByte(), 0xCC.toByte(), 0xDD.toByte(), 0xEE.toByte(), last.toByte()) +
+                        byteArrayOf(last.toByte(), 0, 0, 0, 0) + name.toByteArray().copyOf(16)
+                }.reduce(ByteArray::plus)
+
+    private fun knownDevicesDevice(
+        protocol: Int,
+        list: () -> ByteArray,
+    ): FakeBleControlRepository {
+        val repository = FakeBleControlRepository()
+        stubStatusReplies(repository)
+        repository.stubResponse(
+            Opcode.GET_DEVICE_INFO,
+            Result.success(ResponseFrame(StatusCode.OK, Opcode.GET_DEVICE_INFO.toByte(), deviceInfoBytes(protocol, 4))),
+        )
+        repository.responder = { opcode, _ ->
+            when (opcode) {
+                Opcode.LIST_KNOWN_DEVICES -> Result.success(ResponseFrame(StatusCode.OK, opcode.toByte(), list()))
+                Opcode.RENAME_KNOWN_DEVICE, Opcode.FORGET_KNOWN_DEVICE ->
+                    Result.success(ResponseFrame(StatusCode.OK, opcode.toByte(), byteArrayOf()))
+                else -> null
+            }
+        }
+        return repository
+    }
+
+    @Test
+    fun `known devices are fetched on refresh when the firmware supports them`() =
+        runTest {
+            val repository = knownDevicesDevice(6) { knownDevicesList(2 to "", 1 to "Pixel") }
+            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+
+            viewModel.refreshStatus()
+            dispatcher.scheduler.advanceUntilIdle()
+
+            assertTrue(viewModel.uiState.value.knownDevicesSupported)
+            assertEquals(
+                listOf(KnownDevice("AA:BB:CC:DD:EE:02", 2L, false, ""), KnownDevice("AA:BB:CC:DD:EE:01", 1L, false, "Pixel")),
+                viewModel.uiState.value.knownDevices,
+            )
+
+            viewModel.refreshStatus(clearError = false)
+            dispatcher.scheduler.advanceUntilIdle()
+            assertEquals(1, repository.sentCommands.count { it.first == Opcode.LIST_KNOWN_DEVICES })
+        }
+
+    @Test
+    fun `known devices are neither offered nor fetched on protocol 5`() =
+        runTest {
+            val repository = knownDevicesDevice(5) { knownDevicesList(1 to "") }
+            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+
+            viewModel.refreshStatus()
+            dispatcher.scheduler.advanceUntilIdle()
+
+            assertFalse(viewModel.uiState.value.knownDevicesSupported)
+            assertFalse(repository.sentCommands.any { it.first == Opcode.LIST_KNOWN_DEVICES })
+        }
+
+    @Test
+    fun `rename sends the address and name, then reloads the list`() =
+        runTest {
+            var list = knownDevicesList(1 to "")
+            val repository = knownDevicesDevice(6) { list }
+            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+            viewModel.refreshStatus()
+            dispatcher.scheduler.advanceUntilIdle()
+
+            list = knownDevicesList(1 to "Pixel")
+            viewModel.renameKnownDevice("AA:BB:CC:DD:EE:01", "Pixel")
+            dispatcher.scheduler.advanceUntilIdle()
+
+            val sent = repository.sentCommands.last { it.first == Opcode.RENAME_KNOWN_DEVICE }.second
+            assertEquals(
+                "AABBCCDDEE01" + "Pixel".toByteArray().joinToString("") { "%02X".format(it) },
+                sent.joinToString("") { "%02X".format(it) },
+            )
+            assertEquals(
+                "Pixel",
+                viewModel.uiState.value.knownDevices
+                    .single()
+                    .name,
+            )
+        }
+
+    @Test
+    fun `forgetting a known device sends one command only after confirmation, then reloads the list`() =
+        runTest {
+            var list = knownDevicesList(1 to "")
+            val repository = knownDevicesDevice(6) { list }
+            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+            viewModel.refreshStatus()
+            dispatcher.scheduler.advanceUntilIdle()
+
+            viewModel.requestForgetKnownDevice("AA:BB:CC:DD:EE:01")
+            assertEquals(ConfirmAction.ForgetKnownDevice("AA:BB:CC:DD:EE:01"), viewModel.uiState.value.pendingConfirmation)
+            assertFalse(repository.sentCommands.any { it.first == Opcode.FORGET_KNOWN_DEVICE })
+
+            list = byteArrayOf(0)
+            viewModel.confirmPendingAction()
+            dispatcher.scheduler.advanceUntilIdle()
+
+            val forgets = repository.sentCommands.filter { it.first == Opcode.FORGET_KNOWN_DEVICE }
+            assertEquals(1, forgets.size)
+            assertEquals("AABBCCDDEE01", forgets.single().second.joinToString("") { "%02X".format(it) })
+            assertNull(viewModel.uiState.value.pendingConfirmation)
+            assertEquals(emptyList<KnownDevice>(), viewModel.uiState.value.knownDevices)
         }
 
     private fun TestScope.dropAfterReady(

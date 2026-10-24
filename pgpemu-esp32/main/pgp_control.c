@@ -11,7 +11,8 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"  // vTaskList
 #include "fw_version.h"     // PGP_FW_VERSION
-#include "led_output.h"     // get_led_advertising
+#include "known_devices.h"
+#include "led_output.h"  // get_led_advertising
 #include "log_tags.h"
 #include "pgp_gap.h"              // advertise_if_needed, pgp_adv_get_state
 #include "pgp_gatts.h"            // MAX_VALUE_LENGTH
@@ -58,6 +59,19 @@ static bool game_link_active(void) {
         }
     }
     return false;
+}
+
+static control_status_t known_devices_status(known_devices_result_t result) {
+    switch (result) {
+    case KNOWN_DEVICES_OK:
+        return CONTROL_STATUS_OK;
+    case KNOWN_DEVICES_NOT_FOUND:
+        return CONTROL_STATUS_ERR_NOT_FOUND;
+    case KNOWN_DEVICES_BUSY:
+        return CONTROL_STATUS_ERR_BUSY;
+    default:
+        return CONTROL_STATUS_ERR_INTERNAL;
+    }
 }
 
 static void put_u32_le(uint8_t* out, uint32_t v) {
@@ -424,6 +438,26 @@ static void pgp_control_handle_command_write(esp_gatt_if_t gatts_if,
     }
     case CONTROL_OP_OTA_ABORT: {
         status = pgp_ota_abort(conn_id);
+        break;
+    }
+    case CONTROL_OP_LIST_KNOWN_DEVICES: {
+        status = known_devices_status(known_devices_list(resp, sizeof(resp), &resp_len));
+        break;
+    }
+    case CONTROL_OP_RENAME_KNOWN_DEVICE: {
+        // bda[6] then 0..15 printable ASCII bytes, like the clone name.
+        bool printable = payload_len >= 6 && payload_len < 6 + KNOWN_DEVICE_NAME_LEN;
+        for (size_t i = 6; printable && i < payload_len; i++) {
+            printable = payload[i] >= 0x20 && payload[i] <= 0x7E;
+        }
+        status = printable
+                     ? known_devices_status(known_devices_rename(payload, (const char*)payload + 6, payload_len - 6))
+                     : CONTROL_STATUS_ERR_MALFORMED_PAYLOAD;
+        break;
+    }
+    case CONTROL_OP_FORGET_KNOWN_DEVICE: {
+        status = payload_len == 6 ? known_devices_status(known_devices_forget(payload))
+                                  : CONTROL_STATUS_ERR_MALFORMED_PAYLOAD;
         break;
     }
     case CONTROL_OP_GET_LED_STATE: {

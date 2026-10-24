@@ -38,6 +38,7 @@ Autocatcher/Gotcha/Pokemon Go Plus device emulator for Pokemon Go, with autospin
 - Statically loaded secrets (see [Load Pokemon Go Plus Secrets](#load-pokemon-go-plus-secrets)) in [NVS](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/storage/nvs_flash.html)
 - Provisioning mode: a device without secrets starts a setup-only Bluetooth service, and the companion app uploads `secrets.csv` (see [Load Pokemon Go Plus Secrets](#load-pokemon-go-plus-secrets))
 - Toggle autocatch/autospin
+- Known devices list in the companion app: see the paired phones, name them, forget one (the device keeps up to 15)
 - Firmware update from the companion app over Bluetooth, with automatic rollback if the new firmware does not start
 - Update-available notice in the companion app (checks GitHub once a day)
 - Android 15+ support
@@ -189,6 +190,9 @@ The app is a single scrolling screen, ordered by risk/frequency:
   count, log level.
 - **Device Profiles** — one row per device slot (0-3), each with
   **Autospin** and **Autocatch** toggle chips.
+- **Known devices** — the phones that finished a Pokémon GO connection, newest
+  first, with **Rename** and **Forget**. The device keeps 15 and drops the one
+  used longest ago.
 - **Settings** — advertising on/off switch, max-connections stepper, a
   **Cycle log level** button. Changes persist to flash automatically.
 - **Diagnostics** — on-demand dumps (runtime stats, FreeRTOS task list,
@@ -311,6 +315,7 @@ pgpemu/
 │   │   ├── Settings & Storage:
 │   │   │   ├── config_storage.c(.h)         # NVS persistence, device settings
 │   │   │   ├── config_secrets.c(.h)         # Secret management
+│   │   │   ├── known_devices.c(.h)          # Known Device index
 │   │   │   ├── settings.c(.h)               # Settings logic
 │   │   │   └── nvs_helper.c(.h)             # NVS utilities
 │   │   │

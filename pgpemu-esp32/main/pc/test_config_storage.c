@@ -59,6 +59,28 @@ static void test_session_keys_round_trip_and_clear(void) {
     assert(!retrieve_device_session_keys(BDA_A, NULL, c2));
 }
 
+static void test_erase_device_data_clears_one_address(void) {
+    DeviceSettings out = { 0 };
+    uint8_t key[16] = { 1 }, chal[32] = { 2 };
+    nvs_mem_reset();
+    memset(g_slots, 0, sizeof(g_slots));
+    for (int i = 0; i < 2; i++) {
+        memcpy(g_slots[i].remote_bda, i ? BDA_B : BDA_A, 6);
+        g_slots[i].has_settings = true;
+        g_slots[i].settings.mutex = xSemaphoreCreateMutex();
+        g_slots[i].settings.autospin = false;
+        assert(persist_device_session_keys(g_slots[i].remote_bda, key, chal));
+    }
+    assert(write_devices_settings_to_nvs());
+
+    assert(erase_device_data(BDA_A));
+    assert(!has_cached_session(BDA_A));
+    assert(read_stored_device_settings(BDA_A, &out) && out.autospin);  // back to the default
+    assert(has_cached_session(BDA_B));
+    assert(read_stored_device_settings(BDA_B, &out) && !out.autospin);
+    assert(erase_device_data(BDA_A));  // nothing left to erase is not an error
+}
+
 static void test_persist_fails_when_commit_fails(void) {
     uint8_t key[16] = { 1 }, chal[32] = { 2 };
     nvs_mem_reset();
@@ -152,6 +174,7 @@ static void test_write_single_device_slot(void) {
 int main(void) {
     test_device_key_fits_nvs_and_differs();
     test_session_keys_round_trip_and_clear();
+    test_erase_device_data_clears_one_address();
     test_persist_fails_when_commit_fails();
     test_global_settings_round_trip();
     test_global_settings_reject_out_of_range();

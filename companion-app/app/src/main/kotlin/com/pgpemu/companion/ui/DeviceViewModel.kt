@@ -6,6 +6,7 @@ import com.pgpemu.companion.R
 import com.pgpemu.companion.ble.BleControlRepository
 import com.pgpemu.companion.ble.ConnectionState
 import com.pgpemu.companion.ble.DeviceInfo
+import com.pgpemu.companion.ble.KnownDevice
 import com.pgpemu.companion.ble.LastDeviceStore
 import com.pgpemu.companion.ble.Opcode
 import com.pgpemu.companion.ble.OtaException
@@ -18,7 +19,10 @@ import com.pgpemu.companion.ble.decodeClientSummary
 import com.pgpemu.companion.ble.decodeDeviceInfo
 import com.pgpemu.companion.ble.decodeFlag
 import com.pgpemu.companion.ble.decodeGlobalSettings
+import com.pgpemu.companion.ble.decodeKnownDevices
 import com.pgpemu.companion.ble.decodeLogLevel
+import com.pgpemu.companion.ble.encodeRename
+import com.pgpemu.companion.ble.parseAddress
 import com.pgpemu.companion.ble.parseOtaImage
 import com.pgpemu.companion.ble.parseSecretsCsv
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -45,6 +49,9 @@ const val MIN_PROTOCOL_VERSION = 4
 // First GET_DEVICE_INFO layout version with the OTA opcodes.
 const val OTA_MIN_PROTOCOL_VERSION = 5
 
+// First GET_DEVICE_INFO layout version with the known-device opcodes.
+const val KNOWN_DEVICES_MIN_PROTOCOL_VERSION = 6
+
 // Poll interval while connected — other phones can connect/disconnect and
 // toggle profiles without this app knowing, so state can go stale otherwise.
 const val STATUS_POLL_INTERVAL_MS = 5000L
@@ -68,8 +75,11 @@ data class DeviceUiState(
     val firmwareOutdated: Boolean = false,
     /** Percent of the firmware image sent; null while no update runs. */
     val otaProgress: Int? = null,
+    /** Game phones the device has seen, newest first. */
+    val knownDevices: List<KnownDevice> = emptyList(),
 ) {
     val otaSupported: Boolean get() = (deviceInfo?.protocolVersion ?: 0) >= OTA_MIN_PROTOCOL_VERSION
+    val knownDevicesSupported: Boolean get() = (deviceInfo?.protocolVersion ?: 0) >= KNOWN_DEVICES_MIN_PROTOCOL_VERSION
 }
 
 /** Text for the user; the screen maps each case to a string resource, raw codes ride along for bug reports. */
@@ -157,6 +167,14 @@ sealed interface ConfirmAction {
         override val confirmWord = "UPDATE"
         override val titleRes = R.string.confirm_ota_title
         override val bodyRes = R.string.confirm_ota_body
+    }
+
+    data class ForgetKnownDevice(
+        val address: String,
+    ) : ConfirmAction {
+        override val confirmWord = "FORGET"
+        override val titleRes = R.string.confirm_forget_known_title
+        override val bodyRes = R.string.confirm_forget_known_body
     }
 
     data object Restart : ConfirmAction {
@@ -389,8 +407,17 @@ class DeviceViewModel
                             }
                         }
                     }
+                    if (clearError) fetchKnownDevices()
                     _uiState.update { it.copy(isBusy = false) }
                 }
+            }
+        }
+
+        /** Runs inside the command lock. The list changes only on a handshake, rename or forget, so the poll skips it. */
+        private suspend fun fetchKnownDevices() {
+            if (!_uiState.value.knownDevicesSupported) return
+            runStep(Opcode.LIST_KNOWN_DEVICES) { frame ->
+                decoded(decodeKnownDevices(frame.payload)) { devices -> _uiState.update { it.copy(knownDevices = devices) } }
             }
         }
 
@@ -598,6 +625,21 @@ class DeviceViewModel
             }
         }
 
+        fun renameKnownDevice(
+            address: String,
+            name: String,
+        ) {
+            runCommand(Opcode.RENAME_KNOWN_DEVICE, encodeRename(address, name)) { refreshKnownDevices() }
+        }
+
+        fun requestForgetKnownDevice(address: String) {
+            _uiState.update { it.copy(pendingConfirmation = ConfirmAction.ForgetKnownDevice(address)) }
+        }
+
+        private fun refreshKnownDevices() {
+            viewModelScope.launch { commandLock.withLock { fetchKnownDevices() } }
+        }
+
         fun requestRestart() {
             _uiState.update { it.copy(pendingConfirmation = ConfirmAction.Restart) }
         }
@@ -608,13 +650,18 @@ class DeviceViewModel
         }
 
         fun confirmPendingAction() {
-            when (_uiState.value.pendingConfirmation) {
+            when (val action = _uiState.value.pendingConfirmation) {
                 ConfirmAction.ResetSecrets -> runCommand(Opcode.RESET_SECRETS) { dismissConfirmation() }
                 ConfirmAction.ForgetPairings -> runCommand(Opcode.FORGET_PAIRINGS) { dismissConfirmation() }
                 ConfirmAction.UpdateFirmware -> {
                     _uiState.update { it.copy(pendingConfirmation = null) }
                     startOta()
                 }
+                is ConfirmAction.ForgetKnownDevice ->
+                    runCommand(Opcode.FORGET_KNOWN_DEVICE, parseAddress(action.address)) {
+                        dismissConfirmation()
+                        refreshKnownDevices()
+                    }
                 ConfirmAction.Restart -> runCommand(Opcode.RESTART) { dismissConfirmation() }
                 null -> Unit
             }

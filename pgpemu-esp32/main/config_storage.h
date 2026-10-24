@@ -33,4 +33,7 @@ bool has_cached_session(esp_bd_addr_t bda);
 // Clear session keys on manual user request (optional)
 bool clear_device_session(esp_bd_addr_t bda);
 
+// Erase the session keys and the device settings of one address.
+bool erase_device_data(esp_bd_addr_t bda);
+
 #endif /* CONFIG_STORAGE_H */

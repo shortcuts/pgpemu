@@ -467,3 +467,24 @@ bool clear_device_session(esp_bd_addr_t bda) {
     }
     return all_ok;
 }
+
+bool erase_device_data(esp_bd_addr_t bda) {
+    nvs_handle_t device_settings_handle = {};
+    if (!nvs_open_readwrite(CONFIG_STORAGE_TAG, "device_settings", &device_settings_handle)) {
+        return false;
+    }
+
+    bool all_ok = true;
+    char key_out[NVS_KEY_MAX_LEN + 1];
+    const char* const options[] = { KEY_AUTOSPIN, KEY_AUTOCATCH, "sesskey", "rechall" };
+    for (size_t i = 0; i < sizeof(options) / sizeof(options[0]); i++) {
+        make_device_key_for_option(options[i], bda, key_out);
+        esp_err_t err = nvs_erase_key(device_settings_handle, key_out);
+        if (err != ESP_OK && err != ESP_ERR_NVS_NOT_FOUND) {
+            ESP_LOGW(CONFIG_STORAGE_TAG, "erase_device_data: failed to erase %s", options[i]);
+            all_ok = false;
+        }
+    }
+
+    return nvs_commit_and_close(CONFIG_STORAGE_TAG, device_settings_handle, "device_data") && all_ok;
+}

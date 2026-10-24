@@ -29,4 +29,7 @@ object Opcode {
     const val OTA_DATA: Int = 0x1A
     const val OTA_END: Int = 0x1B
     const val OTA_ABORT: Int = 0x1C
+    const val LIST_KNOWN_DEVICES: Int = 0x1D
+    const val RENAME_KNOWN_DEVICE: Int = 0x1E
+    const val FORGET_KNOWN_DEVICE: Int = 0x1F
 }

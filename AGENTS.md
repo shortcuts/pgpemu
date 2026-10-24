@@ -98,6 +98,7 @@ make companion-lint    # when companion-app/ changed
 | `pgp_led_handler.c` | Parses LED patterns from the game into events |
 | `forget_pairings.c` | Forget Pairings: RTC flag set by the app opcode or a 10 s button hold, `nvs` erased on the next boot; secrets stay |
 | `pgp_autobutton.c` | Per-profile autospin/autocatch button simulation |
+| `known_devices.c` | Known Device index in NVS (`known_devs`, up to 15 records): touch at handshake done, least-recently-seen eviction with keys, settings and bond, rename, forget (PC-tested) |
 | `config_storage.c` / `config_secrets.c` / `nvs_helper.c` / `settings.c` | NVS persistence for Global/Device Settings and Session Secrets (`config_secrets.c` also writes them for the Control Service's PROVISION_SECRETS) |
 | `stats.c` / `log_tags.c` | Runtime stats and log tags |
 

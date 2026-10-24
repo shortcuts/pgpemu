@@ -12,7 +12,7 @@
 #     response = Response indication: [status][opcode][payload]
 #     prefix   = the firmware frame may be longer; only these bytes must match
 #
-# Setups (C side): default, log2, summary, provisioning.
+# Setups (C side): default, log2, summary, provisioning, known.
 
 opcode HELP 01
 opcode GET_GLOBAL_SETTINGS 02
@@ -42,6 +42,9 @@ opcode OTA_BEGIN 19
 opcode OTA_DATA 1A
 opcode OTA_END 1B
 opcode OTA_ABORT 1C
+opcode LIST_KNOWN_DEVICES 1D
+opcode RENAME_KNOWN_DEVICE 1E
+opcode FORGET_KNOWN_DEVICE 1F
 
 status OK 00
 status ERR_UNKNOWN_OPCODE 01
@@ -52,6 +55,7 @@ status ERR_INTERNAL 05
 status ERR_NOT_PROVISIONING 06
 status ERR_OTA_NOT_ARMED 07
 status ERR_OTA_STATE 08
+status ERR_NOT_FOUND 09
 
 uuid control_service bbe87709-5b89-4433-ab7f-8b8eef0d8e40
 uuid command_char bbe87709-5b89-4433-ab7f-8b8eef0d8e41
@@ -64,5 +68,15 @@ vector set_log_level default 1603 001603
 vector set_autospin summary 140000 001400
 vector bad_max_connections default 0f05 020f
 vector client_summary summary 12 00120700070100020001000300ffff000000000000000000ffff000000000000000000ffff000000000000000000
-vector device_info default 13 001305040305000000000000000000000000 prefix
-vector device_info_provisioning provisioning 13 001305040305000000000000000000000001 prefix
+vector device_info default 13 001306040305000000000000000000000000 prefix
+vector device_info_provisioning provisioning 13 001306040305000000000000000000000001 prefix
+
+# known setup: aa:bb:cc:dd:ee:01 seen first and named "Pixel"; aa:bb:cc:dd:ee:02 seen second and connected.
+vector known_devices_list known 1d 001d02aabbccddee02020000000100000000000000000000000000000000aabbccddee010100000000506978656c0000000000000000000000
+vector known_devices_empty default 1d 001d00
+vector rename_known_device known 1eaabbccddee0141 001e
+vector rename_known_device_unprintable known 1eaabbccddee0107 021e
+vector rename_known_device_missing known 1eaabbccddee0941 091e
+vector forget_known_device_connected known 1faabbccddee02 041f
+vector forget_known_device_missing default 1faabbccddee09 091f
+vector forget_known_device_short known 1faabbccddee 021f

@@ -21,7 +21,7 @@ uint8_t bt_mac[6];
 
 static client_state_t g_state, g_other;
 static int caught_calls, fled_calls, spin_calls;
-static int button_presses, set_attr_calls, indicate_calls, decrypt_calls, reconnect_calls, persist_calls;
+static int button_presses, set_attr_calls, indicate_calls, decrypt_calls, reconnect_calls, persist_calls, touch_calls;
 
 client_state_t* get_client_state_entry(uint16_t conn_id) {
     if (conn_id == 1) {
@@ -80,6 +80,10 @@ bool persist_device_session_keys(esp_bd_addr_t bda, const uint8_t* k, const uint
     persist_calls++;
     return true;
 }
+void known_devices_touch(const uint8_t* bda) {
+    (void)bda;
+    touch_calls++;
+}
 bool retrieve_device_session_keys(esp_bd_addr_t bda, uint8_t* k, uint8_t* r) {
     (void)bda, (void)k, (void)r;
     return false;
@@ -126,7 +130,8 @@ static void reset(int cert_state) {
     g_state.settings.autocatch = true;
     g_state.has_settings = true;
     g_state.cert_state = cert_state;
-    button_presses = set_attr_calls = indicate_calls = decrypt_calls = reconnect_calls = persist_calls = 0;
+    button_presses = set_attr_calls = indicate_calls = decrypt_calls = reconnect_calls = persist_calls = touch_calls =
+        0;
     caught_calls = fled_calls = spin_calls = 0;
 }
 
@@ -232,10 +237,11 @@ static void test_handshake_short_writes_ignored(void) {
     // state 2
     reset(2);
     call_hs2(buf, 52);
-    assert(decrypt_calls == 1 && g_state.cert_state == PGP_CERT_DONE && persist_calls == 1);
+    assert(decrypt_calls == 1 && g_state.cert_state == PGP_CERT_DONE && persist_calls == 1 && touch_calls == 1);
     reset(2);
     call_hs2(buf, 51);
-    assert(decrypt_calls == 0 && g_state.cert_state == PGP_CERT_FULL_RESPONSE_PENDING && persist_calls == 0);
+    assert(decrypt_calls == 0 && g_state.cert_state == PGP_CERT_FULL_RESPONSE_PENDING && persist_calls == 0
+           && touch_calls == 0);
 
     // state 4: 4-byte header + 32-byte challenge
     reset(4);
@@ -257,7 +263,7 @@ static void test_handshake_short_writes_ignored(void) {
     assert(g_state.cert_state == PGP_CERT_RECON_RESPONSE_PENDING);
     reset(5);
     call_hs2(buf, 5);
-    assert(g_state.cert_state == PGP_CERT_DONE);
+    assert(g_state.cert_state == PGP_CERT_DONE && touch_calls == 1);
     printf("PASS: handshake short writes ignored\n");
 }
 

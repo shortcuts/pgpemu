@@ -2,13 +2,16 @@
 #ifndef ESP_PLATFORM
 
 #define CONFIG_BT_ACL_CONNECTIONS 4
+#define CONFIG_BT_SMP_MAX_BONDS 15
 
 #include "../config_secrets.h"
 #include "../forget_pairings.h"
 #include "../led_output.h"
 #include "../pgp_autobutton.h"
 #include "../pgp_gap.h"
+#include "esp_gap_ble_api.h"
 #include "esp_timer.h"
+#include "nvs_mem.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -58,6 +61,14 @@ bool clear_device_session(esp_bd_addr_t bda) {
     (void)bda;
     return true;
 }
+bool erase_device_data(esp_bd_addr_t bda) {
+    (void)bda;
+    return true;
+}
+int esp_ble_remove_bond_device(unsigned char* bda) {
+    (void)bda;
+    return 0;
+}
 bool write_global_settings_to_nvs(void) {
     global_writes++;
     return save_ok;
@@ -102,6 +113,8 @@ void log_levels_verbose(void) {
 }
 
 #include "../buf_writer.c"
+#include "../known_devices.c"
+#include "../nvs_helper.c"
 #include "../pgp_control.c"
 #include "../pgp_handshake_multi.c"
 #include "../pgp_ota.c"
@@ -124,6 +137,8 @@ static void reset(void) {
     sent_len = 0;
     save_ok = reset_secrets_ok = write_secrets_ok = pgp_valid = 1;
     write_secrets_calls = 0;
+    nvs_mem_reset();
+    known_devices_init();
     control_handle_table[IDX_CHAR_CONTROL_COMMAND_VAL] = 40;
     control_handle_table[IDX_CHAR_CONTROL_RESPONSE_CFG] = 43;
 }
@@ -161,6 +176,14 @@ static void setup_summary(void) {
 static void setup_provisioning(void) {
     pgp_valid = 0;
 }
+static void setup_known(void) {
+    const uint8_t first[6] = { 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0x01 };
+    const uint8_t second[6] = { 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0x02 };
+    known_devices_touch(first);
+    known_devices_touch(second);
+    assert(known_devices_rename(first, "Pixel", 5) == KNOWN_DEVICES_OK);
+    memcpy(get_or_create_client_state_entry(7)->remote_bda, second, 6);
+}
 static const struct {
     const char* name;
     void (*fn)(void);
@@ -169,6 +192,7 @@ static const struct {
     { "log2", setup_log2 },
     { "summary", setup_summary },
     { "provisioning", setup_provisioning },
+    { "known", setup_known },
 };
 
 int64_t esp_timer_get_time(void) {
@@ -584,6 +608,9 @@ static const named_value_t opcode_table[] = {
     { "OTA_DATA", CONTROL_OP_OTA_DATA },
     { "OTA_END", CONTROL_OP_OTA_END },
     { "OTA_ABORT", CONTROL_OP_OTA_ABORT },
+    { "LIST_KNOWN_DEVICES", CONTROL_OP_LIST_KNOWN_DEVICES },
+    { "RENAME_KNOWN_DEVICE", CONTROL_OP_RENAME_KNOWN_DEVICE },
+    { "FORGET_KNOWN_DEVICE", CONTROL_OP_FORGET_KNOWN_DEVICE },
 };
 
 static const named_value_t status_table[] = {
@@ -596,6 +623,7 @@ static const named_value_t status_table[] = {
     { "ERR_NOT_PROVISIONING", CONTROL_STATUS_ERR_NOT_PROVISIONING },
     { "ERR_OTA_NOT_ARMED", CONTROL_STATUS_ERR_OTA_NOT_ARMED },
     { "ERR_OTA_STATE", CONTROL_STATUS_ERR_OTA_STATE },
+    { "ERR_NOT_FOUND", CONTROL_STATUS_ERR_NOT_FOUND },
 };
 
 static const struct {

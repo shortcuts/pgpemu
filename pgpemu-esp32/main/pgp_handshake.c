@@ -3,6 +3,7 @@
 #include "config_storage.h"
 #include "esp_gatt_defs.h"
 #include "esp_log.h"
+#include "known_devices.h"
 #include "log_tags.h"
 #include "pgp_bluetooth.h"
 #include "pgp_cert.h"
@@ -275,6 +276,7 @@ void handle_pgp_handshake_second(esp_gatt_if_t gatts_if, const uint8_t* prepare_
             false);
 
         client_state->cert_state = PGP_CERT_DONE;
+        known_devices_touch(client_state->remote_bda);
         connection_start(conn_id);
         advertise_if_needed();
         break;
@@ -344,6 +346,7 @@ void handle_pgp_handshake_second(esp_gatt_if_t gatts_if, const uint8_t* prepare_
                 false);
 
             client_state->cert_state = PGP_CERT_DONE;
+            known_devices_touch(client_state->remote_bda);
             // For reconnections on a fresh entry (connection_start == 0), increment the counter.
             // For reconnections on an existing entry (connection_start != 0), just update timestamp.
             // This handles both scenarios: fresh slots vs reconnections within same slot.
