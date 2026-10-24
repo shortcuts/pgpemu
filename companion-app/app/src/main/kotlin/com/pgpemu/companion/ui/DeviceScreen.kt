@@ -66,6 +66,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -96,6 +97,7 @@ import com.pgpemu.companion.ble.StatusCode
 import com.pgpemu.companion.ui.theme.LocalPgpColors
 import com.pgpemu.companion.update.UpdateNotice
 import com.pgpemu.companion.update.UpdateViewModel
+import com.pgpemu.companion.update.WhatsNewViewModel
 import com.pgpemu.companion.update.updateNotice
 
 // Longest name the firmware stores, without its terminator.
@@ -118,10 +120,12 @@ private val BLE_PERMISSIONS =
 fun DeviceScreen(
     viewModel: DeviceViewModel = hiltViewModel(),
     updateViewModel: UpdateViewModel = hiltViewModel(),
+    whatsNewViewModel: WhatsNewViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val latestTag by updateViewModel.latestTag.collectAsStateWithLifecycle()
     val notice = updateNotice(latestTag, BuildConfig.VERSION_NAME, uiState.deviceInfo?.firmwareVersion)
+    val whatsNewVisible by whatsNewViewModel.visible.collectAsStateWithLifecycle()
     val colors = LocalPgpColors.current
     val context = LocalContext.current
     var blocker by remember { mutableStateOf<ScanBlocker?>(null) }
@@ -175,6 +179,13 @@ fun DeviceScreen(
             snackbarHost.showSnackbar(it)
             viewModel.consumeMessage()
         }
+    }
+
+    if (whatsNewVisible) {
+        WhatsNewDialog(
+            onOpenChangelog = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("$WIKI/changelog.html"))) },
+            onDismiss = whatsNewViewModel::dismiss,
+        )
     }
 
     Box(modifier = Modifier.fillMaxSize().background(colors.bg).safeDrawingPadding()) {
@@ -779,6 +790,24 @@ internal fun KnownDevicesSection(
             onDismiss = { renaming = null },
         )
     }
+}
+
+@Composable
+private fun WhatsNewDialog(
+    onOpenChangelog: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.whats_new_title, BuildConfig.VERSION_NAME)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                stringArrayResource(R.array.whats_new_notes).forEach { Text("\u2022 $it") }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.whats_new_close)) } },
+        dismissButton = { TextButton(onClick = onOpenChangelog) { Text(stringResource(R.string.whats_new_changelog)) } },
+    )
 }
 
 @Composable

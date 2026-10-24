@@ -26,7 +26,7 @@ enum class DeviceTab(
     About(R.string.tab_about),
 }
 
-private const val WIKI = "https://pgpemu.shrtcts.fr"
+internal const val WIKI = "https://pgpemu.shrtcts.fr"
 
 @Composable
 internal fun DeviceTabBar(

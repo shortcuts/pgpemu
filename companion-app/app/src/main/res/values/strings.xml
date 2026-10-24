@@ -195,4 +195,16 @@
     <string name="monitor_channel_box_full">Pokémon box full</string>
     <string name="monitor_channel_balls_empty">Out of Poké Balls</string>
     <string name="monitor_channel_spin_failed">Spin failed</string>
+    <string name="whats_new_title">What\'s new in %1$s</string>
+    <string name="whats_new_changelog">Full changelog</string>
+    <string name="whats_new_close">Got it</string>
+    <string-array name="whats_new_notes">
+        <item>Larger text and buttons, and TalkBack support.</item>
+        <item>Optional Game monitor alerts in Settings.</item>
+        <item>Share report in Diagnostics sends all details in one message.</item>
+        <item>Four tabs: Dashboard, Settings, Diagnostics, About.</item>
+        <item>Known devices, profile names, and lifetime stats per phone.</item>
+        <item>Autocatch modes: off, new, all.</item>
+        <item>Update the device firmware over Bluetooth.</item>
+    </string-array>
 </resources>
