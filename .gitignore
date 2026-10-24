@@ -8,3 +8,4 @@ pgpemu-esp32/main/pc
 .scratch/**/.omc/
 .claude/.radin/
 .opencode*
+docs/wiki/firmware/

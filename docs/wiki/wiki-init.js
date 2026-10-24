@@ -1,6 +1,7 @@
 (function () {
   var NAV_ITEMS = [
     { href: 'index.html', label: 'Getting Started' },
+    { href: 'install.html', label: 'Install & Update Firmware' },
     { href: 'connect.html', label: 'Connect & Pair' },
     { href: 'profiles.html', label: 'Device Profiles' },
     { href: 'settings.html', label: 'Settings' },

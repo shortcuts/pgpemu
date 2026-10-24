@@ -3,6 +3,7 @@ name: Deploy GitHub Pages
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -23,6 +24,19 @@ jobs:
       - uses: actions/checkout@v4
 
       - uses: actions/configure-pages@v5
+
+      - name: Build browser-flasher files from the latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! gh release download --repo "$GITHUB_REPOSITORY" --pattern 'pgpemu-firmware-*.zip' --dir "$RUNNER_TEMP/fw"; then
+            echo "::notice::No firmware release yet, skipping flasher files"
+            exit 0
+          fi
+          zip=$(ls "$RUNNER_TEMP"/fw/pgpemu-firmware-*.zip)
+          version=${zip##*pgpemu-firmware-}; version=${version%.zip}
+          unzip -q "$zip" -d "$RUNNER_TEMP/fw/bins"
+          python3 scripts/flasher_manifest.py "$RUNNER_TEMP/fw/bins" "${version#v}" docs/wiki/firmware
 
       - uses: actions/upload-pages-artifact@v3
         with:

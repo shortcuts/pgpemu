@@ -205,6 +205,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      actions: write
     steps:
     - uses: actions/checkout@v4
 
@@ -224,3 +225,8 @@ jobs:
       with:
         tag_name: ${{ needs.release.outputs.tag_name }}
         files: pgpemu-firmware-${{ needs.release.outputs.tag_name }}.zip
+
+    - name: redeploy wiki with the new flasher files
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: gh workflow run pages.yml

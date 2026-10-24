@@ -131,6 +131,7 @@ make wiki-serve   # http://localhost:8080
 | File | Purpose |
 |------|---------|
 | `docs/wiki/index.html` | Overview + what you need + quick start |
+| `docs/wiki/install.html` | Install and update the firmware with a browser flasher (manifest and binaries in `docs/wiki/firmware/`, generated at deploy by `pages.yml`, not committed) |
 | `docs/wiki/connect.html` | Pairing the companion app and the device with Pokémon GO |
 | `docs/wiki/profiles.html` | Autospin / Autocatch per device profile |
 | `docs/wiki/settings.html` | Advertising, max connections, log level |
@@ -148,4 +149,4 @@ Follow `docs/wiki/CONTRIBUTING.md` for page structure, nav ordering, and writing
 
 - New user-visible companion app or device behavior → update the matching wiki page. Add a new page only if the change doesn't fit any existing one, and add it to `NAV_ITEMS` in `docs/wiki/wiki-init.js`.
 - Wiki prose must pass the audience test in `docs/wiki/CONTRIBUTING.md`: could a non-technical user understand every sentence? If not, rewrite.
-- No external resources beyond the DocSearch CDN script/stylesheet already in use — no other CDN fonts or JS libraries.
+- No external resources beyond the DocSearch CDN script/stylesheet already in use — no other CDN fonts or JS libraries. One exception: the pinned ESP Web Tools script from unpkg, on `install.html` only.

@@ -104,7 +104,8 @@ workflow.
 Each release includes `pgpemu-firmware-<tag>.zip` (app, bootloader, partition
 table). It is secret-free: you must build and flash your own secrets image from
 your `secrets.csv` once. Later firmware updates keep your pairings. See
-`FLASHING.md` inside the zip.
+`FLASHING.md` inside the zip. To flash from a browser instead, use the
+[wiki install page](https://pgpemu.shrtcts.fr/install.html).
 
 ### Build, Flash & Monitor
 

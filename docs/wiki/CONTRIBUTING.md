@@ -47,6 +47,12 @@ External links (GitHub, issue tracker) go in `EXT_ITEMS` below `NAV_ITEMS`, not 
 
 ---
 
+## External resources
+
+Pages load nothing from outside the site except DocSearch. The one exception is the pinned ESP Web Tools script on `install.html`, which flashes the device through the browser.
+
+---
+
 ## Maintaining `changelog.html`
 
 ### Source of truth

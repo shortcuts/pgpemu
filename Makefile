@@ -54,7 +54,7 @@ smoke-test: ## Maintainer only: pairing, reconnect and Control Service check on 
 	python3 scripts/smoke_test.py $(ARGS)
 
 smoke-test-selftest: ## Runs the smoke test's hardware-free self-test
-	python3 -m unittest discover -s scripts -p 'test_smoke_test.py'
+	python3 -m unittest discover -s scripts -p 'test_*.py'
 
 ##@ Companion app (Android)
 

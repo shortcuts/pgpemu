@@ -1,5 +1,7 @@
 # PGPemu firmware bundle
 
+To flash from a browser instead, see https://pgpemu.shrtcts.fr/install.html.
+
 Files here are built from the public repository and contain **no secrets**
 and **no NVS image**. The device does not work until you flash your own
 secrets image built from your own `secrets.csv` (see "Load Pokemon Go Plus

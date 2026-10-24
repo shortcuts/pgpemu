@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Install & Update Firmware, pgpemu</title>
+  <link rel="icon" href="icon.png" type="image/png">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@docsearch/css@4">
+  <script type="module" src="https://unpkg.com/esp-web-tools@10.1.1/dist/web/install-button.js?module"></script>
+</head>
+<body>
+<div class="layout">
+
+  <main>
+    <h2 id="what-you-need">What you need</h2>
+    <ul class="section-bullets">
+      <li>A PGPemu device and a USB data cable. Some cables only charge, so try another one if your computer does not see the device.</li>
+      <li>A computer with Chrome or Edge. Other browsers, and phones, cannot flash the device.</li>
+      <li>For a first install: your <code>secrets.csv</code> file, to load into the app afterwards.</li>
+    </ul>
+
+    <h2 id="install-button">Install the latest firmware</h2>
+    <p>
+      Plug the device into your computer, then click the button. The browser asks you to pick the
+      device. The install takes about a minute. Do not unplug the device while it runs.
+    </p>
+    <p>
+      <esp-web-install-button manifest="firmware/manifest.json">
+        <button slot="activate">Install firmware</button>
+        <span slot="unsupported">Your browser cannot flash the device. Use Chrome or Edge on a computer.</span>
+        <span slot="not-allowed">Open this page over HTTPS to flash the device.</span>
+      </esp-web-install-button>
+    </p>
+    <p>
+      If the button does nothing, the latest release may not be published yet. Download the
+      firmware from <a href="https://github.com/shortcuts/pgpemu/releases" target="_blank" rel="noopener">GitHub Releases</a> instead.
+    </p>
+
+    <h2 id="first-install">First install</h2>
+    <ol class="quickstart">
+      <li>Click the button and pick the device.</li>
+      <li>Tick <strong>Erase device</strong> when the page offers it.</li>
+      <li>Wait for the install to finish. The device restarts and shows up in the app as <strong>PGPemu Setup</strong>.</li>
+      <li>Follow <a href="connect.html#setup-device">Set up a device with no secrets</a> to load your secrets file.</li>
+    </ol>
+    <p>
+      <strong>Warning:</strong> erasing the device removes its secrets and all its pairings.
+      Pair it with Pokémon GO again afterwards.
+    </p>
+
+    <h2 id="update">Update</h2>
+    <ol class="quickstart">
+      <li>Click the button and pick the device.</li>
+      <li>Leave <strong>Erase device</strong> unticked.</li>
+      <li>Wait for the install to finish.</li>
+    </ol>
+    <p>
+      Your secrets and pairings stay. Pokémon GO reconnects by itself once the device restarts.
+    </p>
+  </main>
+
+</div>
+<script src="wiki-init.js"></script>
+</body>
+</html>
