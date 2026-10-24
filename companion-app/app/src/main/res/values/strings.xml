@@ -24,9 +24,12 @@
     <string name="profile_catch_off">CATCH off</string>
     <string name="profile_catch_new">CATCH new</string>
     <string name="profile_catch_all">CATCH all</string>
+    <string name="profile_catch_change">Change catch mode</string>
     <string name="settings_advertising">Advertising</string>
     <string name="settings_status_light">Status light</string>
     <string name="settings_max_connections">Max connections</string>
+    <string name="settings_max_connections_decrease">Decrease max connections</string>
+    <string name="settings_max_connections_increase">Increase max connections</string>
     <string name="diag_runtime_stats">Runtime stats</string>
     <string name="diag_task_list">Task list</string>
     <string name="diag_client_states">Client states</string>
@@ -162,7 +165,7 @@
     <string name="profile_warning_bag">Bag full</string>
     <string name="profile_warning_box">Box full</string>
     <string name="profile_warning_balls">No balls</string>
-    <string name="profile_counters">C:%1$s F:%2$s S:%3$s</string>
+    <string name="profile_counters">Caught %1$s\nFled %2$s\nSpun %3$s</string>
     <string name="confirm_type_word">Type %1$s to confirm</string>
     <string name="confirm_forget_title">Forget pairings</string>
     <string name="confirm_forget_body">This erases every pairing and setting on this device. Your clone identity stays. The device restarts and you pair your phone again.</string>

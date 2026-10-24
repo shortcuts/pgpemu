@@ -18,7 +18,6 @@ import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,6 +36,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
@@ -67,6 +67,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -738,18 +742,18 @@ internal fun KnownDevicesSection(
                             device.address.takeIf { device.name.isNotBlank() },
                             stringResource(R.string.known_devices_connected).takeIf { device.connected },
                         ).joinToString(" · ")
-                    if (detail.isNotEmpty()) Text(text = detail, color = colors.muted, fontSize = 11.sp)
+                    if (detail.isNotEmpty()) Text(text = detail, color = colors.muted, fontSize = 12.sp)
                     lifetime[device.address]?.let { stats ->
                         Text(
                             text = stringResource(R.string.known_devices_lifetime, *stats.lifetime.toTypedArray()),
                             color = colors.muted,
-                            fontSize = 11.sp,
+                            fontSize = 12.sp,
                         )
                         if (stats.connected) {
                             Text(
                                 text = stringResource(R.string.known_devices_session, *stats.session.toTypedArray()),
                                 color = colors.muted,
-                                fontSize = 11.sp,
+                                fontSize = 12.sp,
                             )
                         }
                         TextButton(onClick = { onResetStats(device.address) }) {
@@ -821,15 +825,20 @@ private fun RowScope.ProfileChip(
         Text(
             text = phone?.name?.ifBlank { null } ?: stringResource(R.string.profile_title, profile.index + 1),
             color = colors.muted,
-            fontSize = 11.sp,
+            fontSize = 12.sp,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
         if (phone != null) {
-            Text(text = phone.address.takeLast(SHORT_ADDRESS_LEN), color = colors.muted, fontSize = 10.sp)
+            Text(text = phone.address.takeLast(SHORT_ADDRESS_LEN), color = colors.muted, fontSize = 12.sp)
         }
         Spacer(modifier = Modifier.height(6.dp))
-        FlagDot(label = stringResource(R.string.profile_spin), active = profile.autospin == true, onClick = onToggleAutospin)
+        FlagDot(
+            label = stringResource(R.string.profile_spin),
+            active = profile.autospin == true,
+            isSwitch = true,
+            onClick = onToggleAutospin,
+        )
         Spacer(modifier = Modifier.height(4.dp))
         val catchLabel =
             when (profile.catchMode) {
@@ -840,6 +849,7 @@ private fun RowScope.ProfileChip(
         FlagDot(
             label = stringResource(catchLabel),
             active = (profile.catchMode ?: CatchMode.OFF) != CatchMode.OFF,
+            isSwitch = false,
             onClick = onCycleCatchMode,
         )
         Spacer(modifier = Modifier.height(4.dp))
@@ -851,7 +861,7 @@ private fun RowScope.ProfileChip(
                 else -> null
             }
         if (warning != null) {
-            Text(text = stringResource(warning), color = colors.danger, fontSize = 10.sp)
+            Text(text = stringResource(warning), color = colors.danger, fontSize = 12.sp)
             Spacer(modifier = Modifier.height(4.dp))
         }
         Text(
@@ -863,7 +873,7 @@ private fun RowScope.ProfileChip(
                     profile.spin ?: dash,
                 ),
             color = colors.muted,
-            fontSize = 9.sp,
+            fontSize = 12.sp,
         )
     }
 }
@@ -872,17 +882,24 @@ private fun RowScope.ProfileChip(
 private fun FlagDot(
     label: String,
     active: Boolean,
+    isSwitch: Boolean,
     onClick: () -> Unit,
 ) {
     val colors = LocalPgpColors.current
     val tint = if (active) colors.accent else colors.muted
+    val target = Modifier.heightIn(min = 48.dp)
     Row(
-        modifier = Modifier.clickableNoRipple(onClick),
+        modifier =
+            if (isSwitch) {
+                target.toggleable(value = active, role = Role.Switch, onValueChange = { onClick() })
+            } else {
+                target.clickable(role = Role.Button, onClickLabel = stringResource(R.string.profile_catch_change), onClick = onClick)
+            },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Box(modifier = Modifier.size(6.dp).background(color = tint, shape = CircleShape))
-        Text(text = label, color = tint, fontSize = 9.sp)
+        Text(text = label, color = tint, fontSize = 12.sp)
     }
 }
 
@@ -897,21 +914,36 @@ internal fun SettingsSection(
 ) {
     val colors = LocalPgpColors.current
     SectionCard(title = stringResource(R.string.section_settings)) {
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+        val advertising = status.advertisingEnabled == true
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .toggleable(value = advertising, role = Role.Switch, onValueChange = { onToggleAdvertising() })
+                    .padding(vertical = 6.dp),
+        ) {
             Text(text = stringResource(R.string.settings_advertising), color = colors.text, modifier = Modifier.weight(1f))
             Switch(
-                checked = status.advertisingEnabled == true,
-                onCheckedChange = { onToggleAdvertising() },
+                checked = advertising,
+                onCheckedChange = null,
                 colors = SwitchDefaults.colors(checkedTrackColor = colors.accentDim, checkedThumbColor = colors.accent),
             )
         }
         Divider()
         status.ledEnabled?.let { ledEnabled ->
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .toggleable(value = ledEnabled, role = Role.Switch, onValueChange = { onToggleStatusLed() })
+                        .padding(vertical = 6.dp),
+            ) {
                 Text(text = stringResource(R.string.settings_status_light), color = colors.text, modifier = Modifier.weight(1f))
                 Switch(
                     checked = ledEnabled,
-                    onCheckedChange = { onToggleStatusLed() },
+                    onCheckedChange = null,
                     colors = SwitchDefaults.colors(checkedTrackColor = colors.accentDim, checkedThumbColor = colors.accent),
                 )
             }
@@ -925,9 +957,17 @@ internal fun SettingsSection(
                 fontFamily = FontFamily.Monospace,
                 modifier = Modifier.padding(end = 8.dp),
             )
-            StepperButton("−") { onSetMaxConnections((settings.maxConnections ?: 1) - 1) }
+            StepperButton("−", stringResource(R.string.settings_max_connections_decrease)) {
+                onSetMaxConnections(
+                    (settings.maxConnections ?: 1) - 1,
+                )
+            }
             Spacer(modifier = Modifier.width(6.dp))
-            StepperButton("+") { onSetMaxConnections((settings.maxConnections ?: 1) + 1) }
+            StepperButton("+", stringResource(R.string.settings_max_connections_increase)) {
+                onSetMaxConnections(
+                    (settings.maxConnections ?: 1) + 1,
+                )
+            }
         }
         Divider()
         TextRow(
@@ -944,18 +984,20 @@ internal fun SettingsSection(
 @Composable
 private fun StepperButton(
     symbol: String,
+    description: String,
     onClick: () -> Unit,
 ) {
     val colors = LocalPgpColors.current
     Box(
         modifier =
             Modifier
-                .size(32.dp)
+                .size(48.dp)
                 .background(color = colors.surface2, shape = RoundedCornerShape(8.dp))
                 .border(width = 1.dp, color = colors.border, shape = RoundedCornerShape(8.dp))
-                .clickableNoRipple(onClick),
+                .clickable(role = Role.Button, onClick = onClick)
+                .semantics { contentDescription = description },
         contentAlignment = Alignment.Center,
-    ) { Text(text = symbol, color = colors.text) }
+    ) { Text(text = symbol, color = colors.text, modifier = Modifier.clearAndSetSemantics {}) }
 }
 
 @Composable
@@ -1042,13 +1084,13 @@ private fun DangerButton(
             Modifier
                 .fillMaxWidth()
                 .background(color = colors.dangerDim, shape = RoundedCornerShape(10.dp))
-                .clickableNoRipple(onClick)
+                .clickable(role = Role.Button, onClick = onClick)
                 .padding(horizontal = 14.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(text = label, color = colors.danger, fontWeight = FontWeight.Medium)
-        Text(text = stringResource(R.string.arrow), color = colors.danger)
+        Text(text = stringResource(R.string.arrow), color = colors.danger, modifier = Modifier.clearAndSetSemantics {})
     }
 }
 
@@ -1070,7 +1112,7 @@ internal fun SectionCard(
         Text(
             text = title.uppercase(),
             color = titleColor ?: colors.muted,
-            fontSize = 11.sp,
+            fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.padding(bottom = 8.dp),
         )
@@ -1100,12 +1142,17 @@ internal fun TextRow(
 ) {
     val colors = LocalPgpColors.current
     Row(
-        modifier = Modifier.fillMaxWidth().clickableNoRipple(onClick).padding(vertical = 8.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .heightIn(min = 48.dp)
+                .clickable(role = Role.Button, onClick = onClick)
+                .padding(vertical = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(text = label, color = colors.text)
-        Text(text = stringResource(R.string.arrow), color = colors.muted)
+        Text(text = stringResource(R.string.arrow), color = colors.muted, modifier = Modifier.clearAndSetSemantics {})
     }
     if (!isLast) Divider()
 }
@@ -1136,7 +1183,7 @@ private fun DiagnosticDump(
                     text = text ?: stringResource(R.string.dash),
                     color = colors.muted,
                     fontFamily = FontFamily.Monospace,
-                    fontSize = 11.sp,
+                    fontSize = 12.sp,
                 )
             }
         }
@@ -1147,10 +1194,4 @@ private fun DiagnosticDump(
 internal fun Divider() {
     val colors = LocalPgpColors.current
     Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(colors.border))
-}
-
-@Composable
-private fun Modifier.clickableNoRipple(onClick: () -> Unit): Modifier {
-    val interactionSource = remember { MutableInteractionSource() }
-    return this.clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
 }
