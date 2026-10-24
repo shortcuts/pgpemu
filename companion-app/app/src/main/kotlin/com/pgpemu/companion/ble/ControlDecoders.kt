@@ -50,6 +50,8 @@ data class KnownDevice(
     val seq: Long,
     val connected: Boolean,
     val name: String,
+    /** Device Profile index (0-3) the phone occupies; null when not connected. Valid from protocol 11 only. */
+    val profile: Int? = null,
 )
 
 /** Counters of one phone, both lists in firmware order: caught, fled, spins, bag full, box full, balls empty. */
@@ -184,11 +186,13 @@ fun decodeKnownDevices(p: ByteArray): Result<List<KnownDevice>> =
         (0 until count).map { i ->
             val base = 1 + i * KNOWN_DEVICE_RECORD_SIZE
             val nameBytes = p.copyOfRange(base + KNOWN_DEVICE_NAME_OFFSET, base + KNOWN_DEVICE_RECORD_SIZE)
+            val flags = p[base + 10].toInt() and 0xFF
             KnownDevice(
                 address = (0 until 6).joinToString(":") { "%02X".format(p[base + it]) },
                 seq = (0 until 4).sumOf { (p[base + 6 + it].toLong() and 0xFF) shl (8 * it) },
-                connected = p[base + 10].toInt() and 0x01 != 0,
+                connected = flags and 0x01 != 0,
                 name = String(nameBytes, 0, nameBytes.indexOf(0).let { if (it < 0) nameBytes.size else it }, Charsets.US_ASCII),
+                profile = if (flags and 0x01 != 0) (flags shr 1) and 0x03 else null,
             )
         }
     }

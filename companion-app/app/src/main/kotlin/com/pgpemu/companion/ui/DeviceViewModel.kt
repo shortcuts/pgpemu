@@ -72,6 +72,9 @@ const val CRASH_MIN_PROTOCOL_VERSION = 9
 // First GET_DEVICE_INFO layout version with the SET_CATCH_MODE opcode.
 const val CATCH_MODE_MIN_PROTOCOL_VERSION = 10
 
+// First GET_DEVICE_INFO layout version whose known device list reports the Device Profile of a connected phone.
+const val PROFILE_PHONE_MIN_PROTOCOL_VERSION = 11
+
 // Event-capable firmware pushes changes; the poll only covers what raises no event (other phones' toggles).
 const val EVENT_POLL_INTERVAL_MS = 30_000L
 
@@ -143,6 +146,8 @@ data class DeviceUiState(
     val knownDevicesSupported: Boolean get() = (deviceInfo?.protocolVersion ?: 0) >= KNOWN_DEVICES_MIN_PROTOCOL_VERSION
     val crashSupported: Boolean get() = (deviceInfo?.protocolVersion ?: 0) >= CRASH_MIN_PROTOCOL_VERSION
     val catchModeSupported: Boolean get() = (deviceInfo?.protocolVersion ?: 0) >= CATCH_MODE_MIN_PROTOCOL_VERSION
+    val profilePhoneSupported: Boolean
+        get() = knownDevicesSupported && (deviceInfo?.protocolVersion ?: 0) >= PROFILE_PHONE_MIN_PROTOCOL_VERSION
     val lifetimeSupported: Boolean get() = knownDevicesSupported && (deviceInfo?.protocolVersion ?: 0) >= LIFETIME_MIN_PROTOCOL_VERSION
 }
 
@@ -512,6 +517,10 @@ class DeviceViewModel
                             _uiState.update { it.copy(status = it.status.copy(ledOn = on)) }
                         }
                     }
+                    val connectedBefore =
+                        _uiState.value.profiles
+                            .filter { it.connected }
+                            .map { it.index }
                     runStep(Opcode.GET_CLIENT_SUMMARY) { frame ->
                         decoded(decodeClientSummary(frame.payload)) { summaries ->
                             _uiState.update { s ->
@@ -530,8 +539,15 @@ class DeviceViewModel
                             }
                         }
                     }
-                    if (clearError) {
+                    val connectedNow =
+                        _uiState.value.profiles
+                            .filter { it.connected }
+                            .map { it.index }
+                    // A phone that connects after the app has no name in the list fetched at connect time.
+                    if (clearError || (connectedNow != connectedBefore && _uiState.value.profilePhoneSupported)) {
                         fetchKnownDevices()
+                    }
+                    if (clearError) {
                         fetchCrashReport()
                     }
                     _uiState.update { it.copy(isBusy = false) }

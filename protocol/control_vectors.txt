@@ -101,15 +101,15 @@ vector set_led_enabled_bad_value default 2502 0225
 vector set_led_enabled_short default 25 0225
 vector bad_max_connections default 0f05 020f
 vector client_summary summary 12 00120700170100020001000300ffff000000000000000000ffff000000000000000000ffff000000000000000000
-vector device_info default 13 00130a040305000000000000000000000000 prefix
-vector device_info_provisioning provisioning 13 00130a040305000000000000000000000001 prefix
+vector device_info default 13 00130b040305000000000000000000000000 prefix
+vector device_info_provisioning provisioning 13 00130b040305000000000000000000000001 prefix
 
 vector_event game_connected GAME_CONNECTED 000101
 vector_event caught CAUGHT 000601
 vector_event balls_empty BALLS_EMPTY 000B01
 
-# known setup: aa:bb:cc:dd:ee:01 seen first and named "Pixel"; aa:bb:cc:dd:ee:02 seen second and connected.
-vector known_devices_list known 1d 001d02aabbccddee02020000000100000000000000000000000000000000aabbccddee010100000000506978656c0000000000000000000000
+# known setup: aa:bb:cc:dd:ee:01 seen first and named "Pixel"; aa:bb:cc:dd:ee:02 seen second and connected on profile 1.
+vector known_devices_list known 1d 001d02aabbccddee02020000000300000000000000000000000000000000aabbccddee010100000000506978656c0000000000000000000000
 vector known_devices_empty default 1d 001d00
 vector rename_known_device known 1eaabbccddee0141 001e
 vector rename_known_device_unprintable known 1eaabbccddee0107 021e

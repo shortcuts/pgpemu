@@ -37,8 +37,11 @@ static int find(const uint8_t* bda) {
 }
 
 static bool is_connected(const record_t* r) {
-    return get_client_state_entry_by_bda((uint8_t*)r->bda) != NULL;
+    return get_client_slot_by_bda((uint8_t*)r->bda) >= 0;
 }
+
+// The flags byte keeps the profile index in 2 bits.
+_Static_assert(CONFIG_BT_ACL_CONNECTIONS <= 4, "profile index no longer fits flags bits 1-2");
 
 static uint32_t highest_seq(void) {
     uint32_t top = 0;
@@ -192,7 +195,8 @@ known_devices_result_t known_devices_list(uint8_t* buf, size_t cap, size_t* out_
         const record_t* r = &table[order[k]];
         memcpy(out, r->bda, 6);
         put_seq_le(out + 6, r->seq);
-        out[10] = is_connected(r) ? 1 : 0;
+        int slot = get_client_slot_by_bda((uint8_t*)r->bda);
+        out[10] = slot >= 0 ? (uint8_t)(1 | slot << 1) : 0;
         memcpy(out + 11, r->name, KNOWN_DEVICE_NAME_LEN);
     }
     *out_len = (size_t)(out - buf);

@@ -26,6 +26,9 @@ int get_max_connections(void) {
 client_state_t* get_client_state_entry_by_bda(esp_bd_addr_t bda) {
     return connected_entry && memcmp(connected_entry->remote_bda, bda, 6) == 0 ? connected_entry : NULL;
 }
+int get_client_slot_by_bda(esp_bd_addr_t bda) {
+    return connected_entry && memcmp(connected_entry->remote_bda, bda, 6) == 0 ? (int)(connected_entry - g_slots) : -1;
+}
 int esp_ble_remove_bond_device(unsigned char* bda) {
     memcpy(removed_bond, bda, 6);
     remove_bond_calls++;
@@ -161,7 +164,13 @@ static void test_forget(void) {
     assert(known_devices_forget(a) == KNOWN_DEVICES_BUSY);
     assert(has_cached_session(a) && remove_bond_calls == 0);
     list(buf);
-    assert(buf[0] == 1 && buf[1 + 10] == 1);  // connected flag
+    assert(buf[0] == 1 && buf[1 + 10] == 1);  // connected flag, slot 0
+
+    connected_entry = &g_slots[1];
+    memcpy(connected_entry->remote_bda, a, 6);
+    list(buf);
+    assert(buf[1 + 10] == 0x03);  // connected flag, slot 1
+    connected_entry = &g_slots[0];
 
     connected_entry = NULL;
     assert(known_devices_forget(a) == KNOWN_DEVICES_OK);

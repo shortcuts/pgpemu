@@ -10,7 +10,7 @@
 // Bluedroid holds no more bonds than this, so a longer index would have nothing left to evict.
 #define KNOWN_DEVICES_MAX CONFIG_BT_SMP_MAX_BONDS
 #define KNOWN_DEVICE_NAME_LEN 16
-// bda[6] seq u32 LE flags u8 (bit 0: connected now) name[16]
+// bda[6] seq u32 LE flags u8 (bit 0: connected now, bits 1-2: Device Profile index) name[16]
 #define KNOWN_DEVICE_WIRE_LEN 27
 #define KNOWN_DEVICES_LIST_MAX_LEN (1 + KNOWN_DEVICES_MAX * KNOWN_DEVICE_WIRE_LEN)
 

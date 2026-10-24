@@ -108,7 +108,7 @@ class ControlWireVectorsTest {
                 "known_devices_list" ->
                     assertEquals(
                         listOf(
-                            KnownDevice("AA:BB:CC:DD:EE:02", 2L, true, ""),
+                            KnownDevice("AA:BB:CC:DD:EE:02", 2L, true, "", profile = 1),
                             KnownDevice("AA:BB:CC:DD:EE:01", 1L, false, "Pixel"),
                         ),
                         decodeKnownDevices(frame.payload).getOrThrow(),
@@ -133,12 +133,12 @@ class ControlWireVectorsTest {
                     )
                 "device_info" ->
                     assertEquals(
-                        DeviceInfo(10, 4, 3, 5L, 0L, 0L, "", false),
+                        DeviceInfo(11, 4, 3, 5L, 0L, 0L, "", false),
                         decodeDeviceInfo(frame.payload).getOrThrow(),
                     )
                 "device_info_provisioning" ->
                     assertEquals(
-                        DeviceInfo(10, 4, 3, 5L, 0L, 0L, "", true),
+                        DeviceInfo(11, 4, 3, 5L, 0L, 0L, "", true),
                         decodeDeviceInfo(frame.payload).getOrThrow(),
                     )
                 "crash_report_none" -> assertEquals(null, decodeCrashReport(frame.payload).getOrThrow())

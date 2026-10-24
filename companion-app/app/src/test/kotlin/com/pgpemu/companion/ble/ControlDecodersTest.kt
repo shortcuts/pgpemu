@@ -59,10 +59,10 @@ class ControlDecodersTest {
         assertEquals(emptyList<KnownDevice>(), decodeKnownDevices(byteArrayOf(0)).getOrThrow())
         assertTrue(decodeKnownDevices(byteArrayOf()).exceptionOrNull() is DecodeError)
 
-        val payload = byteArrayOf(2) + knownRecord(2, 2, 1, "") + knownRecord(1, 1, 0, "Pixel")
+        val payload = byteArrayOf(2) + knownRecord(2, 2, 3, "") + knownRecord(1, 1, 0, "Pixel")
         assertEquals(
             listOf(
-                KnownDevice("AA:BB:CC:DD:EE:02", 2L, true, ""),
+                KnownDevice("AA:BB:CC:DD:EE:02", 2L, true, "", profile = 1),
                 KnownDevice("AA:BB:CC:DD:EE:01", 1L, false, "Pixel"),
             ),
             decodeKnownDevices(payload).getOrThrow(),

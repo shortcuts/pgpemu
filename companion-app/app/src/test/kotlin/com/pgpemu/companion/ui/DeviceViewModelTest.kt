@@ -937,12 +937,15 @@ class DeviceViewModelTest {
             assertNull(vm.uiState.value.pendingConfirmation)
         }
 
-    private fun knownDevicesList(vararg named: Pair<Int, String>): ByteArray =
+    private fun knownDevicesList(
+        vararg named: Pair<Int, String>,
+        flags: Int = 0,
+    ): ByteArray =
         byteArrayOf(named.size.toByte()) +
             named
                 .map { (last, name) ->
                     byteArrayOf(0xAA.toByte(), 0xBB.toByte(), 0xCC.toByte(), 0xDD.toByte(), 0xEE.toByte(), last.toByte()) +
-                        byteArrayOf(last.toByte(), 0, 0, 0, 0) + name.toByteArray().copyOf(16)
+                        byteArrayOf(last.toByte(), 0, 0, 0, flags.toByte()) + name.toByteArray().copyOf(16)
                 }.reduce(ByteArray::plus)
 
     private fun knownDevicesDevice(
@@ -984,6 +987,65 @@ class DeviceViewModelTest {
             viewModel.refreshStatus(clearError = false)
             dispatcher.scheduler.advanceUntilIdle()
             assertEquals(1, repository.sentCommands.count { it.first == Opcode.LIST_KNOWN_DEVICES })
+        }
+
+    @Test
+    fun `a phone on profile 1 is matched to its card from protocol 11`() =
+        runTest {
+            val repository = knownDevicesDevice(11) { knownDevicesList(1 to "Pixel", flags = 0x03) }
+            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+
+            viewModel.refreshStatus()
+            dispatcher.scheduler.advanceUntilIdle()
+
+            assertTrue(viewModel.uiState.value.profilePhoneSupported)
+            assertEquals(
+                1,
+                viewModel.uiState.value.knownDevices
+                    .single()
+                    .profile,
+            )
+        }
+
+    @Test
+    fun `protocol 10 does not offer profile phones`() =
+        runTest {
+            val repository = knownDevicesDevice(10) { knownDevicesList(1 to "Pixel", flags = 0x01) }
+            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+
+            viewModel.refreshStatus()
+            dispatcher.scheduler.advanceUntilIdle()
+
+            assertFalse(viewModel.uiState.value.profilePhoneSupported)
+        }
+
+    @Test
+    fun `a profile that connects mid-session refetches the known devices`() =
+        runTest {
+            val repository = knownDevicesDevice(11) { knownDevicesList(1 to "Pixel", flags = 0x03) }
+            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+            viewModel.refreshStatus()
+            dispatcher.scheduler.advanceUntilIdle()
+            assertEquals(1, repository.sentCommands.count { it.first == Opcode.LIST_KNOWN_DEVICES })
+
+            viewModel.refreshStatus(clearError = false)
+            dispatcher.scheduler.advanceUntilIdle()
+            assertEquals(1, repository.sentCommands.count { it.first == Opcode.LIST_KNOWN_DEVICES })
+
+            repository.stubResponse(
+                Opcode.GET_CLIENT_SUMMARY,
+                Result.success(
+                    ResponseFrame(
+                        StatusCode.OK,
+                        Opcode.GET_CLIENT_SUMMARY.toByte(),
+                        emptyClientSummarySlot() + clientSummarySlotBytes(connId = 1),
+                    ),
+                ),
+            )
+            viewModel.refreshStatus(clearError = false)
+            dispatcher.scheduler.advanceUntilIdle()
+
+            assertEquals(2, repository.sentCommands.count { it.first == Opcode.LIST_KNOWN_DEVICES })
         }
 
     @Test

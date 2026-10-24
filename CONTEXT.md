@@ -24,7 +24,7 @@ The standalone Android (Kotlin, Jetpack Compose) app that replaces the UART/USB-
 _Avoid_: config app, control app, mobile app
 
 **Device Profile**:
-One of the firmware's four emulated-accessory slots (index 0–3), each with its own `autospin` flag, Catch Mode and BLE identity. Distinct from a physical ESP32 unit — one unit hosts up to four Device Profiles.
+One of the firmware's four emulated-accessory slots (index 0–3, shown as 1–4 in the app), each with its own `autospin` flag, Catch Mode and BLE identity. Distinct from a physical ESP32 unit — one unit hosts up to four Device Profiles.
 _Avoid_: device, client, slot. See Known Device for the persisted per-phone record.
 
 **Catch Mode**:

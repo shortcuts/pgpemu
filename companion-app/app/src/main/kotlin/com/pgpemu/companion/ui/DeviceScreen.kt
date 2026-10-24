@@ -70,6 +70,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.app.ActivityCompat
@@ -95,6 +96,9 @@ import com.pgpemu.companion.update.updateNotice
 
 // Longest name the firmware stores, without its terminator.
 private const val KNOWN_DEVICE_NAME_MAX = 15
+
+// Last three octets of `AA:BB:CC:DD:EE:FF`.
+private const val SHORT_ADDRESS_LEN = 8
 
 // API 31+ (Android 12+) uses the dedicated BLUETOOTH_SCAN/CONNECT runtime permissions.
 // Below that, BLE scanning is gated on location instead (no BLUETOOTH_CONNECT equivalent
@@ -643,6 +647,7 @@ private fun logLevelName(level: Int) =
 @Composable
 internal fun DeviceProfilesSection(
     profiles: List<ProfileState>,
+    knownDevices: List<KnownDevice>,
     maxConnections: Int?,
     onToggleAutospin: (Int) -> Unit,
     onCycleCatchMode: (Int) -> Unit,
@@ -656,6 +661,7 @@ internal fun DeviceProfilesSection(
                 active.forEach { profile ->
                     ProfileChip(
                         profile = profile,
+                        phone = knownDevices.firstOrNull { it.profile == profile.index },
                         modifier = Modifier.weight(1f),
                         onToggleAutospin = { onToggleAutospin(profile.index) },
                         onCycleCatchMode = { onCycleCatchMode(profile.index) },
@@ -797,6 +803,7 @@ private fun RenameDialog(
 @Composable
 private fun RowScope.ProfileChip(
     profile: ProfileState,
+    phone: KnownDevice?,
     modifier: Modifier,
     onToggleAutospin: () -> Unit,
     onCycleCatchMode: () -> Unit,
@@ -811,7 +818,16 @@ private fun RowScope.ProfileChip(
                 .padding(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(text = "#${profile.index}", color = colors.muted, fontSize = 11.sp)
+        Text(
+            text = phone?.name?.ifBlank { null } ?: stringResource(R.string.profile_title, profile.index + 1),
+            color = colors.muted,
+            fontSize = 11.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        if (phone != null) {
+            Text(text = phone.address.takeLast(SHORT_ADDRESS_LEN), color = colors.muted, fontSize = 10.sp)
+        }
         Spacer(modifier = Modifier.height(6.dp))
         FlagDot(label = stringResource(R.string.profile_spin), active = profile.autospin == true, onClick = onToggleAutospin)
         Spacer(modifier = Modifier.height(4.dp))

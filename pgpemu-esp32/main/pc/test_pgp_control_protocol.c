@@ -241,6 +241,7 @@ static void setup_known(void) {
     known_devices_touch(first);
     known_devices_touch(second);
     assert(known_devices_rename(first, "Pixel", 5) == KNOWN_DEVICES_OK);
+    get_or_create_client_state_entry(6);
     memcpy(get_or_create_client_state_entry(7)->remote_bda, second, 6);
 }
 static void setup_lifetime(void) {

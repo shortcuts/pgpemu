@@ -68,6 +68,7 @@ internal fun DashboardTab(
     item {
         DeviceProfilesSection(
             profiles = uiState.profiles,
+            knownDevices = if (uiState.profilePhoneSupported) uiState.knownDevices else emptyList(),
             maxConnections = uiState.settings.maxConnections,
             onToggleAutospin = viewModel::toggleAutospin,
             onCycleCatchMode = viewModel::cycleCatchMode,

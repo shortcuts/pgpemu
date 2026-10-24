@@ -192,7 +192,7 @@ The app is a single scrolling screen, ordered by risk/frequency:
 
 - **Status** — read-only: LED state, advertising state, active connection
   count, log level.
-- **Device Profiles** — one row per device slot (0-3), each with
+- **Device Profiles** — one row per device slot (1-4), showing the phone name, each with
   **Autospin** and **Autocatch** toggle chips.
 - **Known devices** — the phones that finished a Pokémon GO connection, newest
   first, with **Rename** and **Forget**. The device keeps 15 and drops the one

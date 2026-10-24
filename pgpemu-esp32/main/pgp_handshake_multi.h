@@ -94,6 +94,8 @@ client_state_t* get_client_state_entry_by_idx(int i);
 int get_client_slot(uint16_t conn_id);
 // returns NULL when no currently-connected client matches bda
 client_state_t* get_client_state_entry_by_bda(esp_bd_addr_t bda);
+// Index of the connected entry for the address, -1 when none.
+int get_client_slot_by_bda(esp_bd_addr_t bda);
 
 // returns true if conn_id exists and is currently connected
 bool is_connection_active(uint16_t conn_id);

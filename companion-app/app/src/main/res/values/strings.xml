@@ -19,6 +19,7 @@
     <string name="status_connections">Connections</string>
     <string name="status_log_level">Log level</string>
     <string name="device_no_devices_connected">No devices connected</string>
+    <string name="profile_title">Profile %1$d</string>
     <string name="profile_spin">SPIN</string>
     <string name="profile_catch_off">CATCH off</string>
     <string name="profile_catch_new">CATCH new</string>
