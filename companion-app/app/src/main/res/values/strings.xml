@@ -69,7 +69,7 @@
     <string name="msg_status_other">Device returned an error (%1$d)</string>
     <string name="msg_disconnected_lost">Connection lost, device out of range? (%1$d)</string>
     <string name="msg_disconnected">Device disconnected (%1$d)</string>
-    <string name="app_name">Companion App</string>
+    <string name="app_name">PGPemu Companion</string>
     <string name="section_status">Status</string>
     <string name="section_device_info">About device</string>
     <string name="about_firmware">Firmware</string>

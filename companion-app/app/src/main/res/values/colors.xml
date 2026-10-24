@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="pgp_light_bg">#FFF1F1EE</color>
+    <color name="pgp_dark_bg">#FF121317</color>
+</resources>
