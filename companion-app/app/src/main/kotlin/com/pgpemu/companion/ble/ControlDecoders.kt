@@ -63,7 +63,7 @@ fun decodeGlobalSettings(p: ByteArray): Result<GlobalSettings> =
         )
     }
 
-/** Layout: see pgp_control.c's CONTROL_OP_GET_DEVICE_INFO case. */
+/** Layout: see pgp_control.c's CONTROL_OP_GET_DEVICE_INFO case and protocol/control_vectors.txt. */
 fun decodeDeviceInfo(p: ByteArray): Result<DeviceInfo> =
     p.require(DEVICE_INFO_MIN_SIZE, "device info").map {
         fun u32(offset: Int) = (0 until 4).sumOf { (p[offset + it].toLong() and 0xFF) shl (8 * it) }
@@ -84,7 +84,7 @@ fun decodeFlag(p: ByteArray): Result<Boolean> = p.require(1, "flag").map { p[0] 
 
 fun decodeLogLevel(p: ByteArray): Result<Int> = p.require(1, "log level").map { p[0].toInt() }
 
-/** Layout: see pgp_control.c's CONTROL_OP_GET_CLIENT_SUMMARY case; one record per firmware connection slot. */
+/** Layout: see pgp_control.c's CONTROL_OP_GET_CLIENT_SUMMARY case and protocol/control_vectors.txt; one record per firmware connection slot. */
 fun decodeClientSummary(payload: ByteArray): Result<List<ClientSummary>> =
     payload.require(CLIENT_SUMMARY_RECORD_SIZE, "client summary").map {
         (0 until payload.size / CLIENT_SUMMARY_RECORD_SIZE).map { slot ->

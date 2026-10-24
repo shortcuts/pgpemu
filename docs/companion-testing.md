@@ -19,7 +19,7 @@
 ## What to test
 
 - External behavior: UI state after repository responses.
-- Frame and opcode encoding in `ble/`.
+- Frame and opcode encoding in `ble/`, checked against `protocol/control_vectors.txt`.
 
 ## What not to test
 

@@ -22,7 +22,7 @@ Single-responsibility firmware modules under `pgpemu-esp32/main/`. BLE, storage,
 
 ## Control Service
 
-Separate custom GATT service for the Companion App. One Command characteristic (opcode + payload) and one Response characteristic (confirmed indications, one in flight per connection). Requires an encrypted, bonded link. Handler: `pgp_control.c`.
+Separate custom GATT service for the Companion App. One Command characteristic (opcode + payload) and one Response characteristic (confirmed indications, one in flight per connection). Requires an encrypted, bonded link. Handler: `pgp_control.c`. The opcodes, status codes, UUIDs and reply bytes are golden vectors in `protocol/control_vectors.txt`, read by both the firmware and app tests.
 
 GET_DEVICE_INFO (0x13) returns a little-endian record: protocol version (u8, `CONTROL_PROTOCOL_VERSION`), `CONFIG_BT_ACL_CONNECTIONS` (u8), `esp_reset_reason()` (u8), uptime in seconds (u32), free heap (u32), minimum free heap (u32), flags (u8, bit 0 = Provisioning Mode), then the firmware version (`PGP_FW_VERSION` in `fw_version.h`, kept current by release-please) as UTF-8 to the end of the payload. New fields append before the string only with a protocol version bump. The app reads it once per connection. A device that answers ERR_UNKNOWN_OPCODE or reports a protocol version below the app's minimum gets the "update firmware" message.
 

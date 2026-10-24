@@ -33,12 +33,10 @@ import no.nordicsemi.android.ble.observer.ConnectionObserver
 import java.util.UUID
 import javax.inject.Inject
 
-// Same 128-bit vendor UUIDs as pgp_control.c's GATTS_SERVICE_UUID_CONTROL /
-// GATTS_CHAR_UUID_CONTROL_COMMAND / GATTS_CHAR_UUID_CONTROL_RESPONSE
-// (little-endian byte arrays there, reordered to standard UUID string form here).
-private val CONTROL_SERVICE_UUID: UUID = UUID.fromString("bbe87709-5b89-4433-ab7f-8b8eef0d8e40")
-private val COMMAND_CHARACTERISTIC_UUID: UUID = UUID.fromString("bbe87709-5b89-4433-ab7f-8b8eef0d8e41")
-private val RESPONSE_CHARACTERISTIC_UUID: UUID = UUID.fromString("bbe87709-5b89-4433-ab7f-8b8eef0d8e42")
+// Pinned to pgp_control.c's Control Service UUIDs by protocol/control_vectors.txt.
+internal val CONTROL_SERVICE_UUID: UUID = UUID.fromString("bbe87709-5b89-4433-ab7f-8b8eef0d8e40")
+internal val COMMAND_CHARACTERISTIC_UUID: UUID = UUID.fromString("bbe87709-5b89-4433-ab7f-8b8eef0d8e41")
+internal val RESPONSE_CHARACTERISTIC_UUID: UUID = UUID.fromString("bbe87709-5b89-4433-ab7f-8b8eef0d8e42")
 private const val PROVISIONING_ADVERTISED_NAME = "PGPemu Setup" // matches PROVISIONING_DEVICE_NAME in pgp_gatts.c
 private const val PGP_ADVERTISED_NAME = "Pokemon GO Plus" // matches PGP_DEVICE_NAME in pgpemu-esp32/main/pgp_gatts.c
 private const val COMMAND_TIMEOUT_MS = 5_000L

@@ -139,6 +139,38 @@ static void cmd1(uint8_t op, uint8_t arg, int with_arg) {
     assert(write_cmd(0, b, with_arg ? 2 : 1));
 }
 
+static void setup_default(void) {
+}
+static void setup_log2(void) {
+    global_settings.log_level = 2;
+}
+static void setup_summary(void) {
+    stats_clear_for_conn(7);
+    client_state_t* e = get_or_create_client_state_entry(7);
+    e->has_settings = true;
+    e->settings.autospin = true;
+    e->settings.autocatch = false;
+    e->cert_state = PGP_CERT_DONE;
+    increment_caught(7);
+    increment_caught(7);
+    increment_fled(7);
+    for (int i = 0; i < 3; i++) {
+        increment_spin(7);
+    }
+}
+static void setup_provisioning(void) {
+    pgp_valid = 0;
+}
+static const struct {
+    const char* name;
+    void (*fn)(void);
+} setups[] = {
+    { "default", setup_default },
+    { "log2", setup_log2 },
+    { "summary", setup_summary },
+    { "provisioning", setup_provisioning },
+};
+
 int64_t esp_timer_get_time(void) {
     return 5000000;
 }
@@ -245,17 +277,7 @@ static void test_oversized_payload_is_truncated(void) {
 
 static void test_client_summary_layout(void) {
     reset();
-    client_state_t* e = get_or_create_client_state_entry(7);
-    e->has_settings = true;
-    e->settings.autospin = true;
-    e->settings.autocatch = false;
-    e->cert_state = PGP_CERT_DONE;
-    increment_caught(7);
-    increment_caught(7);
-    increment_fled(7);
-    for (int i = 0; i < 3; i++) {
-        increment_spin(7);
-    }
+    setup_summary();
 
     cmd1(CONTROL_OP_GET_CLIENT_SUMMARY, 0, 0);
     assert(sent_len == 2 + 4 * 11);
@@ -528,7 +550,196 @@ static void test_set_reports_persist_failure(void) {
     assert(sent_len == 2 && sent[0] == CONTROL_STATUS_ERR_INTERNAL && e->settings.autospin);
 }
 
+typedef struct {
+    const char* name;
+    int value;
+} named_value_t;
+
+static const named_value_t opcode_table[] = {
+    { "HELP", CONTROL_OP_HELP },
+    { "GET_GLOBAL_SETTINGS", CONTROL_OP_GET_GLOBAL_SETTINGS },
+    { "SAVE_SETTINGS", CONTROL_OP_SAVE_SETTINGS },
+    { "GET_SECRETS", CONTROL_OP_GET_SECRETS },
+    { "RESET_SECRETS", CONTROL_OP_RESET_SECRETS },
+    { "RESTART", CONTROL_OP_RESTART },
+    { "GET_LED_STATE", CONTROL_OP_GET_LED_STATE },
+    { "CYCLE_LOG_LEVEL", CONTROL_OP_CYCLE_LOG_LEVEL },
+    { "GET_RUNTIME_STATS", CONTROL_OP_GET_RUNTIME_STATS },
+    { "GET_TASK_LIST", CONTROL_OP_GET_TASK_LIST },
+    { "ADVERTISE_START", CONTROL_OP_ADVERTISE_START },
+    { "ADVERTISE_STOP", CONTROL_OP_ADVERTISE_STOP },
+    { "GET_CLIENT_STATES", CONTROL_OP_GET_CLIENT_STATES },
+    { "RESET_CLIENT_STATES", CONTROL_OP_RESET_CLIENT_STATES },
+    { "SET_MAX_CONNECTIONS", CONTROL_OP_SET_MAX_CONNECTIONS },
+    { "TOGGLE_AUTOSPIN", CONTROL_OP_TOGGLE_AUTOSPIN },
+    { "TOGGLE_AUTOCATCH", CONTROL_OP_TOGGLE_AUTOCATCH },
+    { "GET_CLIENT_SUMMARY", CONTROL_OP_GET_CLIENT_SUMMARY },
+    { "GET_DEVICE_INFO", CONTROL_OP_GET_DEVICE_INFO },
+    { "SET_AUTOSPIN", CONTROL_OP_SET_AUTOSPIN },
+    { "SET_AUTOCATCH", CONTROL_OP_SET_AUTOCATCH },
+    { "SET_LOG_LEVEL", CONTROL_OP_SET_LOG_LEVEL },
+    { "PROVISION_SECRETS", CONTROL_OP_PROVISION_SECRETS },
+    { "FORGET_PAIRINGS", CONTROL_OP_FORGET_PAIRINGS },
+    { "OTA_BEGIN", CONTROL_OP_OTA_BEGIN },
+    { "OTA_DATA", CONTROL_OP_OTA_DATA },
+    { "OTA_END", CONTROL_OP_OTA_END },
+    { "OTA_ABORT", CONTROL_OP_OTA_ABORT },
+};
+
+static const named_value_t status_table[] = {
+    { "OK", CONTROL_STATUS_OK },
+    { "ERR_UNKNOWN_OPCODE", CONTROL_STATUS_ERR_UNKNOWN_OPCODE },
+    { "ERR_MALFORMED_PAYLOAD", CONTROL_STATUS_ERR_MALFORMED_PAYLOAD },
+    { "ERR_NOT_BONDED", CONTROL_STATUS_ERR_NOT_BONDED },
+    { "ERR_BUSY", CONTROL_STATUS_ERR_BUSY },
+    { "ERR_INTERNAL", CONTROL_STATUS_ERR_INTERNAL },
+    { "ERR_NOT_PROVISIONING", CONTROL_STATUS_ERR_NOT_PROVISIONING },
+    { "ERR_OTA_NOT_ARMED", CONTROL_STATUS_ERR_OTA_NOT_ARMED },
+    { "ERR_OTA_STATE", CONTROL_STATUS_ERR_OTA_STATE },
+};
+
+static const struct {
+    const char* key;
+    const uint8_t* le;
+} uuid_table[] = {
+    { "control_service", GATTS_SERVICE_UUID_CONTROL },
+    { "command_char", GATTS_CHAR_UUID_CONTROL_COMMAND },
+    { "response_char", GATTS_CHAR_UUID_CONTROL_RESPONSE },
+};
+
+// run_tests.sh runs the binary from the repo root.
+static FILE* open_fixture(void) {
+    FILE* f = fopen("protocol/control_vectors.txt", "r");
+    assert(f != NULL);
+    return f;
+}
+
+static size_t hex_decode(const char* hex, uint8_t* out, size_t cap) {
+    size_t n = strlen(hex) / 2;
+    assert(n <= cap);
+    for (size_t i = 0; i < n; i++) {
+        unsigned v;
+        assert(sscanf(hex + 2 * i, "%2x", &v) == 1);
+        out[i] = (uint8_t)v;
+    }
+    return n;
+}
+
+static void check_named_values(FILE* f, const char* kind, const named_value_t* table, size_t count) {
+    size_t kind_len = strlen(kind), seen = 0;
+    char line[1024];
+    rewind(f);
+    while (fgets(line, sizeof(line), f)) {
+        if (strncmp(line, kind, kind_len) != 0 || line[kind_len] != ' ') {
+            continue;
+        }
+        char name[32], hex[8];
+        assert(sscanf(line + kind_len, " %31s %7s", name, hex) == 2);
+        uint8_t value;
+        hex_decode(hex, &value, 1);
+        bool found = false;
+        for (size_t i = 0; i < count; i++) {
+            if (strcmp(table[i].name, name) == 0) {
+                assert(table[i].value == value);
+                found = true;
+            }
+        }
+        assert(found);
+        seen++;
+    }
+    assert(seen == count);
+}
+
+static void uuid_string(const uint8_t* le, char* out) {
+    sprintf(out,
+        "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
+        le[15],
+        le[14],
+        le[13],
+        le[12],
+        le[11],
+        le[10],
+        le[9],
+        le[8],
+        le[7],
+        le[6],
+        le[5],
+        le[4],
+        le[3],
+        le[2],
+        le[1],
+        le[0]);
+}
+
+static void test_wire_constants(void) {
+    FILE* f = open_fixture();
+    check_named_values(f, "opcode", opcode_table, sizeof(opcode_table) / sizeof(opcode_table[0]));
+    check_named_values(f, "status", status_table, sizeof(status_table) / sizeof(status_table[0]));
+
+    size_t seen = 0;
+    char line[1024];
+    rewind(f);
+    while (fgets(line, sizeof(line), f)) {
+        if (strncmp(line, "uuid ", 5) != 0) {
+            continue;
+        }
+        char key[32], text[64];
+        assert(sscanf(line, "uuid %31s %63s", key, text) == 2);
+        bool found = false;
+        for (size_t i = 0; i < sizeof(uuid_table) / sizeof(uuid_table[0]); i++) {
+            if (strcmp(uuid_table[i].key, key) == 0) {
+                char actual[37];
+                uuid_string(uuid_table[i].le, actual);
+                assert(strcmp(actual, text) == 0);
+                found = true;
+            }
+        }
+        assert(found);
+        seen++;
+    }
+    assert(seen == sizeof(uuid_table) / sizeof(uuid_table[0]));
+    fclose(f);
+}
+
+static void run_setup(const char* name) {
+    for (size_t i = 0; i < sizeof(setups) / sizeof(setups[0]); i++) {
+        if (strcmp(setups[i].name, name) == 0) {
+            setups[i].fn();
+            return;
+        }
+    }
+    assert(0 && "unknown setup name in control_vectors.txt");
+}
+
+static void test_wire_vectors(void) {
+    FILE* f = open_fixture();
+    char line[1024];
+    while (fgets(line, sizeof(line), f)) {
+        if (strncmp(line, "vector ", 7) != 0) {
+            continue;
+        }
+        char name[32], setup[32], request_hex[64], response_hex[256], prefix[16] = "";
+        assert(sscanf(line, "vector %31s %31s %63s %255s %15s", name, setup, request_hex, response_hex, prefix) >= 4);
+        uint8_t request[64], want[256];
+        size_t request_len = hex_decode(request_hex, request, sizeof(request));
+        size_t want_len = hex_decode(response_hex, want, sizeof(want));
+
+        reset();
+        run_setup(setup);
+        assert(write_cmd(0, request, (uint16_t)request_len));
+        if (strcmp(prefix, "prefix") == 0) {
+            assert(sent_len >= want_len);
+        } else {
+            assert(sent_len == want_len);
+        }
+        assert(memcmp(sent, want, want_len) == 0);
+    }
+    fclose(f);
+}
+
 int main(void) {
+    test_wire_constants();
+    test_wire_vectors();
     test_unknown_opcode_and_empty_write();
     test_foreign_handles();
     test_global_settings_frame();

@@ -76,6 +76,7 @@ jobs:
         filters: |
           companion:
             - 'companion-app/**'
+            - 'protocol/**'
             - '.github/workflows/main.yml'
 
   companion-app-build:

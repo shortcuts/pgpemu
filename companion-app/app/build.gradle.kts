@@ -83,3 +83,7 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
 }
+
+tasks.withType<Test> {
+    inputs.file("../../protocol/control_vectors.txt")
+}
