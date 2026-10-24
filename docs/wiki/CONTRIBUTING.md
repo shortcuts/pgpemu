@@ -52,7 +52,7 @@ Never use a `<table>`. Tables squash or scroll sideways on phones. Give each ent
 
 The sidebar has five groups in this fixed order:
 
-- **Start.** First-time setup. Pages: Getting Started, Install & Update Firmware.
+- **Start.** First-time setup. Pages: Getting Started, Hardware, Install & Update Firmware.
 - **Use.** Everyday tasks. Pages: Connect & Pair, Device Profiles.
 - **Configure.** Settings and diagnostics. Pages: Settings, Diagnostics & Danger Zone.
 - **Help.** Fixing problems. Pages: Common Tasks & FAQ, Troubleshooting.

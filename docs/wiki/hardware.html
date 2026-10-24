@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hardware — pgpemu</title>
+  <meta name="description" content="Which board to buy, how to wire the light and button, how to power it, and a case to print for a PGPemu device.">
+  <link rel="canonical" href="https://pgpemu.shrtcts.fr/hardware.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="pgpemu">
+  <meta property="og:title" content="Hardware — pgpemu">
+  <meta property="og:description" content="Which board to buy, how to wire the light and button, how to power it, and a case to print for a PGPemu device.">
+  <meta property="og:url" content="https://pgpemu.shrtcts.fr/hardware.html">
+  <meta property="og:image" content="https://pgpemu.shrtcts.fr/icon.png">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Hardware — pgpemu">
+  <meta name="twitter:description" content="Which board to buy, how to wire the light and button, how to power it, and a case to print for a PGPemu device.">
+  <meta name="twitter:image" content="https://pgpemu.shrtcts.fr/icon.png">
+  <link rel="icon" href="icon.png" type="image/png">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@docsearch/css@4">
+</head>
+<body>
+<div class="layout">
+
+  <main>
+    <p class="page-title">pgpemu</p>
+    <h1 id="hardware">Hardware</h1>
+    <p>
+      This page shows what to buy and how to wire it. Once the board is ready, put the software
+      on it with <a href="install.html">Install &amp; Update Firmware</a>.
+    </p>
+
+    <h2 id="board">Board</h2>
+    <p>
+      Use an ESP32-C3 Super Mini. It is the only board tested so far. Other ESP32-C3 boards may
+      work, but the light and button pins can differ.
+    </p>
+
+    <h2 id="wiring">Light and button</h2>
+    <p>The Super Mini already has what you need. You wire nothing for basic use.</p>
+    <ul>
+      <li>The status light is on pin 8. See <a href="settings.html#status-light">Status light</a> for what each pattern means.</li>
+      <li>The button is on pin 9. It is the board's built-in <code>BOOT</code> button.</li>
+    </ul>
+    <p>To add your own light or button, wire them like this:</p>
+    <ol>
+      <li>Light: connect pin 8 to a small resistor (about 330 ohms), then to the long leg of an LED. Connect the short leg to GND.</li>
+      <li>Button: connect one side to pin 9 and the other side to GND. The board holds the pin high by itself, so you add no resistor.</li>
+    </ol>
+    <p>
+      Holding the button for 10 seconds forgets all pairings. See
+      <a href="troubleshooting.html">Troubleshooting</a>.
+    </p>
+
+    <h2 id="power">Power</h2>
+    <p>
+      The device draws about 0.05 A. Power it from a power bank, a USB charger, or a battery
+      pack through the USB-C port.
+    </p>
+    <ul>
+      <li>Some power banks switch off when the draw is this low. Pick one with a low-current mode, or use a battery pack.</li>
+      <li>When the supply voltage drops too low, the board restarts. After such a restart, the device waits 60 seconds before it starts again. This stops it from restarting over and over on a weak battery. Charge the battery if you see this.</li>
+    </ul>
+
+    <h2 id="case">Case</h2>
+    <p>
+      A snap-fit case for the Super Mini is on
+      <a href="https://makerworld.com/en/models/1072508-esp32-c3-supermini-snap-fit-case-5-options" target="_blank" rel="noopener">MakerWorld</a>.
+      It has five options. Pick one that leaves the USB-C port and the button reachable.
+    </p>
+  </main>
+
+</div>
+<script src="wiki-init.js"></script>
+</body>
+</html>

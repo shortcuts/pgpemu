@@ -2,6 +2,7 @@
   var NAV_ITEMS = [
     { group: 'Start', items: [
       { href: 'index.html', label: 'Getting Started' },
+      { href: 'hardware.html', label: 'Hardware' },
       { href: 'install.html', label: 'Install & Update Firmware' },
     ] },
     { group: 'Use', items: [
