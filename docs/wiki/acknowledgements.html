@@ -3,7 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Acknowledgements: pgpemu</title>
+  <title>Acknowledgements — pgpemu</title>
+  <meta name="description" content="The projects PGPemu builds on: earlier Pokémon GO Plus emulators, open-source libraries, and tools for the app and device.">
+  <link rel="canonical" href="https://pgpemu.shrtcts.fr/acknowledgements.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="pgpemu">
+  <meta property="og:title" content="Acknowledgements — pgpemu">
+  <meta property="og:description" content="The projects PGPemu builds on: earlier Pokémon GO Plus emulators, open-source libraries, and tools for the app and device.">
+  <meta property="og:url" content="https://pgpemu.shrtcts.fr/acknowledgements.html">
+  <meta property="og:image" content="https://pgpemu.shrtcts.fr/icon.png">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Acknowledgements — pgpemu">
+  <meta name="twitter:description" content="The projects PGPemu builds on: earlier Pokémon GO Plus emulators, open-source libraries, and tools for the app and device.">
+  <meta name="twitter:image" content="https://pgpemu.shrtcts.fr/icon.png">
   <link rel="icon" href="icon.png" type="image/png">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@docsearch/css@4">
@@ -12,7 +24,7 @@
 <div class="layout">
 
   <main>
-    <h2 id="acknowledgements">Acknowledgements</h2>
+    <h1 id="acknowledgements">Acknowledgements</h1>
     <p>
       PGPemu builds on earlier work reverse-engineering the Pokémon GO Plus protocol, and the
       companion app is built using a number of open-source projects. Thanks to everyone who
@@ -20,105 +32,58 @@
     </p>
 
     <h2 id="prior-work">Prior work</h2>
-    <div class="table-wrap">
-    <table class="option-table">
-      <thead><tr><th>Project</th><th>Contribution</th></tr></thead>
-      <tbody>
-        <tr>
-          <td><strong><a href="https://github.com/yohanes/pgpemu" target="_blank" rel="noopener">yohane's pgpemu</a></strong></td>
-          <td>The original Pokémon GO Plus emulator this project is based on.</td>
-        </tr>
-        <tr>
-          <td><strong><a href="https://github.com/spezifisch/pgpemu" target="_blank" rel="noopener">spezifisch's fork</a></strong></td>
-          <td>Further protocol work carried forward into this project.</td>
-        </tr>
-        <tr>
-          <td><strong><a href="https://github.com/paper183/pgpemu" target="_blank" rel="noopener">paper183's fork</a></strong></td>
-          <td>Further protocol work carried forward into this project.</td>
-        </tr>
-        <tr>
-          <td><strong><a href="https://github.com/Mygod/pogoplusle" target="_blank" rel="noopener">pogoplusle</a></strong></td>
-          <td>A compatible client PGPemu is tested against for auto reconnect and handshake behavior. The Game monitor in the companion app is based on its code, under the Apache 2.0 license.</td>
-        </tr>
-      </tbody>
-    </table>
-    </div>
+        <h3 id="prior-work-yohanes-pgpemu"><a href="https://github.com/yohanes/pgpemu" target="_blank" rel="noopener">yohane's pgpemu</a></h3>
+    <p>The original Pokémon GO Plus emulator this project is based on.</p>
+
+    <h3 id="prior-work-spezifisch-fork"><a href="https://github.com/spezifisch/pgpemu" target="_blank" rel="noopener">spezifisch's fork</a></h3>
+    <p>Further protocol work carried forward into this project.</p>
+
+    <h3 id="prior-work-paper183-fork"><a href="https://github.com/paper183/pgpemu" target="_blank" rel="noopener">paper183's fork</a></h3>
+    <p>Further protocol work carried forward into this project.</p>
+
+    <h3 id="prior-work-pogoplusle"><a href="https://github.com/Mygod/pogoplusle" target="_blank" rel="noopener">pogoplusle</a></h3>
+    <p>A compatible client PGPemu is tested against for auto reconnect and handshake behavior. The Game monitor in the companion app is based on its code, under the Apache 2.0 license.</p>
+
 
     <h2 id="companion-app-bluetooth">Companion app &amp; Bluetooth</h2>
-    <div class="table-wrap">
-    <table class="option-table">
-      <thead><tr><th>Project</th><th>Used for</th><th>License</th></tr></thead>
-      <tbody>
-        <tr>
-          <td><strong><a href="https://github.com/NordicSemiconductor/Android-BLE-Library" target="_blank" rel="noopener">Nordic Android BLE Library</a></strong> (Nordic Semiconductor)</td>
-          <td>Handles the Bluetooth Low Energy connection, pairing, and the command/response protocol used to talk to the device.</td>
-          <td><a href="https://github.com/NordicSemiconductor/Android-BLE-Library/blob/main/LICENSE" target="_blank" rel="noopener">BSD 3-Clause</a></td>
-        </tr>
-      </tbody>
-    </table>
-    </div>
+        <h3 id="companion-app-bluetooth-nordic-ble"><a href="https://github.com/NordicSemiconductor/Android-BLE-Library" target="_blank" rel="noopener">Nordic Android BLE Library</a> (Nordic Semiconductor)</h3>
+    <p><strong>Used for:</strong> Handles the Bluetooth Low Energy connection, pairing, and the command/response protocol used to talk to the device.</p>
+    <p><strong>License:</strong> <a href="https://github.com/NordicSemiconductor/Android-BLE-Library/blob/main/LICENSE" target="_blank" rel="noopener">BSD 3-Clause</a></p>
+
 
     <h2 id="language-async">Language &amp; async</h2>
-    <div class="table-wrap">
-    <table class="option-table">
-      <thead><tr><th>Project</th><th>Used for</th><th>License</th></tr></thead>
-      <tbody>
-        <tr>
-          <td><strong><a href="https://kotlinlang.org" target="_blank" rel="noopener">Kotlin</a></strong> (JetBrains)</td>
-          <td>The programming language the entire app is written in.</td>
-          <td><a href="https://github.com/JetBrains/kotlin/blob/master/license/LICENSE.txt" target="_blank" rel="noopener">Apache 2.0</a></td>
-        </tr>
-        <tr>
-          <td><strong><a href="https://github.com/Kotlin/kotlinx.coroutines" target="_blank" rel="noopener">Kotlin Coroutines</a></strong> (JetBrains)</td>
-          <td>Handles background work and the app's real-time connection state.</td>
-          <td><a href="https://github.com/Kotlin/kotlinx.coroutines/blob/master/LICENSE.txt" target="_blank" rel="noopener">Apache 2.0</a></td>
-        </tr>
-      </tbody>
-    </table>
-    </div>
+        <h3 id="language-async-kotlin"><a href="https://kotlinlang.org" target="_blank" rel="noopener">Kotlin</a> (JetBrains)</h3>
+    <p><strong>Used for:</strong> The programming language the entire app is written in.</p>
+    <p><strong>License:</strong> <a href="https://github.com/JetBrains/kotlin/blob/master/license/LICENSE.txt" target="_blank" rel="noopener">Apache 2.0</a></p>
+
+    <h3 id="language-async-kotlin-coroutines"><a href="https://github.com/Kotlin/kotlinx.coroutines" target="_blank" rel="noopener">Kotlin Coroutines</a> (JetBrains)</h3>
+    <p><strong>Used for:</strong> Handles background work and the app's real-time connection state.</p>
+    <p><strong>License:</strong> <a href="https://github.com/Kotlin/kotlinx.coroutines/blob/master/LICENSE.txt" target="_blank" rel="noopener">Apache 2.0</a></p>
+
 
     <h2 id="ui-architecture">UI &amp; architecture</h2>
-    <div class="table-wrap">
-    <table class="option-table">
-      <thead><tr><th>Project</th><th>Used for</th><th>License</th></tr></thead>
-      <tbody>
-        <tr>
-          <td><strong><a href="https://developer.android.com/compose" target="_blank" rel="noopener">Jetpack Compose</a></strong> (Google)</td>
-          <td>The toolkit used to build every screen in the app.</td>
-          <td><a href="https://android.googlesource.com/platform/frameworks/support/+/refs/heads/androidx-main/LICENSE.txt" target="_blank" rel="noopener">Apache 2.0</a></td>
-        </tr>
-        <tr>
-          <td><strong><a href="https://m3.material.io" target="_blank" rel="noopener">Material 3</a></strong> (Google)</td>
-          <td>Provides base interface components used throughout the app.</td>
-          <td><a href="https://github.com/material-components/material-components-android/blob/master/LICENSE" target="_blank" rel="noopener">Apache 2.0</a></td>
-        </tr>
-        <tr>
-          <td><strong><a href="https://dagger.dev/hilt/" target="_blank" rel="noopener">Hilt (Dagger)</a></strong> (Google)</td>
-          <td>Internal framework that connects the app's components together.</td>
-          <td><a href="https://github.com/google/dagger/blob/master/LICENSE.txt" target="_blank" rel="noopener">Apache 2.0</a></td>
-        </tr>
-        <tr>
-          <td><strong><a href="https://developer.android.com/topic/libraries/architecture/lifecycle" target="_blank" rel="noopener">AndroidX Lifecycle</a></strong> (Google)</td>
-          <td>Manages how the app responds to screen rotation, backgrounding, and other Android lifecycle events.</td>
-          <td><a href="https://android.googlesource.com/platform/frameworks/support/+/refs/heads/androidx-main/LICENSE.txt" target="_blank" rel="noopener">Apache 2.0</a></td>
-        </tr>
-      </tbody>
-    </table>
-    </div>
+        <h3 id="ui-architecture-jetpack-compose"><a href="https://developer.android.com/compose" target="_blank" rel="noopener">Jetpack Compose</a> (Google)</h3>
+    <p><strong>Used for:</strong> The toolkit used to build every screen in the app.</p>
+    <p><strong>License:</strong> <a href="https://android.googlesource.com/platform/frameworks/support/+/refs/heads/androidx-main/LICENSE.txt" target="_blank" rel="noopener">Apache 2.0</a></p>
+
+    <h3 id="ui-architecture-material-3"><a href="https://m3.material.io" target="_blank" rel="noopener">Material 3</a> (Google)</h3>
+    <p><strong>Used for:</strong> Provides base interface components used throughout the app.</p>
+    <p><strong>License:</strong> <a href="https://github.com/material-components/material-components-android/blob/master/LICENSE" target="_blank" rel="noopener">Apache 2.0</a></p>
+
+    <h3 id="ui-architecture-hilt"><a href="https://dagger.dev/hilt/" target="_blank" rel="noopener">Hilt (Dagger)</a> (Google)</h3>
+    <p><strong>Used for:</strong> Internal framework that connects the app's components together.</p>
+    <p><strong>License:</strong> <a href="https://github.com/google/dagger/blob/master/LICENSE.txt" target="_blank" rel="noopener">Apache 2.0</a></p>
+
+    <h3 id="ui-architecture-androidx-lifecycle"><a href="https://developer.android.com/topic/libraries/architecture/lifecycle" target="_blank" rel="noopener">AndroidX Lifecycle</a> (Google)</h3>
+    <p><strong>Used for:</strong> Manages how the app responds to screen rotation, backgrounding, and other Android lifecycle events.</p>
+    <p><strong>License:</strong> <a href="https://android.googlesource.com/platform/frameworks/support/+/refs/heads/androidx-main/LICENSE.txt" target="_blank" rel="noopener">Apache 2.0</a></p>
+
 
     <h2 id="firmware">Device firmware</h2>
-    <div class="table-wrap">
-    <table class="option-table">
-      <thead><tr><th>Project</th><th>Used for</th><th>License</th></tr></thead>
-      <tbody>
-        <tr>
-          <td><strong><a href="https://github.com/espressif/esp-idf" target="_blank" rel="noopener">ESP-IDF</a></strong> (Espressif Systems)</td>
-          <td>The framework the device's firmware, including its Bluetooth Low Energy stack, is built on.</td>
-          <td><a href="https://github.com/espressif/esp-idf/blob/master/LICENSE" target="_blank" rel="noopener">Apache 2.0</a></td>
-        </tr>
-      </tbody>
-    </table>
-    </div>
+        <h3 id="firmware-esp-idf"><a href="https://github.com/espressif/esp-idf" target="_blank" rel="noopener">ESP-IDF</a> (Espressif Systems)</h3>
+    <p><strong>Used for:</strong> The framework the device's firmware, including its Bluetooth Low Energy stack, is built on.</p>
+    <p><strong>License:</strong> <a href="https://github.com/espressif/esp-idf/blob/master/LICENSE" target="_blank" rel="noopener">Apache 2.0</a></p>
+
   </main>
 
 </div>

@@ -3,7 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Diagnostics & Danger Zone, pgpemu</title>
+  <title>Diagnostics &amp; Danger Zone — pgpemu</title>
+  <meta name="description" content="Check device status, read crash reports, update firmware, and use the Danger zone to forget pairings or reset your PGPemu device.">
+  <link rel="canonical" href="https://pgpemu.shrtcts.fr/diagnostics.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="pgpemu">
+  <meta property="og:title" content="Diagnostics &amp; Danger Zone — pgpemu">
+  <meta property="og:description" content="Check device status, read crash reports, update firmware, and use the Danger zone to forget pairings or reset your PGPemu device.">
+  <meta property="og:url" content="https://pgpemu.shrtcts.fr/diagnostics.html">
+  <meta property="og:image" content="https://pgpemu.shrtcts.fr/icon.png">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Diagnostics &amp; Danger Zone — pgpemu">
+  <meta name="twitter:description" content="Check device status, read crash reports, update firmware, and use the Danger zone to forget pairings or reset your PGPemu device.">
+  <meta name="twitter:image" content="https://pgpemu.shrtcts.fr/icon.png">
   <link rel="icon" href="icon.png" type="image/png">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@docsearch/css@4">
@@ -12,39 +24,29 @@
 <div class="layout">
 
   <main>
+    <h1 id="diagnostics-and-danger-zone">Diagnostics &amp; Danger Zone</h1>
+
     <h2 id="status">Status</h2>
     <p>
       The Status card at the top of the dashboard is a read-only snapshot of the device right
       now. While you are connected, it and the device profiles refresh on their own every few
-      seconds, so changes made from another phone show up without any action from you:
+      seconds, so changes made from another phone show up without any action from you.
     </p>
-    <div class="table-wrap">
-    <table class="option-table">
-      <thead><tr><th>Field</th><th>Meaning</th></tr></thead>
-      <tbody>
-        <tr>
-          <td><strong>LED</strong></td>
-          <td>Whether the device's indicator light is currently on.</td>
-        </tr>
-        <tr>
-          <td><strong>Advertising</strong></td>
-          <td>Whether the device is currently discoverable to new Bluetooth connections.</td>
-        </tr>
-        <tr>
-          <td><strong>Radio</strong></td>
-          <td>Whether the device is sending out its Bluetooth signal right now. It reads Idle when Advertising is off or when the max number of connections is already reached, and Active otherwise. Newer firmware only.</td>
-        </tr>
-        <tr>
-          <td><strong>Connections</strong></td>
-          <td>How many devices are connected right now, out of the max set in <a href="settings.html">Settings</a>.</td>
-        </tr>
-        <tr>
-          <td><strong>Log level</strong></td>
-          <td>The device's current logging detail: Debug, Info, or Verbose.</td>
-        </tr>
-      </tbody>
-    </table>
-    </div>
+        <h3 id="status-led">LED</h3>
+    <p>Whether the device's indicator light is currently on.</p>
+
+    <h3 id="status-advertising">Advertising</h3>
+    <p>Whether the device is currently discoverable to new Bluetooth connections.</p>
+
+    <h3 id="status-radio">Radio</h3>
+    <p>Whether the device is sending out its Bluetooth signal right now. It reads Idle when Advertising is off or when the max number of connections is already reached. Otherwise it reads Active. Newer firmware only.</p>
+
+    <h3 id="status-connections">Connections</h3>
+    <p>How many devices are connected right now, out of the max set in <a href="settings.html">Settings</a>.</p>
+
+    <h3 id="status-log-level">Log level</h3>
+    <p>The device's current logging detail: Debug, Info, or Verbose.</p>
+
 
     <h2 id="about-device">About the device</h2>
     <p>
@@ -129,28 +131,18 @@
       word before the action becomes available — there's no undo after that.
     </p>
 
-    <div class="table-wrap">
-    <table class="option-table">
-      <thead><tr><th>Action</th><th>What happens</th><th>Confirm with</th></tr></thead>
-      <tbody>
-        <tr>
-          <td><strong>Forget all pairings</strong></td>
-          <td>Erases every pairing and setting on the device, then restarts it. The device keeps its clone identity, so it still looks like the same accessory. Pair your phone and Pokémon GO again afterwards.</td>
-          <td><code>FORGET</code></td>
-        </tr>
-        <tr>
-          <td><strong>Reset session secrets</strong></td>
-          <td>Erases the device's clone identity, address, and keys. The device restarts in setup mode and stops working until you import your secrets file again from the app. See <a href="connect.html#setup-device">Set up a device with no secrets</a>.</td>
-          <td><code>RESET</code></td>
-        </tr>
-        <tr>
-          <td><strong>Restart device</strong></td>
-          <td>Restarts the device right away. Every Bluetooth connection drops immediately.</td>
-          <td><code>RESTART</code></td>
-        </tr>
-      </tbody>
-    </table>
-    </div>
+        <h3 id="danger-zone-forget-all-pairings">Forget all pairings</h3>
+    <p>Erases every pairing and setting on the device, then restarts it. The device keeps its clone identity, so it still looks like the same accessory. Pair your phone and Pokémon GO again afterwards.</p>
+    <p><strong>Confirm with:</strong> <code>FORGET</code></p>
+
+    <h3 id="danger-zone-reset-session-secrets">Reset session secrets</h3>
+    <p>Erases the device's clone identity, address, and keys. The device restarts in setup mode and stops working until you import your secrets file again from the app. See <a href="connect.html#setup-device">Set up a device with no secrets</a>.</p>
+    <p><strong>Confirm with:</strong> <code>RESET</code></p>
+
+    <h3 id="danger-zone-restart-device">Restart device</h3>
+    <p>Restarts the device right away. Every Bluetooth connection drops immediately.</p>
+    <p><strong>Confirm with:</strong> <code>RESTART</code></p>
+
   </main>
 
 </div>

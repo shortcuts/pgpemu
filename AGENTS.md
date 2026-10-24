@@ -142,11 +142,13 @@ make wiki-serve   # http://localhost:8080
 | `docs/wiki/acknowledgements.html` | Open-source credits |
 | `docs/wiki/style.css` | Single stylesheet — all pages share it |
 | `docs/wiki/wiki-init.js` | Injects the sidebar nav, search, and heading anchors into every page at runtime |
+| `docs/wiki/sitemap.xml` | Lists every real wiki page for search engines; add new pages here |
+| `docs/wiki/robots.txt` | Allows crawling and points to `sitemap.xml` |
 
 ### Maintaining content
 
 Follow `docs/wiki/CONTRIBUTING.md` for page structure, nav ordering, and writing style. Wiki pages are for **app and device users, not developers** — no code symbols, opcode names, firmware internals, or build/contribution instructions.
 
-- New user-visible companion app or device behavior → update the matching wiki page. Add a new page only if the change doesn't fit any existing one, and add it to `NAV_ITEMS` in `docs/wiki/wiki-init.js`.
+- New user-visible companion app or device behavior → update the matching wiki page. Add a new page only if the change doesn't fit any existing one, and add it to the `items` array of its group in `NAV_ITEMS` in `docs/wiki/wiki-init.js`.
 - Wiki prose must pass the audience test in `docs/wiki/CONTRIBUTING.md`: could a non-technical user understand every sentence? If not, rewrite.
 - No external resources beyond the DocSearch CDN script/stylesheet already in use — no other CDN fonts or JS libraries. One exception: the pinned ESP Web Tools script from unpkg, on `install.html` only.

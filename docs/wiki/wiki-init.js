@@ -1,15 +1,25 @@
 (function () {
   var NAV_ITEMS = [
-    { href: 'index.html', label: 'Getting Started' },
-    { href: 'install.html', label: 'Install & Update Firmware' },
-    { href: 'connect.html', label: 'Connect & Pair' },
-    { href: 'profiles.html', label: 'Device Profiles' },
-    { href: 'settings.html', label: 'Settings' },
-    { href: 'diagnostics.html', label: 'Diagnostics & Danger Zone' },
-    { href: 'troubleshooting.html', label: 'Troubleshooting' },
-    { href: 'changelog.html', label: 'Changelog' },
-    { href: 'privacy.html', label: 'Privacy' },
-    { href: 'acknowledgements.html', label: 'Acknowledgements' },
+    { group: 'Start', items: [
+      { href: 'index.html', label: 'Getting Started' },
+      { href: 'install.html', label: 'Install & Update Firmware' },
+    ] },
+    { group: 'Use', items: [
+      { href: 'connect.html', label: 'Connect & Pair' },
+      { href: 'profiles.html', label: 'Device Profiles' },
+    ] },
+    { group: 'Configure', items: [
+      { href: 'settings.html', label: 'Settings' },
+      { href: 'diagnostics.html', label: 'Diagnostics & Danger Zone' },
+    ] },
+    { group: 'Help', items: [
+      { href: 'troubleshooting.html', label: 'Troubleshooting' },
+    ] },
+    { group: 'About', items: [
+      { href: 'changelog.html', label: 'Changelog' },
+      { href: 'privacy.html', label: 'Privacy' },
+      { href: 'acknowledgements.html', label: 'Acknowledgements' },
+    ] },
   ];
 
   var EXT_ITEMS = [
@@ -19,9 +29,12 @@
 
   var currentFile = location.pathname.split('/').pop() || 'index.html';
 
-  var navHtml = NAV_ITEMS.map(function (item) {
-    var cls = item.href === currentFile ? ' class="active"' : '';
-    return '<a href="' + item.href + '"' + cls + '>' + item.label + '</a>';
+  var navHtml = NAV_ITEMS.map(function (g) {
+    var gid = 'nav-group-' + g.group.toLowerCase();
+    return '<div role="group" aria-labelledby="' + gid + '"><span class="nav-group" id="' + gid + '">' + g.group + '</span>' + g.items.map(function (item) {
+      var cls = item.href === currentFile ? ' class="active" aria-current="page"' : '';
+      return '<a href="' + item.href + '"' + cls + '>' + item.label + '</a>';
+    }).join('') + '</div>';
   }).join('');
 
   navHtml += '<span class="nav-sep"></span>';
@@ -79,7 +92,7 @@
   };
   document.head.appendChild(ds);
 
-  document.querySelectorAll('main h2[id], main h3[id]').forEach(function (heading) {
+  document.querySelectorAll('main h1[id], main h2[id], main h3[id]').forEach(function (heading) {
     var btn = document.createElement('button');
     btn.className = 'heading-link';
     btn.type = 'button';

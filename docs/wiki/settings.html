@@ -3,7 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Settings, pgpemu</title>
+  <title>Settings — pgpemu</title>
+  <meta name="description" content="Change how your PGPemu device advertises over Bluetooth, its status light, connection limit, log level, and Pokémon GO alerts.">
+  <link rel="canonical" href="https://pgpemu.shrtcts.fr/settings.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="pgpemu">
+  <meta property="og:title" content="Settings — pgpemu">
+  <meta property="og:description" content="Change how your PGPemu device advertises over Bluetooth, its status light, connection limit, log level, and Pokémon GO alerts.">
+  <meta property="og:url" content="https://pgpemu.shrtcts.fr/settings.html">
+  <meta property="og:image" content="https://pgpemu.shrtcts.fr/icon.png">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Settings — pgpemu">
+  <meta name="twitter:description" content="Change how your PGPemu device advertises over Bluetooth, its status light, connection limit, log level, and Pokémon GO alerts.">
+  <meta name="twitter:image" content="https://pgpemu.shrtcts.fr/icon.png">
   <link rel="icon" href="icon.png" type="image/png">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@docsearch/css@4">
@@ -12,73 +24,54 @@
 <div class="layout">
 
   <main>
-    <h2 id="settings">Settings</h2>
+    <h1 id="settings">Settings</h1>
     <p>
       The Settings section controls how the device presents itself over Bluetooth: whether it's
       discoverable, how many connections it accepts at once, and how much detail it logs.
     </p>
 
-    <div class="table-wrap">
-    <table class="option-table">
-      <thead><tr><th>Setting</th><th>What it does</th></tr></thead>
-      <tbody>
-        <tr>
-          <td><strong>Advertising</strong></td>
-          <td>Turns Bluetooth advertising on or off. While on, the device is visible to Pokémon GO and the companion app when they scan. Turn it off once everything you need is already paired, so it stops showing up to new scans. Existing connections aren't affected by turning it off. The choice stays in place when a device connects or disconnects. Any phone in Bluetooth range can pair with the device and control it while Advertising is on, so keep it off when you are not pairing.</td>
-        </tr>
-        <tr>
-          <td><strong>Status light</strong></td>
-          <td>Turns the device's light on or off. While on, the light shows what the device is doing, see <a href="#status-light">Status light</a>. Turn it off if you do not want the device to be noticed. The light can still flash briefly when the device powers on. The app shows this switch only with the matching firmware version. <strong>Forget all pairings</strong> turns the light back on.</td>
-        </tr>
-        <tr>
-          <td><strong>Max connections</strong></td>
-          <td>The largest number of simultaneous Bluetooth connections the device accepts, from 1 to 4. Lower it to reserve the device for fewer accounts; raise it back up to 4 to allow the full set. See <a href="connect.html#multiple-devices">Multiple connections</a>.</td>
-        </tr>
-        <tr>
-          <td><strong>Log level</strong></td>
-          <td>How much detail the device records internally: Info, Debug, or Verbose, from least to most detailed. Debug is the default. Tap <strong>Cycle log level</strong> to step through the options. Verbose is the most useful setting when you're trying to reproduce a problem to report.</td>
-        </tr>
-        <tr>
-          <td><strong>Game monitor</strong></td>
-          <td>Off until you turn it on. Sends an alert on your phone when Pokémon GO loses the device, the bag or Pokémon box is full, the Poké Balls run out, or a Pokéstop spin gives nothing. See <a href="#game-monitor">Game monitor</a>.</td>
-        </tr>
-      </tbody>
-    </table>
-    </div>
+        <h2 id="options">Options</h2>
+    <p>Each option below changes one part of how the device presents itself.</p>
+
+    <h3 id="options-advertising">Advertising</h3>
+    <p>Turns Bluetooth advertising on or off. While on, the device is visible to Pokémon GO and the companion app when they scan. Turn it off once everything you need is already paired, so it stops showing up to new scans. Existing connections aren't affected by turning it off. The choice stays in place when a device connects or disconnects. Any phone in Bluetooth range can pair with the device and control it while Advertising is on. Keep it off when you are not pairing.</p>
+
+    <h3 id="options-status-light">Status light</h3>
+    <p>Turns the device's light on or off. See <a href="#status-light">Status light</a>. <strong>Forget all pairings</strong> turns the light back on.</p>
+
+    <h3 id="options-max-connections">Max connections</h3>
+    <p>The largest number of simultaneous Bluetooth connections the device accepts, from 1 to 4. Lower it to reserve the device for fewer accounts. Raise it back up to 4 to allow the full set. See <a href="connect.html#multiple-devices">Multiple connections</a>.</p>
+
+    <h3 id="options-log-level">Log level</h3>
+    <p>How much detail the device records internally: Info, Debug, or Verbose, from least to most detailed. Tap <strong>Cycle log level</strong> to step through the options. Verbose is the most useful setting when you're trying to reproduce a problem to report.</p>
+    <p><strong>Default:</strong> Debug</p>
+
+    <h3 id="options-game-monitor">Game monitor</h3>
+    <p>Sends alerts on your phone when Pokémon GO reports a problem. See <a href="#game-monitor">Game monitor</a>.</p>
+    <p><strong>Default:</strong> Off</p>
+
 
     <h2 id="status-light">Status light</h2>
     <p>
       The light on the device blinks in a pattern that tells you its state. When two states apply,
-      the one higher in the table wins. With the Status light switch off, the light stays dark.
+      the one higher in the list wins. With the Status light switch off, the light stays dark.
     </p>
 
-    <div class="table-wrap">
-    <table class="option-table">
-      <thead><tr><th>What you see</th><th>What it means</th></tr></thead>
-      <tbody>
-        <tr>
-          <td>Three long flashes after power-on</td>
-          <td>The device restarted after a crash. The <a href="diagnostics.html#crash-report">Crash report</a> in the app has the details.</td>
-        </tr>
-        <tr>
-          <td>Fast blinking</td>
-          <td>The device has no secrets. Import your secrets file with the app, see <a href="connect.html#setup-device">Set up a device with no secrets</a>.</td>
-        </tr>
-        <tr>
-          <td>1 to 4 blinks, then a pause</td>
-          <td>That many Pokémon GO phones are connected.</td>
-        </tr>
-        <tr>
-          <td>Slow blinking</td>
-          <td>The device waits for a phone to connect.</td>
-        </tr>
-        <tr>
-          <td>Off</td>
-          <td>The device is not advertising and no phone is connected.</td>
-        </tr>
-      </tbody>
-    </table>
-    </div>
+        <h3 id="status-light-three-long-flashes">Three long flashes after power-on</h3>
+    <p><strong>Meaning:</strong> The device restarted after a crash. The <a href="diagnostics.html#crash-report">Crash report</a> in the app has the details.</p>
+
+    <h3 id="status-light-fast-blinking">Fast blinking</h3>
+    <p><strong>Meaning:</strong> The device has no secrets. Import your secrets file with the app, see <a href="connect.html#setup-device">Set up a device with no secrets</a>.</p>
+
+    <h3 id="status-light-1-to-4-blinks">1 to 4 blinks, then a pause</h3>
+    <p><strong>Meaning:</strong> That many Pokémon GO phones are connected.</p>
+
+    <h3 id="status-light-slow-blinking">Slow blinking</h3>
+    <p><strong>Meaning:</strong> The device waits for a phone to connect.</p>
+
+    <h3 id="status-light-off">Off</h3>
+    <p><strong>Meaning:</strong> The device is not advertising and no phone is connected.</p>
+
 
     <h2 id="language">Language</h2>
     <p>

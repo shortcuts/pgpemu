@@ -22,28 +22,121 @@ All wiki pages are read by **app and device users, not developers**. Write every
 
 ---
 
-## Adding a new page to the navbar
+## Page structure
 
-All nav items live in `docs/wiki/wiki-init.js`, in the `NAV_ITEMS` array near the top of the file.
+Every page has one content type. Keep each page to a single type.
+
+- **Tutorial.** Teaches a first-time task by doing. Structure: goal, numbered steps, a visible result after each step, the final outcome.
+- **How-to guide.** Completes one task or solves one problem. Structure: goal, prerequisites, numbered steps, expected result.
+- **Reference.** Looks up facts: options, values, and controls. Structure: one heading per entry. See "Reference pages".
+- **Explanation.** Explains why a feature works the way it does. Structure: context, core concept, alternatives and trade-offs.
+
+Do not mix types on one page. If content fits two types, create two pages and link between them.
+
+### Reference pages
+
+Never use a `<table>`. Tables squash or scroll sideways on phones. Give each entry its own heading instead.
+
+- Open the section with one sentence that says what the entries are.
+- Give each entry an `<h3>` under the section `<h2>`. Write the heading as the entry name only.
+- Give every entry heading a unique `id`. Prefix it with the section `id`, for example `status-light-fast-blinking`.
+- Write the description in plain sentences below the heading. Use a bullet list for steps or sub-points.
+- End with `<p><strong>Default:</strong> …</p>` when the entry has a default. Use the same bold label style for other facts, such as `<strong>Meaning:</strong>`.
+- Keep the same facts, in the same order, for every entry in a section.
+
+---
+
+## Navigation and page moves
+
+### Sidebar groups
+
+The sidebar has five groups in this fixed order:
+
+- **Start.** First-time setup. Pages: Getting Started, Install & Update Firmware.
+- **Use.** Everyday tasks. Pages: Connect & Pair, Device Profiles.
+- **Configure.** Settings and diagnostics. Pages: Settings, Diagnostics & Danger Zone.
+- **Help.** Fixing problems. Pages: Troubleshooting.
+- **About.** Project information. Pages: Changelog, Privacy, Acknowledgements.
+
+All nav items live in `docs/wiki/wiki-init.js`, in the `NAV_ITEMS` array. Each group has a `group` name and an `items` array. Read the live array in that file for the current labels.
+
+Shape of one group:
 
 ```js
-var NAV_ITEMS = [
-  { href: 'index.html',       label: 'Getting Started' },
-  { href: 'connect.html',     label: 'Connect & Pair' },
-  // ...
-  { href: 'changelog.html',   label: 'Changelog' },
-  { href: 'privacy.html',     label: 'Privacy' },
-  { href: 'acknowledgements.html', label: 'Acknowledgements' },
-];
+{ group: 'Use', items: [
+  { href: 'connect.html', label: 'Connect & Pair' },
+] },
 ```
 
-Steps:
+### Adding a new page
 
-1. Create `docs/wiki/<page>.html` following the same shell as any existing page (DOCTYPE, head with `style.css` + `@docsearch/css@4`, `<div class="layout"><main>…</main></div>`, `<script src="wiki-init.js"></script>`).
-2. Add `{ href: '<page>.html', label: '<Label>' }` to `NAV_ITEMS` at the position where it should appear in the sidebar. Ordering convention: usage pages first, then meta pages (Changelog, Privacy, Acknowledgements) at the end.
-3. No other file needs to be edited — `wiki-init.js` injects the sidebar into every page at runtime.
+1. Create `docs/wiki/<page>.html` with the same shell as an existing page: DOCTYPE, `style.css`, the DocSearch stylesheet, `<div class="layout"><main>…</main></div>`, and `<script src="wiki-init.js"></script>`.
+2. Add the SEO head block from "SEO basics" and one `<h1>`.
+3. Add `{ href: '<page>.html', label: '<Label>' }` to the `items` array of the group where it belongs. Write `&amp;` for ampersands in labels.
+4. Add the page to `sitemap.xml`.
 
-External links (GitHub, issue tracker) go in `EXT_ITEMS` below `NAV_ITEMS`, not in `NAV_ITEMS`.
+`wiki-init.js` injects the sidebar into every page at runtime, so no other file needs an edit. External links go in `EXT_ITEMS`, not in `NAV_ITEMS`.
+
+### Merging and moving pages
+
+Merge a feature into an existing page when it is a sub-topic of that page, or when it has under about 300 words of content. Add a new page only for a separate user goal.
+
+When a page moves or merges into another page:
+
+1. Remove the old file from `NAV_ITEMS` and from `sitemap.xml`.
+2. Keep the old file as a redirect stub. Do not delete it, so old links still work.
+3. Give the stub a `<title>` that matches the new page, a `<meta http-equiv="refresh">` to the new page, a canonical link to the new page, and `<meta name="robots" content="noindex">`.
+4. Put one plain link in the body: "This page moved. See <a href="...">Page Name</a>."
+
+Example stub for a page merged into Install & Update Firmware:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Install &amp; Update Firmware — pgpemu</title>
+  <meta http-equiv="refresh" content="0; url=install.html#update">
+  <link rel="canonical" href="https://pgpemu.shrtcts.fr/install.html">
+  <meta name="robots" content="noindex">
+</head>
+<body>
+<p>This page moved. See <a href="install.html#update">Install &amp; Update Firmware</a>.</p>
+</body>
+</html>
+```
+
+---
+
+## SEO basics
+
+Every real page, not a redirect stub, has these tags in its `<head>`, after the charset and viewport tags:
+
+```html
+<title>Settings — pgpemu</title>
+<meta name="description" content="Change how your PGPemu device advertises over Bluetooth, its status light, connection limit, log level, and Pokémon GO alerts.">
+<link rel="canonical" href="https://pgpemu.shrtcts.fr/settings.html">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="pgpemu">
+<meta property="og:title" content="Settings — pgpemu">
+<meta property="og:description" content="Change how your PGPemu device advertises over Bluetooth, its status light, connection limit, log level, and Pokémon GO alerts.">
+<meta property="og:url" content="https://pgpemu.shrtcts.fr/settings.html">
+<meta property="og:image" content="https://pgpemu.shrtcts.fr/icon.png">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Settings — pgpemu">
+<meta name="twitter:description" content="Change how your PGPemu device advertises over Bluetooth, its status light, connection limit, log level, and Pokémon GO alerts.">
+<meta name="twitter:image" content="https://pgpemu.shrtcts.fr/icon.png">
+```
+
+Rules:
+
+- **Title:** `<Page name> — pgpemu`. Unique per page. Write `&amp;` for an ampersand.
+- **Description:** one plain sentence under 160 characters. Unique per page.
+- **Canonical:** `https://pgpemu.shrtcts.fr/<page>.html`. The home page uses `https://pgpemu.shrtcts.fr/`. `og:url` repeats the canonical URL.
+- **Social tags:** repeat the title and description. The card type is `summary`, because `icon.png` is square.
+- **Headings:** one `<h1>` per page with a unique `id`. Every `<h2>` and `<h3>` has a unique `id`.
+- **Links and images:** link text names the target. Never "click here" or "more". Every image has `alt` text.
+- **Sitemap:** every real page is listed in `sitemap.xml`. `robots.txt` points to the sitemap and needs no per-page edit.
 
 ---
 

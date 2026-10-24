@@ -3,7 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Troubleshooting, pgpemu</title>
+  <title>Troubleshooting — pgpemu</title>
+  <meta name="description" content="Fix common PGPemu problems: the app cannot find the device, connection errors, missing alerts, restarts, and dropped connections.">
+  <link rel="canonical" href="https://pgpemu.shrtcts.fr/troubleshooting.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="pgpemu">
+  <meta property="og:title" content="Troubleshooting — pgpemu">
+  <meta property="og:description" content="Fix common PGPemu problems: the app cannot find the device, connection errors, missing alerts, restarts, and dropped connections.">
+  <meta property="og:url" content="https://pgpemu.shrtcts.fr/troubleshooting.html">
+  <meta property="og:image" content="https://pgpemu.shrtcts.fr/icon.png">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Troubleshooting — pgpemu">
+  <meta name="twitter:description" content="Fix common PGPemu problems: the app cannot find the device, connection errors, missing alerts, restarts, and dropped connections.">
+  <meta name="twitter:image" content="https://pgpemu.shrtcts.fr/icon.png">
   <link rel="icon" href="icon.png" type="image/png">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@docsearch/css@4">
@@ -12,7 +24,7 @@
 <div class="layout">
 
   <main>
-    <h2 id="troubleshooting">Troubleshooting</h2>
+    <h1 id="troubleshooting">Troubleshooting</h1>
     <p>Common connection and usage problems, and how to fix them.</p>
 
     <h2 id="app-cant-find-device">Companion app can't find the device</h2>
@@ -30,37 +42,24 @@
       The companion app shows the underlying Bluetooth error text below the Connect button so it
       can be reported if needed. A few you might see, and what they usually mean:
     </p>
-    <div class="table-wrap">
-    <table class="option-table">
-      <thead><tr><th>Message contains</th><th>Likely cause</th></tr></thead>
-      <tbody>
-        <tr>
-          <td>Bluetooth adapter is off / Bluetooth is disabled</td>
-          <td>Turn Bluetooth on for your phone and try again.</td>
-        </tr>
-        <tr>
-          <td>connection timed out</td>
-          <td>The device didn't respond in time. Move closer, make sure it's powered on, and retry.</td>
-        </tr>
-        <tr>
-          <td>connection cancelled</td>
-          <td>The connection attempt was interrupted, often by tapping a device in the list twice. Just retry.</td>
-        </tr>
-        <tr>
-          <td>device not migrated</td>
-          <td>The device connected, but doesn't support the companion app protocol. Its firmware needs to be updated to a version that includes it.</td>
-        </tr>
-        <tr>
-          <td>bonding failed</td>
-          <td>Pairing itself was rejected. Forget the device from your phone's Bluetooth settings and try connecting again from scratch.</td>
-        </tr>
-        <tr>
-          <td>stale pairing could not be removed</td>
-          <td>The device lost its pairing, for example after a reflash, and the app could not remove the old one. Forget the device in your phone's Bluetooth settings, then connect again.</td>
-        </tr>
-      </tbody>
-    </table>
-    </div>
+        <h3 id="connect-fails-with-error-adapter-off">Bluetooth adapter is off / Bluetooth is disabled</h3>
+    <p>Turn Bluetooth on for your phone and try again.</p>
+
+    <h3 id="connect-fails-with-error-timed-out">connection timed out</h3>
+    <p>The device didn't respond in time. Move closer, make sure it's powered on, and retry.</p>
+
+    <h3 id="connect-fails-with-error-cancelled">connection cancelled</h3>
+    <p>The connection attempt was interrupted, often by tapping a device in the list twice. Just retry.</p>
+
+    <h3 id="connect-fails-with-error-not-migrated">device not migrated</h3>
+    <p>The device connected, but doesn't support the companion app protocol. Its firmware needs to be updated to a version that includes it.</p>
+
+    <h3 id="connect-fails-with-error-bonding-failed">bonding failed</h3>
+    <p>Pairing itself was rejected. Forget the device from your phone's Bluetooth settings and try connecting again from scratch.</p>
+
+    <h3 id="connect-fails-with-error-stale-pairing">stale pairing could not be removed</h3>
+    <p>The device lost its pairing, for example after a reflash, and the app could not remove the old one. Forget the device in your phone's Bluetooth settings, then connect again.</p>
+
 
     <h2 id="not-appearing-in-pokemon-go">Device not appearing in Pokémon GO's pairing scan</h2>
     <ul class="trouble">
