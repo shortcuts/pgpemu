@@ -46,6 +46,7 @@ Autocatcher/Gotcha/Pokemon Go Plus device emulator for Pokemon Go, with autospin
 - Firmware update from the companion app over Bluetooth, with automatic rollback if the new firmware does not start
 - Game monitor in the companion app (opt-in): alerts when Pokémon GO drops the device, the bag or box is full, or the balls run out, read from the game's notification on the phone
 - Update-available notice in the companion app (checks GitHub once a day)
+- Companion app in English and French, with a per-app language picker on Android 13+
 - Android 15+ support
 - iOS support
 

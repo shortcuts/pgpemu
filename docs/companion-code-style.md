@@ -14,6 +14,7 @@ Rules for `companion-app/` (Kotlin, Jetpack Compose, package `com.pgpemu.compani
 - Collect state with `collectAsStateWithLifecycle()`.
 - No business logic in Composables.
 - User-facing text uses `stringResource()`. The `HardcodedComposeString` lint rule (`companion-app/lint/checks`) fails the build otherwise; check with `make companion-lint`. The rule also flags templates with literal words (`"Found $n devices"`), locals and same-file helpers that return literals, and `clickable(onClickLabel = ...)`. Helpers return a `@StringRes Int`.
+- A new string goes into `values/strings.xml` and `values-fr/strings.xml` in the same change. A community language adds a `values-<tag>/` folder and nothing else.
 
 ## Coroutines
 

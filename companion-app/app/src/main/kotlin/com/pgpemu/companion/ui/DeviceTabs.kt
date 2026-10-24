@@ -3,6 +3,9 @@ package com.pgpemu.companion.ui
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
+import android.provider.Settings
+import androidx.annotation.RequiresApi
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
@@ -158,10 +161,17 @@ private fun AboutLinksSection() {
         )
     SectionCard(title = stringResource(R.string.section_about_links)) {
         LabeledValue(stringResource(R.string.about_app_version), BuildConfig.VERSION_NAME)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            TextRow(stringResource(R.string.about_link_language), onClick = context::openLanguageSettings, isLast = false)
+        }
         links.forEachIndexed { i, (label, url) ->
             TextRow(stringResource(label), onClick = { context.open(url) }, isLast = i == links.lastIndex)
         }
     }
 }
+
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
+private fun Context.openLanguageSettings() =
+    startActivity(Intent(Settings.ACTION_APP_LOCALE_SETTINGS, Uri.fromParts("package", packageName, null)))
 
 private fun Context.open(url: String) = startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))

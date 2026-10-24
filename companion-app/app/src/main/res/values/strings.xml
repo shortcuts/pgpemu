@@ -39,9 +39,9 @@
     <string name="danger_forget_pairings">Forget all pairings</string>
     <string name="danger_reset_secrets">Reset session secrets</string>
     <string name="danger_restart">Restart device</string>
-    <string name="arrow">→</string>
+    <string name="arrow" translatable="false">→</string>
     <string name="diag_refresh">Refresh</string>
-    <string name="dash">—</string>
+    <string name="dash" translatable="false">—</string>
     <string name="device_scan_again">Scan again</string>
     <string name="device_scan">Scan for devices</string>
     <string name="confirm_cancel">Cancel</string>
@@ -72,7 +72,7 @@
     <string name="msg_status_other">Device returned an error (%1$d)</string>
     <string name="msg_disconnected_lost">Connection lost, device out of range? (%1$d)</string>
     <string name="msg_disconnected">Device disconnected (%1$d)</string>
-    <string name="app_name">PGPemu Companion</string>
+    <string name="app_name" translatable="false">PGPemu Companion</string>
     <string name="section_status">Status</string>
     <string name="section_device_info">About device</string>
     <string name="about_firmware">Firmware</string>
@@ -93,7 +93,7 @@
     <string name="section_activity">Activity</string>
     <string name="activity_empty">Nothing yet. Events from Pokémon GO appear here as they happen.</string>
     <string name="activity_clear">Clear</string>
-    <string name="activity_row">%1$s  %2$s</string>
+    <string name="activity_row" translatable="false">%1$s  %2$s</string>
     <string name="activity_game_connected">Pokémon GO connected on profile %1$d</string>
     <string name="activity_game_disconnected">Pokémon GO disconnected from profile %1$d</string>
     <string name="activity_pokemon_in_range">Profile %1$d: Pokémon in range</string>
@@ -135,6 +135,7 @@
     <string name="tab_about">About</string>
     <string name="section_about_links">About the app</string>
     <string name="about_app_version">App version</string>
+    <string name="about_link_language">Language</string>
     <string name="about_link_wiki">Help and guides</string>
     <string name="about_link_troubleshooting">Troubleshooting</string>
     <string name="about_link_privacy">Privacy policy</string>

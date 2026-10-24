@@ -51,6 +51,10 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+    androidResources {
+        generateLocaleConfig = true
+    }
+
     lint {
         error += "HardcodedComposeString"
     }
