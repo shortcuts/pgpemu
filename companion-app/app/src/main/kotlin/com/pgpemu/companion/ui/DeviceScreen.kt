@@ -1144,7 +1144,7 @@ private fun DiagnosticDump(
 }
 
 @Composable
-private fun Divider() {
+internal fun Divider() {
     val colors = LocalPgpColors.current
     Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(colors.border))
 }

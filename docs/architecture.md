@@ -78,7 +78,8 @@ Only `init_settings_nvs_partition()` erases flash, and only the default `nvs` pa
 
 ## Companion App build
 
-The companion is `:app` (Android/Compose, package `com.pgpemu.companion`) plus `:lint:checks` (custom lint rules). It has no `build-logic` convention plugins and no `core/`/`feature/` api/impl split: there is one Android module and 22 source files, so a convention plugin would have a single consumer.
+The companion is `:app` (Android/Compose, package `com.pgpemu.companion`) plus `:lint:checks` (custom lint rules). It has no `build-logic` convention plugins and no `core/`/`feature/` api/impl split: there is one Android module, so a convention plugin would have a single consumer.
+The `monitor/` package is phone-only: it reads the Pokémon GO notification through a `NotificationListenerService` and shares no code with `ble/`.
 Reopen when a second Android module would duplicate `:app` build configuration (`compileSdk`, `minSdk`, Kotlin, Compose).
 
 ## Rules

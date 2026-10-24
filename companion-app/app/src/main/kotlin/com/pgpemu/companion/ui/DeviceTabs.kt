@@ -106,6 +106,7 @@ internal fun SettingsTab(
             )
         }
     }
+    item { GameMonitorSection() }
 }
 
 @Composable

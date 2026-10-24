@@ -1,0 +1,12 @@
+pgpemu
+Copyright the pgpemu contributors
+
+These companion-app files derive from PoGo+LE (https://github.com/Mygod/pogoplusle)
+by Mygod, licensed under the Apache License 2.0 (see third_party/pogoplusle/LICENSE):
+
+- companion-app/app/src/main/kotlin/com/pgpemu/companion/monitor/GameStrings.kt
+- companion-app/app/src/main/kotlin/com/pgpemu/companion/monitor/GameMonitor.kt
+- companion-app/app/src/main/kotlin/com/pgpemu/companion/monitor/GameNotificationService.kt
+- companion-app/app/src/test/kotlin/com/pgpemu/companion/monitor/GameStringsTest.kt
+
+Each file carries a header that states what changed.

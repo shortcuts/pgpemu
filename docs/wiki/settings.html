@@ -38,6 +38,10 @@
           <td><strong>Log level</strong></td>
           <td>How much detail the device records internally: Info, Debug, or Verbose, from least to most detailed. Debug is the default. Tap <strong>Cycle log level</strong> to step through the options. Verbose is the most useful setting when you're trying to reproduce a problem to report.</td>
         </tr>
+        <tr>
+          <td><strong>Game monitor</strong></td>
+          <td>Off until you turn it on. Sends an alert on your phone when Pokémon GO loses the device, the bag or Pokémon box is full, the Poké Balls run out, or a Pokéstop spin gives nothing. See <a href="#game-monitor">Game monitor</a>.</td>
+        </tr>
       </tbody>
     </table>
     </div>
@@ -84,7 +88,32 @@
       off. Holding the button for 3 to 9 seconds allows a
       <a href="diagnostics.html#update-firmware">firmware update</a> instead.
     </p>
-  </main>
+      <h2 id="game-monitor">Game monitor</h2>
+    <p>
+      The Game monitor watches the notification that Pokémon GO shows while it is connected to the device.
+      When that notification reports a problem, the app shows its own alert, so you do not have to open the game.
+    </p>
+    <ul>
+      <li>Pokémon GO lost the device.</li>
+      <li>The bag is full.</li>
+      <li>The Pokémon box is full.</li>
+      <li>You are out of Poké Balls.</li>
+      <li>A Pokéstop spin gave no items.</li>
+    </ul>
+    <p>
+      To turn it on, switch on <strong>Alert me about Pokémon GO</strong> in Settings, read the notice, and tap
+      <strong>Continue</strong>. Your phone then asks you to allow notifications and to give the app notification access.
+      Grant both. The monitor works on the phone alone and needs no Bluetooth connection to the device.
+    </p>
+    <p>
+      To turn it off, switch it off in Settings. You can also take away the app's access in your phone's notification access settings.
+      Tap <strong>Notification access settings</strong> to open them. In your phone's settings you can mute one kind of alert at a time.
+    </p>
+    <p>
+      The monitor depends on the texts Pokémon GO shows. After a game update, alerts may stop until the app is updated too.
+      If no alerts arrive, see <a href="troubleshooting.html#no-game-alerts">No game alerts arrive</a>.
+    </p>
+</main>
 
 </div>
 <script src="wiki-init.js"></script>

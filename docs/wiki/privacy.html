@@ -13,16 +13,19 @@
 
   <main>
     <h1>Privacy Policy</h1>
-    <p><em>Last updated: 2026-10-23</em></p>
+    <p><em>Last updated: 2026-10-24</em></p>
 
     <h2 id="app-data">App data</h2>
-    <p>PGPemu Companion doesn't have accounts. Apart from the update check below, it doesn't talk to any server. Every setting and status value it shows comes directly from your PGPemu device over a local Bluetooth connection, and nothing is stored anywhere except on the device itself.</p>
+    <p>PGPemu Companion doesn't have accounts. Apart from the update check below, it doesn't talk to any server. Every setting and status value it shows comes directly from your PGPemu device over a local Bluetooth connection, and nothing is stored anywhere except on the device itself. The only things the app keeps on your phone are small preferences, such as the last device you connected to and the Game monitor switch.</p>
 
     <h2 id="update-check">Update check</h2>
     <p>Once a day, when you open the app, it asks github.com for the number of the newest release. This is why the app asks for internet access. The request carries no device data, no account and no identifier beyond what any web request sends, such as your IP address. If the request fails, the app tries again the next time you open it.</p>
 
     <h2 id="bluetooth-permission">Bluetooth permission</h2>
     <p>Bluetooth access is used only to scan for and connect to your PGPemu device. The scan permission is requested with the "never for location" flag, meaning Android does not let it be used to determine your location, and the app doesn't request location access at all.</p>
+
+    <h2 id="game-monitor">Game monitor</h2>
+    <p>The Game monitor is off until you turn it on. When it is on, the app reads the notifications that Pokémon GO shows on your phone. It ignores notifications from every other app. What it reads stays on your phone: the app does not store it and does not send it anywhere. You can turn the monitor off in the app, or take away notification access in your phone's settings.</p>
 
     <h2 id="diagnostics-data">Diagnostics data</h2>
     <p>The Diagnostics dumps in the app (runtime stats, task list, client states) are read from your device on demand and shown to you. They're never sent anywhere automatically — if you choose to include them in a bug report, that's a copy you make and send yourself.</p>

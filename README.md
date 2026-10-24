@@ -44,6 +44,7 @@ Autocatcher/Gotcha/Pokemon Go Plus device emulator for Pokemon Go, with autospin
 - Lifetime stats per phone in the companion app: caught, fled, spins, bag full, box full and out-of-balls counts that survive reboots, with a reset
 - Crash report in the companion app: after a panic, the app shows the crashed task and address, and shares the report for a bug report
 - Firmware update from the companion app over Bluetooth, with automatic rollback if the new firmware does not start
+- Game monitor in the companion app (opt-in): alerts when Pokémon GO drops the device, the bag or box is full, or the balls run out, read from the game's notification on the phone
 - Update-available notice in the companion app (checks GitHub once a day)
 - Android 15+ support
 - iOS support
@@ -367,6 +368,8 @@ pgpemu/
 ├── TEST_SUITE_GUIDE.md                      # ⚠️ Deprecated - Content merged into README.md
 ├── FUNDING.yml                              # GitHub funding info
 ├── LICENSE                                  # Project license
+├── NOTICE                                   # Attribution for code derived from PoGo+LE
+├── third_party/pogoplusle/LICENSE           # Apache-2.0 text for that code
 ├── run_tests.sh                             # Root-level test runner
 └── Makefile                                 # Root-level build helpers
 ```

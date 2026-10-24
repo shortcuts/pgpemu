@@ -23,6 +23,10 @@ _Avoid_: notification, log line
 The standalone Android (Kotlin, Jetpack Compose) app that replaces the UART/USB-console as the only way to read or change device state. Scans for nearby devices and lists them; the user picks one to connect to. Connects to one device at a time. Remembers the last connected device and reconnects to it; no saved multi-device list.
 _Avoid_: config app, control app, mobile app
 
+**Game Monitor**:
+The opt-in Companion App feature that listens to the Pokémon GO notification on the phone and raises its own alerts (device lost, bag full, box full, out of balls, spin failed). Phone-only. Distinct from the activity feed, which shows Device Events.
+_Avoid_: notification service
+
 **Device Profile**:
 One of the firmware's four emulated-accessory slots (index 0–3, shown as 1–4 in the app), each with its own `autospin` flag, Catch Mode and BLE identity. Distinct from a physical ESP32 unit — one unit hosts up to four Device Profiles.
 _Avoid_: device, client, slot. See Known Device for the persisted per-phone record.
