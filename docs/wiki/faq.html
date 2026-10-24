@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Common Tasks &amp; FAQ — pgpemu</title>
+  <meta name="description" content="Answers to common PGPemu questions: several accounts, a new phone, staying connected, the status light, account risk, and phone support.">
+  <link rel="canonical" href="https://pgpemu.shrtcts.fr/faq.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="pgpemu">
+  <meta property="og:title" content="Common Tasks &amp; FAQ — pgpemu">
+  <meta property="og:description" content="Answers to common PGPemu questions: several accounts, a new phone, staying connected, the status light, account risk, and phone support.">
+  <meta property="og:url" content="https://pgpemu.shrtcts.fr/faq.html">
+  <meta property="og:image" content="https://pgpemu.shrtcts.fr/icon.png">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Common Tasks &amp; FAQ — pgpemu">
+  <meta name="twitter:description" content="Answers to common PGPemu questions: several accounts, a new phone, staying connected, the status light, account risk, and phone support.">
+  <meta name="twitter:image" content="https://pgpemu.shrtcts.fr/icon.png">
+  <link rel="icon" href="icon.png" type="image/png">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@docsearch/css@4">
+</head>
+<body>
+<div class="layout">
+
+  <main>
+    <h1 id="faq">Common tasks &amp; FAQ</h1>
+    <p>Short answers for what people most often want to do. For something broken, see <a href="troubleshooting.html">Troubleshooting</a>.</p>
+
+    <h2 id="several-accounts">Use one device for several accounts</h2>
+    <ol>
+      <li>Pair each phone with the device in Pokémon GO, one phone at a time. See <a href="connect.html#pair-pokemon-go">Pair with Pokémon GO</a>.</li>
+      <li>Open the app. Each phone gets its own card under <a href="profiles.html">Device Profiles</a>.</li>
+      <li>Name each phone in <strong>Known devices</strong> to tell the accounts apart.</li>
+    </ol>
+    <p>The device holds up to 4 connections, and the companion app uses one of them. Each phone keeps its own Autospin and Autocatch settings.</p>
+
+    <h2 id="new-phone">Move a device to a new phone</h2>
+    <ol>
+      <li>In the app, open <strong>Known devices</strong> and tap <strong>Forget</strong> on the old phone. Disconnect it from the device first.</li>
+      <li>On the old phone, remove the device from Bluetooth settings.</li>
+      <li>On the new phone, install the companion app and connect to the device. See <a href="connect.html#connect-companion-app">Connect the companion app</a>.</li>
+      <li>Pair the device with Pokémon GO on the new phone.</li>
+    </ol>
+    <p>The new phone starts with fresh counts. The old phone's counts go away when you forget it.</p>
+
+    <h2 id="keep-connected">Keep the game connected</h2>
+    <p>Pokémon GO reconnects by itself when the device and phone are in range and Bluetooth is on. Two tools help when it does not:</p>
+    <ul>
+      <li>The companion app can alert you when the game reports a problem. See <a href="settings.html#game-monitor">Game monitor</a>.</li>
+      <li><a href="https://github.com/Mygod/pogoplusle" target="_blank" rel="noopener">PoGo+LE</a> is a separate Android app. It skips Android's pairing dialog and alerts you when the connection drops.</li>
+    </ul>
+    <p>If connections drop often, see <a href="troubleshooting.html#frequent-disconnects">Frequent disconnects</a>.</p>
+
+    <h2 id="light-meaning">What the light means</h2>
+    <p>The light blinks slowly while the device waits for a phone. It blinks 1 to 4 times, then pauses, for each connected Pokémon GO phone. Fast blinking means the device needs its secrets. Three long flashes after power-on mean it restarted after a crash. The full list is in <a href="settings.html#status-light">Status light</a>.</p>
+
+    <h2 id="account-risk">Is it safe for my account?</h2>
+    <p>
+      PGPemu is not an official product, and Niantic does not approve it. Pokémon GO's rules forbid
+      unofficial accessories and automation, so Niantic can warn, suspend, or ban an account that
+      uses it. Autospin and Autocatch add to that risk. Use it at your own risk, and never on an account you cannot lose.
+    </p>
+    <p>The companion app collects no personal data. See <a href="privacy.html">Privacy</a>.</p>
+
+    <h2 id="phone-compatibility">Which phones work?</h2>
+    <p>
+      PGPemu works with Android phones. Bluetooth behavior differs between makers and Android versions, so
+      some phones pair or reconnect less reliably than others. The PoGo+LE project keeps
+      a device compatibility table in its <a href="https://github.com/Mygod/pogoplusle" target="_blank" rel="noopener">repository</a>.
+      Check it before you buy a phone for this.
+    </p>
+  </main>
+
+</div>
+<script src="wiki-init.js"></script>
+</body>
+</html>

@@ -136,6 +136,7 @@ make wiki-serve   # http://localhost:8080
 | `docs/wiki/profiles.html` | Autospin / Autocatch per device profile |
 | `docs/wiki/settings.html` | Advertising, max connections, log level |
 | `docs/wiki/diagnostics.html` | Status, diagnostics dumps, danger zone |
+| `docs/wiki/faq.html` | Goal-based answers: several accounts, new phone, staying connected, light meaning, account risk, phone compatibility |
 | `docs/wiki/troubleshooting.html` | Connection and usage problems |
 | `docs/wiki/changelog.html` | User-facing curated changelog |
 | `docs/wiki/privacy.html` | Privacy policy |

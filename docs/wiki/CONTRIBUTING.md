@@ -55,7 +55,7 @@ The sidebar has five groups in this fixed order:
 - **Start.** First-time setup. Pages: Getting Started, Install & Update Firmware.
 - **Use.** Everyday tasks. Pages: Connect & Pair, Device Profiles.
 - **Configure.** Settings and diagnostics. Pages: Settings, Diagnostics & Danger Zone.
-- **Help.** Fixing problems. Pages: Troubleshooting.
+- **Help.** Fixing problems. Pages: Common Tasks & FAQ, Troubleshooting.
 - **About.** Project information. Pages: Changelog, Privacy, Acknowledgements.
 
 All nav items live in `docs/wiki/wiki-init.js`, in the `NAV_ITEMS` array. Each group has a `group` name and an `items` array. Read the live array in that file for the current labels.

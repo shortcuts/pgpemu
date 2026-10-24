@@ -13,6 +13,7 @@
       { href: 'diagnostics.html', label: 'Diagnostics & Danger Zone' },
     ] },
     { group: 'Help', items: [
+      { href: 'faq.html', label: 'Common Tasks & FAQ' },
       { href: 'troubleshooting.html', label: 'Troubleshooting' },
     ] },
     { group: 'About', items: [
