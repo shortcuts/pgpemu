@@ -12,7 +12,8 @@
 #include <string.h>
 
 // ---- mocks of everything the unit under test calls ----
-static int advertise_calls, purged_conn, stats_cleared_conn, clear_session_calls, disconnect_calls;
+static int advertise_calls, purged_conn, stats_cleared_conn, lifetime_released_conn, clear_session_calls,
+    disconnect_calls;
 static esp_bd_addr_t cleared_bda;
 
 GlobalSettings global_settings = { .target_active_connections = 2 };
@@ -27,6 +28,9 @@ void advertise_if_needed(void) {
 }
 void purge_button_queue_for_connection(uint16_t conn_id) {
     purged_conn = conn_id;
+}
+void lifetime_stats_release(uint16_t conn_id) {
+    lifetime_released_conn = conn_id;
 }
 void stats_clear_for_conn(uint16_t conn_id) {
     stats_cleared_conn = conn_id;
@@ -49,7 +53,7 @@ static void reset(void) {
     active_connections = 0;
     active_connections_mutex = NULL;
     advertise_calls = clear_session_calls = disconnect_calls = 0;
-    purged_conn = stats_cleared_conn = -1;
+    purged_conn = stats_cleared_conn = lifetime_released_conn = -1;
     init_handshake_multi();
 }
 
@@ -96,7 +100,7 @@ static void test_active_count_and_advertising_stop(void) {
     assert(get_active_connections() == 2 && advertise_calls == 1);  // target 2 reached
     connection_stop(1, ESP_GATT_CONN_TERMINATE_LOCAL_HOST);
     assert(get_active_connections() == 1);
-    assert(purged_conn == 1 && stats_cleared_conn == 1);
+    assert(purged_conn == 1 && stats_cleared_conn == 1 && lifetime_released_conn == 1);
 }
 
 static void test_stop_incomplete_handshake_does_not_undercount(void) {

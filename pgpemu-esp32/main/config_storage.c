@@ -476,7 +476,7 @@ bool erase_device_data(esp_bd_addr_t bda) {
 
     bool all_ok = true;
     char key_out[NVS_KEY_MAX_LEN + 1];
-    const char* const options[] = { KEY_AUTOSPIN, KEY_AUTOCATCH, "sesskey", "rechall" };
+    const char* const options[] = { KEY_AUTOSPIN, KEY_AUTOCATCH, "sesskey", "rechall", "lstats" };
     for (size_t i = 0; i < sizeof(options) / sizeof(options[0]); i++) {
         make_device_key_for_option(options[i], bda, key_out);
         esp_err_t err = nvs_erase_key(device_settings_handle, key_out);
@@ -487,4 +487,30 @@ bool erase_device_data(esp_bd_addr_t bda) {
     }
 
     return nvs_commit_and_close(CONFIG_STORAGE_TAG, device_settings_handle, "device_data") && all_ok;
+}
+
+bool read_lifetime_stats(esp_bd_addr_t bda, uint8_t blob[LIFETIME_STATS_BLOB_LEN]) {
+    nvs_handle_t handle = {};
+    if (!nvs_open_readonly(CONFIG_STORAGE_TAG, "device_settings", &handle)) {
+        return false;
+    }
+    char key[NVS_KEY_MAX_LEN + 1];
+    make_device_key_for_option("lstats", bda, key);
+    bool found = nvs_read_blob_checked(CONFIG_STORAGE_TAG, handle, key, blob, LIFETIME_STATS_BLOB_LEN);
+    nvs_safe_close(handle);
+    return found;
+}
+
+bool write_lifetime_stats(esp_bd_addr_t bda, const uint8_t blob[LIFETIME_STATS_BLOB_LEN]) {
+    nvs_handle_t handle = {};
+    if (!nvs_open_readwrite(CONFIG_STORAGE_TAG, "device_settings", &handle)) {
+        return false;
+    }
+    char key[NVS_KEY_MAX_LEN + 1];
+    make_device_key_for_option("lstats", bda, key);
+    if (!nvs_write_check(CONFIG_STORAGE_TAG, nvs_set_blob(handle, key, blob, LIFETIME_STATS_BLOB_LEN), "lstats")) {
+        nvs_safe_close(handle);
+        return false;
+    }
+    return nvs_commit_and_close(CONFIG_STORAGE_TAG, handle, "lstats");
 }

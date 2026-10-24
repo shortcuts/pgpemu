@@ -25,6 +25,8 @@ typedef enum {
 void known_devices_init(void);
 // Marks the address as seen now; evicts the least recently seen one (keys, settings, bond) when the index is full.
 void known_devices_touch(const uint8_t* bda);
+// True when the address has a record in the index.
+bool known_devices_contains(const uint8_t* bda);
 // Writes count u8, then the records, most recently seen first. Fails when cap is too small.
 known_devices_result_t known_devices_list(uint8_t* buf, size_t cap, size_t* out_len);
 // Sets the name; an empty name clears it. At most KNOWN_DEVICE_NAME_LEN - 1 bytes.

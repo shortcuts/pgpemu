@@ -77,6 +77,24 @@ class ControlDecodersTest {
     }
 
     @Test
+    fun `lifetime stats decode a 37 byte frame and reject a 36 byte one`() {
+        val frame =
+            ByteArray(37).also {
+                it[0] = 1
+                it[1] = 0x2C // caught 300 = 0x012C
+                it[2] = 0x01
+                it[20] = 1 // box full u32, high byte
+                it[25] = 7 // session caught
+                it[36] = 1 // session balls empty, high byte
+            }
+        assertEquals(
+            LifetimeStats(true, listOf(300L, 0L, 0L, 0L, 16777216L, 0L), listOf(7, 0, 0, 0, 0, 256)),
+            decodeLifetimeStats(frame).getOrThrow(),
+        )
+        assertTrue(decodeLifetimeStats(frame.copyOf(36)).exceptionOrNull() is DecodeError)
+    }
+
+    @Test
     fun `address and rename payloads are the six address bytes then the name`() {
         assertEquals(listOf(0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0x01), parseAddress("AA:BB:CC:DD:EE:01").map { it.toInt() and 0xFF })
         assertEquals("AABBCCDDEE01" + "41", encodeRename("AA:BB:CC:DD:EE:01", "A").joinToString("") { "%02X".format(it) })

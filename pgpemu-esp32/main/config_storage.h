@@ -36,4 +36,9 @@ bool clear_device_session(esp_bd_addr_t bda);
 // Erase the session keys and the device settings of one address.
 bool erase_device_data(esp_bd_addr_t bda);
 
+// Lifetime counters of one address: six u32 LE, see lifetime_stats.h. False when no blob is stored.
+#define LIFETIME_STATS_BLOB_LEN 24
+bool read_lifetime_stats(esp_bd_addr_t bda, uint8_t blob[LIFETIME_STATS_BLOB_LEN]);
+bool write_lifetime_stats(esp_bd_addr_t bda, const uint8_t blob[LIFETIME_STATS_BLOB_LEN]);
+
 #endif /* CONFIG_STORAGE_H */

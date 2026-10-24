@@ -32,4 +32,6 @@ object Opcode {
     const val LIST_KNOWN_DEVICES: Int = 0x1D
     const val RENAME_KNOWN_DEVICE: Int = 0x1E
     const val FORGET_KNOWN_DEVICE: Int = 0x1F
+    const val GET_LIFETIME_STATS: Int = 0x20
+    const val RESET_LIFETIME_STATS: Int = 0x21
 }

@@ -40,6 +40,7 @@ Autocatcher/Gotcha/Pokemon Go Plus device emulator for Pokemon Go, with autospin
 - Toggle autocatch/autospin
 - Activity feed in the companion app: caught, fled, items, bag/box full, and Pokémon GO connect/disconnect, pushed by the device as they happen
 - Known devices list in the companion app: see the paired phones, name them, forget one (the device keeps up to 15)
+- Lifetime stats per phone in the companion app: caught, fled, spins, bag full, box full and out-of-balls counts that survive reboots, with a reset
 - Firmware update from the companion app over Bluetooth, with automatic rollback if the new firmware does not start
 - Update-available notice in the companion app (checks GitHub once a day)
 - Android 15+ support
@@ -193,7 +194,8 @@ The app is a single scrolling screen, ordered by risk/frequency:
   **Autospin** and **Autocatch** toggle chips.
 - **Known devices** — the phones that finished a Pokémon GO connection, newest
   first, with **Rename** and **Forget**. The device keeps 15 and drops the one
-  used longest ago.
+  used longest ago. Each phone shows its all-time and current-connection counts
+  and a **Reset stats** button.
 - **Settings** — advertising on/off switch, max-connections stepper, a
   **Cycle log level** button. Changes persist to flash automatically.
 - **Diagnostics** — on-demand dumps (runtime stats, FreeRTOS task list,
@@ -317,6 +319,7 @@ pgpemu/
 │   │   │   ├── config_storage.c(.h)         # NVS persistence, device settings
 │   │   │   ├── config_secrets.c(.h)         # Secret management
 │   │   │   ├── known_devices.c(.h)          # Known Device index
+│   │   │   ├── lifetime_stats.c(.h)         # Lifetime Stats per Known Device
 │   │   │   ├── settings.c(.h)               # Settings logic
 │   │   │   └── nvs_helper.c(.h)             # NVS utilities
 │   │   │

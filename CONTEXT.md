@@ -31,6 +31,10 @@ _Avoid_: device, client, slot. See Known Device for the persisted per-phone reco
 A persisted record of one game phone, keyed by its Bluetooth address: last-seen order, user-set name. The firmware indexes it when a handshake completes and keeps at most 15, evicting the least recently seen with its keys, settings and bond. Distinct from a Device Profile, which is a live connection slot.
 _Avoid_: account, paired device
 
+**Lifetime Stats**:
+Six event counters per Known Device kept in NVS across reboots and reconnects: caught, fled, spin, bag full, box full, balls empty (also Pokéstop out of range). Erased with the Known Device and by Forget Pairings. Distinct from the session counters in `stats.c`, which live in RAM per connection and reset when it ends.
+_Avoid_: totals, history
+
 **Session Secrets**:
 The Pokémon-GO pairing material persisted per Device Profile in the dedicated `pgpsecret` NVS partition, never auto-erased: clone name, MAC, device key, blob. Readable/resettable through the Control Service once bonded; writable only in Provisioning Mode.
 _Avoid_: pairing data, credentials

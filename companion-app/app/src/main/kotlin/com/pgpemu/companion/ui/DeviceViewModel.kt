@@ -10,6 +10,7 @@ import com.pgpemu.companion.ble.DeviceInfo
 import com.pgpemu.companion.ble.EventType
 import com.pgpemu.companion.ble.KnownDevice
 import com.pgpemu.companion.ble.LastDeviceStore
+import com.pgpemu.companion.ble.LifetimeStats
 import com.pgpemu.companion.ble.Opcode
 import com.pgpemu.companion.ble.OtaException
 import com.pgpemu.companion.ble.OtaImage
@@ -22,6 +23,7 @@ import com.pgpemu.companion.ble.decodeDeviceInfo
 import com.pgpemu.companion.ble.decodeFlag
 import com.pgpemu.companion.ble.decodeGlobalSettings
 import com.pgpemu.companion.ble.decodeKnownDevices
+import com.pgpemu.companion.ble.decodeLifetimeStats
 import com.pgpemu.companion.ble.decodeLogLevel
 import com.pgpemu.companion.ble.encodeRename
 import com.pgpemu.companion.ble.parseAddress
@@ -56,6 +58,9 @@ const val KNOWN_DEVICES_MIN_PROTOCOL_VERSION = 6
 
 // First GET_DEVICE_INFO layout version with the Event characteristic.
 const val EVENTS_MIN_PROTOCOL_VERSION = 7
+
+// First GET_DEVICE_INFO layout version with the lifetime stats opcodes.
+const val LIFETIME_MIN_PROTOCOL_VERSION = 8
 
 // Event-capable firmware pushes changes; the poll only covers what raises no event (other phones' toggles).
 const val EVENT_POLL_INTERVAL_MS = 30_000L
@@ -100,6 +105,8 @@ data class DeviceUiState(
     val otaProgress: Int? = null,
     /** Game phones the device has seen, newest first. */
     val knownDevices: List<KnownDevice> = emptyList(),
+    /** Lifetime and session counters by phone address; empty when the firmware has none. */
+    val knownLifetime: Map<String, LifetimeStats> = emptyMap(),
     /** Device Events since the last connect, newest first; the phone clock stamps them. */
     val activity: List<ActivityItem> = emptyList(),
 ) {
@@ -107,6 +114,7 @@ data class DeviceUiState(
         get() = (deviceInfo?.protocolVersion ?: 0) >= EVENTS_MIN_PROTOCOL_VERSION && deviceInfo?.provisioning == false
     val otaSupported: Boolean get() = (deviceInfo?.protocolVersion ?: 0) >= OTA_MIN_PROTOCOL_VERSION
     val knownDevicesSupported: Boolean get() = (deviceInfo?.protocolVersion ?: 0) >= KNOWN_DEVICES_MIN_PROTOCOL_VERSION
+    val lifetimeSupported: Boolean get() = knownDevicesSupported && (deviceInfo?.protocolVersion ?: 0) >= LIFETIME_MIN_PROTOCOL_VERSION
 }
 
 data class ActivityItem(
@@ -208,6 +216,14 @@ sealed interface ConfirmAction {
         override val confirmWord = "FORGET"
         override val titleRes = R.string.confirm_forget_known_title
         override val bodyRes = R.string.confirm_forget_known_body
+    }
+
+    data class ResetLifetimeStats(
+        val address: String,
+    ) : ConfirmAction {
+        override val confirmWord = "RESET"
+        override val titleRes = R.string.confirm_reset_stats_title
+        override val bodyRes = R.string.confirm_reset_stats_body
     }
 
     data object Restart : ConfirmAction {
@@ -482,6 +498,18 @@ class DeviceViewModel
             runStep(Opcode.LIST_KNOWN_DEVICES) { frame ->
                 decoded(decodeKnownDevices(frame.payload)) { devices -> _uiState.update { it.copy(knownDevices = devices) } }
             }
+            if (_uiState.value.lifetimeSupported) fetchLifetime()
+        }
+
+        /** Runs inside the command lock; one request per phone, since a list reply would not fit one response. */
+        private suspend fun fetchLifetime() {
+            val fetched = mutableMapOf<String, LifetimeStats>()
+            for (device in _uiState.value.knownDevices) {
+                runStep(Opcode.GET_LIFETIME_STATS, parseAddress(device.address)) { frame ->
+                    decoded(decodeLifetimeStats(frame.payload)) { fetched[device.address] = it }
+                }
+            }
+            _uiState.update { it.copy(knownLifetime = fetched) }
         }
 
         /** Transport errors are ignored here: the next poll retries and the steps after it report them. */
@@ -699,6 +727,10 @@ class DeviceViewModel
             _uiState.update { it.copy(pendingConfirmation = ConfirmAction.ForgetKnownDevice(address)) }
         }
 
+        fun requestResetLifetimeStats(address: String) {
+            _uiState.update { it.copy(pendingConfirmation = ConfirmAction.ResetLifetimeStats(address)) }
+        }
+
         private fun refreshKnownDevices() {
             viewModelScope.launch { commandLock.withLock { fetchKnownDevices() } }
         }
@@ -722,6 +754,11 @@ class DeviceViewModel
                 }
                 is ConfirmAction.ForgetKnownDevice ->
                     runCommand(Opcode.FORGET_KNOWN_DEVICE, parseAddress(action.address)) {
+                        dismissConfirmation()
+                        refreshKnownDevices()
+                    }
+                is ConfirmAction.ResetLifetimeStats ->
+                    runCommand(Opcode.RESET_LIFETIME_STATS, parseAddress(action.address)) {
                         dismissConfirmation()
                         refreshKnownDevices()
                     }

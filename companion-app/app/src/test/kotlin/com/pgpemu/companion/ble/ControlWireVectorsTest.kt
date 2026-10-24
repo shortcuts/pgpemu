@@ -24,6 +24,10 @@ class ControlWireVectorsTest {
             "forget_known_device_connected" to StatusCode.ERR_BUSY,
             "forget_known_device_missing" to StatusCode.ERR_NOT_FOUND,
             "forget_known_device_short" to StatusCode.ERR_MALFORMED_PAYLOAD,
+            "lifetime_stats_missing" to StatusCode.ERR_NOT_FOUND,
+            "lifetime_stats_short" to StatusCode.ERR_MALFORMED_PAYLOAD,
+            "reset_lifetime_stats_missing" to StatusCode.ERR_NOT_FOUND,
+            "reset_lifetime_stats_short" to StatusCode.ERR_MALFORMED_PAYLOAD,
         )
 
     @Test
@@ -72,7 +76,22 @@ class ControlWireVectorsTest {
                 "forget_known_device_connected",
                 "forget_known_device_missing",
                 "forget_known_device_short",
+                "lifetime_stats_missing",
+                "lifetime_stats_short",
+                "reset_lifetime_stats",
+                "reset_lifetime_stats_missing",
+                "reset_lifetime_stats_short",
                 -> assertEquals(0, frame.payload.size)
+                "lifetime_stats_stored" ->
+                    assertEquals(
+                        LifetimeStats(false, listOf(3L, 1L, 300L, 0L, 2L, 5L), List(6) { 0 }),
+                        decodeLifetimeStats(frame.payload).getOrThrow(),
+                    )
+                "lifetime_stats_connected" ->
+                    assertEquals(
+                        LifetimeStats(true, listOf(2L, 0L, 0L, 1L, 0L, 0L), listOf(2, 0, 0, 1, 0, 0)),
+                        decodeLifetimeStats(frame.payload).getOrThrow(),
+                    )
                 "known_devices_list" ->
                     assertEquals(
                         listOf(
@@ -98,12 +117,12 @@ class ControlWireVectorsTest {
                     )
                 "device_info" ->
                     assertEquals(
-                        DeviceInfo(7, 4, 3, 5L, 0L, 0L, "", false),
+                        DeviceInfo(8, 4, 3, 5L, 0L, 0L, "", false),
                         decodeDeviceInfo(frame.payload).getOrThrow(),
                     )
                 "device_info_provisioning" ->
                     assertEquals(
-                        DeviceInfo(7, 4, 3, 5L, 0L, 0L, "", true),
+                        DeviceInfo(8, 4, 3, 5L, 0L, 0L, "", true),
                         decodeDeviceInfo(frame.payload).getOrThrow(),
                     )
                 else -> fail("no decode expectation for $name")

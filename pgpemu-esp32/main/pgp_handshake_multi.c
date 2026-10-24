@@ -5,6 +5,7 @@
 #include "esp_bt_defs.h"
 #include "esp_gap_ble_api.h"
 #include "esp_log.h"
+#include "lifetime_stats.h"
 #include "log_tags.h"
 #include "mutex_helpers.h"
 #include "pgp_autobutton.h"
@@ -246,6 +247,7 @@ void connection_stop(uint16_t conn_id, uint8_t reason) {
 
     purge_button_queue_for_connection(conn_id);
     // Bluedroid reuses conn_id values; stale counters would show on the next phone's profile
+    lifetime_stats_release(conn_id);
     stats_clear_for_conn(conn_id);
     delete_client_state_entry(entry);
 }

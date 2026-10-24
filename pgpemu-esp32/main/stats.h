@@ -12,11 +12,17 @@ size_t stats_format_runtime(char* buf, size_t buf_len);
 void increment_caught(uint16_t conn_id);
 void increment_fled(uint16_t conn_id);
 void increment_spin(uint16_t conn_id);
+void increment_bag_full(uint16_t conn_id);
+void increment_box_full(uint16_t conn_id);
+void increment_balls_empty(uint16_t conn_id);
 
 typedef struct {
     uint16_t caught;
     uint16_t fled;
     uint16_t spin;
+    uint16_t bag_full;
+    uint16_t box_full;
+    uint16_t balls_empty;
 } Stats;
 
 typedef struct {

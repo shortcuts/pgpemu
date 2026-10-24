@@ -83,6 +83,7 @@ import com.pgpemu.companion.ble.ConnectionState
 import com.pgpemu.companion.ble.DeviceInfo
 import com.pgpemu.companion.ble.EventType
 import com.pgpemu.companion.ble.KnownDevice
+import com.pgpemu.companion.ble.LifetimeStats
 import com.pgpemu.companion.ble.ScannedDevice
 import com.pgpemu.companion.ble.StatusCode
 import com.pgpemu.companion.ui.theme.LocalPgpColors
@@ -213,8 +214,10 @@ fun DeviceScreen(
                         item {
                             KnownDevicesSection(
                                 devices = uiState.knownDevices,
+                                lifetime = uiState.knownLifetime,
                                 onRename = viewModel::renameKnownDevice,
                                 onForget = viewModel::requestForgetKnownDevice,
+                                onResetStats = viewModel::requestResetLifetimeStats,
                             )
                         }
                     }
@@ -726,8 +729,10 @@ private fun ActivityFeedSection(
 @Composable
 private fun KnownDevicesSection(
     devices: List<KnownDevice>,
+    lifetime: Map<String, LifetimeStats>,
     onRename: (String, String) -> Unit,
     onForget: (String) -> Unit,
+    onResetStats: (String) -> Unit,
 ) {
     val colors = LocalPgpColors.current
     var renaming by remember { mutableStateOf<KnownDevice?>(null) }
@@ -745,6 +750,23 @@ private fun KnownDevicesSection(
                             stringResource(R.string.known_devices_connected).takeIf { device.connected },
                         ).joinToString(" · ")
                     if (detail.isNotEmpty()) Text(text = detail, color = colors.muted, fontSize = 11.sp)
+                    lifetime[device.address]?.let { stats ->
+                        Text(
+                            text = stringResource(R.string.known_devices_lifetime, *stats.lifetime.toTypedArray()),
+                            color = colors.muted,
+                            fontSize = 11.sp,
+                        )
+                        if (stats.connected) {
+                            Text(
+                                text = stringResource(R.string.known_devices_session, *stats.session.toTypedArray()),
+                                color = colors.muted,
+                                fontSize = 11.sp,
+                            )
+                        }
+                        TextButton(onClick = { onResetStats(device.address) }) {
+                            Text(stringResource(R.string.known_devices_reset_stats), color = colors.danger)
+                        }
+                    }
                 }
                 TextButton(onClick = { renaming = device }) { Text(stringResource(R.string.known_devices_rename), color = colors.accent) }
                 TextButton(onClick = { onForget(device.address) }, enabled = !device.connected) {

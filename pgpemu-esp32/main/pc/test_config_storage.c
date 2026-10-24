@@ -81,6 +81,20 @@ static void test_erase_device_data_clears_one_address(void) {
     assert(erase_device_data(BDA_A));  // nothing left to erase is not an error
 }
 
+static void test_lifetime_stats_blob_round_trip_and_erase(void) {
+    esp_bd_addr_t a = { 1, 2, 3, 4, 5, 6 }, b = { 1, 2, 3, 4, 5, 7 };
+    uint8_t blob[LIFETIME_STATS_BLOB_LEN], in[LIFETIME_STATS_BLOB_LEN];
+    for (int i = 0; i < LIFETIME_STATS_BLOB_LEN; i++) {
+        in[i] = (uint8_t)(i + 1);
+    }
+    nvs_mem_reset();
+    assert(!read_lifetime_stats(a, blob));
+    assert(write_lifetime_stats(a, in) && write_lifetime_stats(b, in));
+    assert(read_lifetime_stats(a, blob) && memcmp(blob, in, sizeof(in)) == 0);
+    assert(erase_device_data(a));
+    assert(!read_lifetime_stats(a, blob) && read_lifetime_stats(b, blob));
+}
+
 static void test_persist_fails_when_commit_fails(void) {
     uint8_t key[16] = { 1 }, chal[32] = { 2 };
     nvs_mem_reset();
@@ -175,6 +189,7 @@ int main(void) {
     test_device_key_fits_nvs_and_differs();
     test_session_keys_round_trip_and_clear();
     test_erase_device_data_clears_one_address();
+    test_lifetime_stats_blob_round_trip_and_erase();
     test_persist_fails_when_commit_fails();
     test_global_settings_round_trip();
     test_global_settings_reject_out_of_range();

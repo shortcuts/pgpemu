@@ -229,6 +229,18 @@ static void test_connected_record_is_not_evicted(void) {
     assert(has_one == 1);
 }
 
+static void test_contains(void) {
+    esp_bd_addr_t a, missing;
+    addr(a, 1);
+    addr(missing, 9);
+    reset();
+    assert(!known_devices_contains(a));
+    known_devices_touch(a);
+    assert(known_devices_contains(a) && !known_devices_contains(missing));
+    assert(known_devices_forget(a) == KNOWN_DEVICES_OK);
+    assert(!known_devices_contains(a));
+}
+
 static void test_list_needs_room(void) {
     uint8_t buf[KNOWN_DEVICES_LIST_MAX_LEN];
     size_t len = 0;
@@ -246,6 +258,7 @@ int main(void) {
     test_full_index_evicts_least_recently_seen();
     test_connected_record_is_not_evicted();
     test_list_needs_room();
+    test_contains();
     printf("test_known_devices: all passed\n");
     return 0;
 }

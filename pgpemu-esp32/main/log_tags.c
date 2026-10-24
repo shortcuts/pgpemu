@@ -14,6 +14,7 @@ void log_levels_debug() {
     esp_log_level_set(HANDSHAKE_TAG, ESP_LOG_DEBUG);
     esp_log_level_set(KNOWN_DEVICES_TAG, ESP_LOG_DEBUG);
     esp_log_level_set(LEDHANDLER_TAG, ESP_LOG_DEBUG);
+    esp_log_level_set(LIFETIME_TAG, ESP_LOG_DEBUG);
     esp_log_level_set(PGPEMU_TAG, ESP_LOG_DEBUG);
     esp_log_level_set(SETTING_TASK_TAG, ESP_LOG_DEBUG);
     esp_log_level_set(STATS_TAG, ESP_LOG_DEBUG);
@@ -32,6 +33,7 @@ void log_levels_info() {
     esp_log_level_set(HANDSHAKE_TAG, ESP_LOG_INFO);
     esp_log_level_set(KNOWN_DEVICES_TAG, ESP_LOG_INFO);
     esp_log_level_set(LEDHANDLER_TAG, ESP_LOG_INFO);
+    esp_log_level_set(LIFETIME_TAG, ESP_LOG_INFO);
     esp_log_level_set(PGPEMU_TAG, ESP_LOG_INFO);
     esp_log_level_set(SETTING_TASK_TAG, ESP_LOG_INFO);
     esp_log_level_set(STATS_TAG, ESP_LOG_INFO);
@@ -50,6 +52,7 @@ void log_levels_verbose() {
     esp_log_level_set(HANDSHAKE_TAG, ESP_LOG_VERBOSE);
     esp_log_level_set(KNOWN_DEVICES_TAG, ESP_LOG_VERBOSE);
     esp_log_level_set(LEDHANDLER_TAG, ESP_LOG_VERBOSE);
+    esp_log_level_set(LIFETIME_TAG, ESP_LOG_VERBOSE);
     esp_log_level_set(PGPEMU_TAG, ESP_LOG_VERBOSE);
     esp_log_level_set(SETTING_TASK_TAG, ESP_LOG_VERBOSE);
     esp_log_level_set(STATS_TAG, ESP_LOG_VERBOSE);

@@ -13,6 +13,7 @@
 #include "fw_version.h"     // PGP_FW_VERSION
 #include "known_devices.h"
 #include "led_output.h"  // get_led_advertising
+#include "lifetime_stats.h"
 #include "log_tags.h"
 #include "pgp_gap.h"              // advertise_if_needed, pgp_adv_get_state
 #include "pgp_gatts.h"            // MAX_VALUE_LENGTH
@@ -452,6 +453,7 @@ static void pgp_control_handle_command_write(esp_gatt_if_t gatts_if,
     }
     case CONTROL_OP_RESTART: {
         pgp_control_send_response(gatts_if, conn_id, CONTROL_STATUS_OK, opcode, NULL, 0);
+        lifetime_stats_flush_all();
         fflush(stdout);
         esp_restart();
         return;  // unreachable
@@ -522,6 +524,37 @@ static void pgp_control_handle_command_write(esp_gatt_if_t gatts_if,
     case CONTROL_OP_FORGET_KNOWN_DEVICE: {
         status = payload_len == 6 ? known_devices_status(known_devices_forget(payload))
                                   : CONTROL_STATUS_ERR_MALFORMED_PAYLOAD;
+        break;
+    }
+    case CONTROL_OP_GET_LIFETIME_STATS: {
+        // flags u8 (bit 0: connected now), lifetime 6 x u32 LE, session 6 x u16 LE
+        if (payload_len != 6) {
+            status = CONTROL_STATUS_ERR_MALFORMED_PAYLOAD;
+        } else if (!known_devices_contains(payload)) {
+            status = CONTROL_STATUS_ERR_NOT_FOUND;
+        } else {
+            uint32_t total[LIFETIME_STAT_COUNT];
+            uint16_t session[LIFETIME_STAT_COUNT];
+            bool connected;
+            lifetime_stats_get(payload, total, session, &connected);
+            resp[0] = connected ? 1 : 0;
+            for (int i = 0; i < LIFETIME_STAT_COUNT; i++) {
+                put_u32_le(resp + 1 + 4 * i, total[i]);
+                resp[25 + 2 * i] = (uint8_t)(session[i] & 0xFF);
+                resp[26 + 2 * i] = (uint8_t)(session[i] >> 8);
+            }
+            resp_len = 37;
+        }
+        break;
+    }
+    case CONTROL_OP_RESET_LIFETIME_STATS: {
+        if (payload_len != 6) {
+            status = CONTROL_STATUS_ERR_MALFORMED_PAYLOAD;
+        } else if (!known_devices_contains(payload)) {
+            status = CONTROL_STATUS_ERR_NOT_FOUND;
+        } else if (!lifetime_stats_reset(payload)) {
+            status = CONTROL_STATUS_ERR_INTERNAL;
+        }
         break;
     }
     case CONTROL_OP_GET_LED_STATE: {

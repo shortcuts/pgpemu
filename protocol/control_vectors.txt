@@ -17,7 +17,7 @@
 #     frame = Event characteristic notification [seq][type][slot], emitted for a game link on Device Profile slot 1
 #     to a subscribed link whose first event this is
 #
-# Setups (C side): default, log2, summary, provisioning, known.
+# Setups (C side): default, log2, summary, provisioning, known, lifetime.
 
 opcode HELP 01
 opcode GET_GLOBAL_SETTINGS 02
@@ -50,6 +50,8 @@ opcode OTA_ABORT 1C
 opcode LIST_KNOWN_DEVICES 1D
 opcode RENAME_KNOWN_DEVICE 1E
 opcode FORGET_KNOWN_DEVICE 1F
+opcode GET_LIFETIME_STATS 20
+opcode RESET_LIFETIME_STATS 21
 
 event GAME_CONNECTED 01
 event GAME_DISCONNECTED 02
@@ -86,8 +88,8 @@ vector set_log_level default 1603 001603
 vector set_autospin summary 140000 001400
 vector bad_max_connections default 0f05 020f
 vector client_summary summary 12 00120700070100020001000300ffff000000000000000000ffff000000000000000000ffff000000000000000000
-vector device_info default 13 001307040305000000000000000000000000 prefix
-vector device_info_provisioning provisioning 13 001307040305000000000000000000000001 prefix
+vector device_info default 13 001308040305000000000000000000000000 prefix
+vector device_info_provisioning provisioning 13 001308040305000000000000000000000001 prefix
 
 vector_event game_connected GAME_CONNECTED 000101
 vector_event caught CAUGHT 000601
@@ -102,3 +104,14 @@ vector rename_known_device_missing known 1eaabbccddee0941 091e
 vector forget_known_device_connected known 1faabbccddee02 041f
 vector forget_known_device_missing default 1faabbccddee09 091f
 vector forget_known_device_short known 1faabbccddee 021f
+
+# lifetime setup: the known phones. ...:01 is offline with stored totals caught 3, fled 1, spin 300, bag full 0,
+# box full 2, balls empty 5. ...:02 is connected, has no stored totals and counted caught 2, bag full 1 this session.
+# Reply: flags (bit 0 connected), 6 x u32 LE lifetime, 6 x u16 LE session; order caught, fled, spin, bag, box, balls.
+vector lifetime_stats_stored lifetime 20aabbccddee01 00200003000000010000002c010000000000000200000005000000000000000000000000000000
+vector lifetime_stats_connected lifetime 20aabbccddee02 002001020000000000000000000000010000000000000000000000020000000000010000000000
+vector lifetime_stats_missing lifetime 20aabbccddee09 0920
+vector lifetime_stats_short lifetime 20aabbccddee 0220
+vector reset_lifetime_stats lifetime 21aabbccddee01 0021
+vector reset_lifetime_stats_missing lifetime 21aabbccddee09 0921
+vector reset_lifetime_stats_short lifetime 21aabbccddee 0221

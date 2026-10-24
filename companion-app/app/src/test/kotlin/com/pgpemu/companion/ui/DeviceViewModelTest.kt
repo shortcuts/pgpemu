@@ -4,6 +4,7 @@ import com.pgpemu.companion.ble.ConnectionState
 import com.pgpemu.companion.ble.DeviceEvent
 import com.pgpemu.companion.ble.EventType
 import com.pgpemu.companion.ble.KnownDevice
+import com.pgpemu.companion.ble.LifetimeStats
 import com.pgpemu.companion.ble.Opcode
 import com.pgpemu.companion.ble.ResponseFrame
 import com.pgpemu.companion.ble.ScannedDevice
@@ -949,6 +950,76 @@ class DeviceViewModelTest {
             assertEquals("AABBCCDDEE01", forgets.single().second.joinToString("") { "%02X".format(it) })
             assertNull(viewModel.uiState.value.pendingConfirmation)
             assertEquals(emptyList<KnownDevice>(), viewModel.uiState.value.knownDevices)
+        }
+
+    private fun lifetimeFrame(caught: Int) =
+        ByteArray(37).also {
+            it[0] = 1
+            it[1] = caught.toByte()
+            it[25] = 2
+        }
+
+    @Test
+    fun `lifetime stats are fetched per phone and zeroed after a confirmed reset`() =
+        runTest {
+            var caught = 5
+            val repository = knownDevicesDevice(8) { knownDevicesList(2 to "", 1 to "Pixel") }
+            val listResponder = repository.responder!!
+            repository.responder = { opcode, payload ->
+                when (opcode) {
+                    Opcode.GET_LIFETIME_STATS -> Result.success(ResponseFrame(StatusCode.OK, opcode.toByte(), lifetimeFrame(caught)))
+                    Opcode.RESET_LIFETIME_STATS -> {
+                        caught = 0
+                        Result.success(ResponseFrame(StatusCode.OK, opcode.toByte(), byteArrayOf()))
+                    }
+                    else -> listResponder(opcode, payload)
+                }
+            }
+            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+
+            viewModel.refreshStatus()
+            dispatcher.scheduler.advanceUntilIdle()
+
+            assertTrue(viewModel.uiState.value.lifetimeSupported)
+            val gets = repository.sentCommands.filter { it.first == Opcode.GET_LIFETIME_STATS }
+            assertEquals(listOf("AABBCCDDEE02", "AABBCCDDEE01"), gets.map { it.second.joinToString("") { b -> "%02X".format(b) } })
+            assertEquals(setOf("AA:BB:CC:DD:EE:01", "AA:BB:CC:DD:EE:02"), viewModel.uiState.value.knownLifetime.keys)
+            assertEquals(
+                5L,
+                viewModel.uiState.value.knownLifetime
+                    .getValue("AA:BB:CC:DD:EE:01")
+                    .lifetime[0],
+            )
+
+            viewModel.requestResetLifetimeStats("AA:BB:CC:DD:EE:01")
+            assertEquals(ConfirmAction.ResetLifetimeStats("AA:BB:CC:DD:EE:01"), viewModel.uiState.value.pendingConfirmation)
+            assertFalse(repository.sentCommands.any { it.first == Opcode.RESET_LIFETIME_STATS })
+            viewModel.confirmPendingAction()
+            dispatcher.scheduler.advanceUntilIdle()
+
+            val resets = repository.sentCommands.filter { it.first == Opcode.RESET_LIFETIME_STATS }
+            assertEquals("AABBCCDDEE01", resets.single().second.joinToString("") { "%02X".format(it) })
+            assertNull(viewModel.uiState.value.pendingConfirmation)
+            assertEquals(
+                0L,
+                viewModel.uiState.value.knownLifetime
+                    .getValue("AA:BB:CC:DD:EE:01")
+                    .lifetime[0],
+            )
+        }
+
+    @Test
+    fun `lifetime stats are not requested on protocol 7`() =
+        runTest {
+            val repository = knownDevicesDevice(7) { knownDevicesList(1 to "") }
+            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+
+            viewModel.refreshStatus()
+            dispatcher.scheduler.advanceUntilIdle()
+
+            assertFalse(viewModel.uiState.value.lifetimeSupported)
+            assertFalse(repository.sentCommands.any { it.first == Opcode.GET_LIFETIME_STATS })
+            assertEquals(emptyMap<String, LifetimeStats>(), viewModel.uiState.value.knownLifetime)
         }
 
     private fun TestScope.dropAfterReady(

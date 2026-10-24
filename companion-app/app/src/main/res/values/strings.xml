@@ -105,6 +105,11 @@
     <string name="known_devices_rename_title">Rename phone</string>
     <string name="known_devices_name_hint">Name</string>
     <string name="known_devices_rename_save">Save</string>
+    <string name="known_devices_lifetime">All time: %1$d caught, %2$d fled, %3$d spins, %4$d bag full, %5$d box full, %6$d out of balls or stop range</string>
+    <string name="known_devices_session">This connection: %1$d caught, %2$d fled, %3$d spins, %4$d bag full, %5$d box full, %6$d out of balls or stop range</string>
+    <string name="known_devices_reset_stats">Reset stats</string>
+    <string name="confirm_reset_stats_title">Reset stats</string>
+    <string name="confirm_reset_stats_body">This sets the all-time counts of this phone back to zero. Counts of the current connection stay.</string>
     <string name="confirm_forget_known_title">Forget this phone</string>
     <string name="confirm_forget_known_body">This erases the phone\'s pairing and settings on the device. The next time it connects, it pairs again from scratch.</string>
     <string name="section_settings">Settings</string>

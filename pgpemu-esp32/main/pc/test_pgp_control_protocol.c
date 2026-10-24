@@ -102,6 +102,32 @@ bool write_secrets(const char* name, const uint8_t* mac, const uint8_t* key, con
     memcpy(written_blob, blob, 256);
     return write_secrets_ok;
 }
+static struct {
+    bool used;
+    uint8_t bda[6];
+    uint8_t blob[24];
+} lifetime_store[4];
+static int lifetime_writes;
+bool read_lifetime_stats(esp_bd_addr_t bda, uint8_t blob[24]) {
+    for (int i = 0; i < 4; i++) {
+        if (lifetime_store[i].used && memcmp(lifetime_store[i].bda, bda, 6) == 0) {
+            memcpy(blob, lifetime_store[i].blob, 24);
+            return true;
+        }
+    }
+    return false;
+}
+bool write_lifetime_stats(esp_bd_addr_t bda, const uint8_t blob[24]) {
+    int slot = 0;
+    while (slot < 3 && lifetime_store[slot].used && memcmp(lifetime_store[slot].bda, bda, 6) != 0) {
+        slot++;
+    }
+    lifetime_store[slot].used = true;
+    memcpy(lifetime_store[slot].bda, bda, 6);
+    memcpy(lifetime_store[slot].blob, blob, 24);
+    lifetime_writes++;
+    return true;
+}
 static int forget_calls;
 void forget_pairings_and_restart(void) {
     forget_calls++;
@@ -118,6 +144,7 @@ void log_levels_verbose(void) {
 
 #include "../buf_writer.c"
 #include "../known_devices.c"
+#include "../lifetime_stats.c"
 #include "../nvs_helper.c"
 #include "../pgp_control.c"
 #include "../pgp_handshake_multi.c"
@@ -145,6 +172,9 @@ static void reset(void) {
     write_secrets_calls = 0;
     nvs_mem_reset();
     known_devices_init();
+    memset(entries, 0, sizeof(entries));
+    memset(lifetime_store, 0, sizeof(lifetime_store));
+    lifetime_writes = 0;
     control_handle_table[IDX_CHAR_CONTROL_COMMAND_VAL] = 40;
     control_handle_table[IDX_CHAR_CONTROL_RESPONSE_CFG] = 43;
     control_handle_table[IDX_CHAR_CONTROL_EVENT_VAL] = 45;
@@ -198,6 +228,20 @@ static void setup_known(void) {
     assert(known_devices_rename(first, "Pixel", 5) == KNOWN_DEVICES_OK);
     memcpy(get_or_create_client_state_entry(7)->remote_bda, second, 6);
 }
+static void setup_lifetime(void) {
+    const uint8_t first[6] = { 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0x01 };
+    const uint8_t second[6] = { 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0x02 };
+    const uint8_t stored[24] = { 3, 0, 0, 0, 1, 0, 0, 0, 0x2c, 1, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 5, 0, 0, 0 };
+    known_devices_touch(first);
+    known_devices_touch(second);
+    assert(write_lifetime_stats((uint8_t*)first, stored));
+    lifetime_writes = 0;
+    stats_clear_for_conn(7);
+    memcpy(get_or_create_client_state_entry(7)->remote_bda, second, 6);
+    increment_caught(7);
+    increment_caught(7);
+    increment_bag_full(7);
+}
 static const struct {
     const char* name;
     void (*fn)(void);
@@ -207,6 +251,7 @@ static const struct {
     { "summary", setup_summary },
     { "provisioning", setup_provisioning },
     { "known", setup_known },
+    { "lifetime", setup_lifetime },
 };
 
 int64_t esp_timer_get_time(void) {
@@ -625,6 +670,8 @@ static const named_value_t opcode_table[] = {
     { "LIST_KNOWN_DEVICES", CONTROL_OP_LIST_KNOWN_DEVICES },
     { "RENAME_KNOWN_DEVICE", CONTROL_OP_RENAME_KNOWN_DEVICE },
     { "FORGET_KNOWN_DEVICE", CONTROL_OP_FORGET_KNOWN_DEVICE },
+    { "GET_LIFETIME_STATS", CONTROL_OP_GET_LIFETIME_STATS },
+    { "RESET_LIFETIME_STATS", CONTROL_OP_RESET_LIFETIME_STATS },
 };
 
 static const named_value_t event_table[] = {
@@ -870,7 +917,38 @@ static void test_event_does_not_touch_response_slot(void) {
     assert(sent_count == 3 && sent_confirm);
 }
 
+static void test_reset_lifetime_stats_zeroes_totals_and_keeps_session(void) {
+    reset();
+    setup_lifetime();
+    const uint8_t second[7] = { CONTROL_OP_RESET_LIFETIME_STATS, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0x02 };
+    assert(write_cmd(0, second, sizeof(second)));
+    assert(sent[0] == CONTROL_STATUS_OK && sent_len == 2);
+
+    pgp_control_on_conf(0);
+    const uint8_t get[7] = { CONTROL_OP_GET_LIFETIME_STATS, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0x02 };
+    assert(write_cmd(0, get, sizeof(get)));
+    uint8_t want[39] = { CONTROL_STATUS_OK, CONTROL_OP_GET_LIFETIME_STATS, 1 };  // lifetime totals 3..26 stay zero
+    want[27] = 2;                                                                // session caught
+    want[33] = 1;                                                                // session bag full
+    assert(sent_len == sizeof(want) && memcmp(sent, want, sizeof(want)) == 0);
+}
+
+static void test_restart_flushes_pending_lifetime_counts(void) {
+    reset();
+    setup_lifetime();
+    assert(lifetime_writes == 0);  // 3 events stay below the batch size
+    esp_restart_calls = 0;
+    cmd1(CONTROL_OP_RESTART, 0, 0);
+    assert(esp_restart_calls == 1 && lifetime_writes == 1);
+    uint8_t blob[24];
+    esp_bd_addr_t second = { 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0x02 };
+    assert(read_lifetime_stats(second, blob));
+    assert(blob[0] == 2 && blob[12] == 1);  // caught 2, bag full 1
+}
+
 int main(void) {
+    test_reset_lifetime_stats_zeroes_totals_and_keeps_session();
+    test_restart_flushes_pending_lifetime_counts();
     test_wire_constants();
     test_wire_vectors();
     test_event_vectors();

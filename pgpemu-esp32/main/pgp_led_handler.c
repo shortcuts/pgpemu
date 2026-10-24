@@ -105,18 +105,21 @@ void handle_led_notify_from_app(esp_gatt_if_t gatts_if, uint16_t conn_id, const 
         ESP_LOGD(LEDHANDLER_TAG, "[%d] Turn LEDs off.", conn_id);
     } else if (count_white && count_white == count_notoff) {
         // only white - bag is full
+        increment_bag_full(conn_id);
         pgp_control_emit_event(PGP_EVENT_BAG_FULL, conn_id);
         if (device_settings) {
             ESP_LOGW(LEDHANDLER_TAG, "[%d] Bag is full", conn_id);
         }
     } else if (count_red && count_off && count_red == count_notoff) {
         // blinking just red - pokeballs empty or stop out of range
+        increment_balls_empty(conn_id);
         pgp_control_emit_event(PGP_EVENT_BALLS_EMPTY, conn_id);
         if (device_settings) {
             ESP_LOGW(LEDHANDLER_TAG, "[%d] Pokeballs are empty or Pokestop went out of range", conn_id);
         }
     } else if (count_red && !count_off && count_red == count_notoff) {
         // only red - box is full
+        increment_box_full(conn_id);
         pgp_control_emit_event(PGP_EVENT_BOX_FULL, conn_id);
         if (device_settings) {
             ESP_LOGW(LEDHANDLER_TAG, "[%d] Box is full", conn_id);

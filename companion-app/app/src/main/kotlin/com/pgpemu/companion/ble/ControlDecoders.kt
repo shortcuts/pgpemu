@@ -47,9 +47,19 @@ data class KnownDevice(
     val name: String,
 )
 
+/** Counters of one phone, both lists in firmware order: caught, fled, spins, bag full, box full, balls empty. */
+data class LifetimeStats(
+    /** The phone is connected now, so [session] is live. */
+    val connected: Boolean,
+    val lifetime: List<Long>,
+    val session: List<Int>,
+)
+
 const val CLIENT_SUMMARY_RECORD_SIZE = 11
 const val EVENT_FRAME_SIZE = 3
 private const val KNOWN_DEVICE_RECORD_SIZE = 27
+private const val LIFETIME_COUNTERS = 6
+private const val LIFETIME_STATS_SIZE = 1 + LIFETIME_COUNTERS * 4 + LIFETIME_COUNTERS * 2
 private const val KNOWN_DEVICE_NAME_OFFSET = 11
 private const val GLOBAL_SETTINGS_MIN_SIZE = 4
 private const val DEVICE_INFO_MIN_SIZE = 16
@@ -149,6 +159,19 @@ fun decodeKnownDevices(p: ByteArray): Result<List<KnownDevice>> =
                 name = String(nameBytes, 0, nameBytes.indexOf(0).let { if (it < 0) nameBytes.size else it }, Charsets.US_ASCII),
             )
         }
+    }
+
+/** Layout: see protocol/control_vectors.txt: flags u8, 6 x u32 LE lifetime, 6 x u16 LE session. */
+fun decodeLifetimeStats(p: ByteArray): Result<LifetimeStats> =
+    p.require(LIFETIME_STATS_SIZE, "lifetime stats").mapCatching {
+        LifetimeStats(
+            connected = p[0].toInt() and 0x01 != 0,
+            lifetime = List(LIFETIME_COUNTERS) { i -> (0 until 4).sumOf { (p[1 + 4 * i + it].toLong() and 0xFF) shl (8 * it) } },
+            session =
+                List(LIFETIME_COUNTERS) { i ->
+                    (p[25 + 2 * i].toInt() and 0xFF) or ((p[26 + 2 * i].toInt() and 0xFF) shl 8)
+                },
+        )
     }
 
 /** The 6 address bytes the known-device opcodes take, from `AA:BB:CC:DD:EE:FF`. */

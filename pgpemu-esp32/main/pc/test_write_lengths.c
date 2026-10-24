@@ -21,7 +21,7 @@ uint16_t certificate_handle_table[CERT_LAST_IDX];
 uint8_t bt_mac[6];
 
 static client_state_t g_state, g_other;
-static int caught_calls, fled_calls, spin_calls;
+static int caught_calls, fled_calls, spin_calls, bag_calls, box_calls, balls_calls;
 static int emit_calls, last_event;
 static int button_presses, set_attr_calls, indicate_calls, decrypt_calls, reconnect_calls, persist_calls, touch_calls;
 
@@ -126,6 +126,18 @@ void increment_spin(uint16_t conn_id) {
     (void)conn_id;
     spin_calls++;
 }
+void increment_bag_full(uint16_t conn_id) {
+    (void)conn_id;
+    bag_calls++;
+}
+void increment_box_full(uint16_t conn_id) {
+    (void)conn_id;
+    box_calls++;
+}
+void increment_balls_empty(uint16_t conn_id) {
+    (void)conn_id;
+    balls_calls++;
+}
 
 // ---- units under test, compiled for real ----
 #include "../pgp_handshake.c"
@@ -139,7 +151,7 @@ static void reset(int cert_state) {
     g_state.cert_state = cert_state;
     button_presses = set_attr_calls = indicate_calls = decrypt_calls = reconnect_calls = persist_calls = touch_calls =
         0;
-    caught_calls = fled_calls = spin_calls = emit_calls = last_event = 0;
+    caught_calls = fled_calls = spin_calls = bag_calls = box_calls = balls_calls = emit_calls = last_event = 0;
 }
 
 // The three call_* wrappers are the only place that knows the handler signatures.
@@ -223,6 +235,8 @@ static void check_blink(uint8_t rg, uint8_t b, bool off, int want_event) {
     reset(0);
     call_led(led, off ? 10 : 7);
     assert(emit_calls == 1 && last_event == want_event);
+    assert(bag_calls == (want_event == PGP_EVENT_BAG_FULL) && box_calls == (want_event == PGP_EVENT_BOX_FULL)
+           && balls_calls == (want_event == PGP_EVENT_BALLS_EMPTY));
 }
 
 static void test_led_state_events(void) {

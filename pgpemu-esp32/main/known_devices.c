@@ -166,6 +166,10 @@ void known_devices_touch(const uint8_t* bda) {
     }
 }
 
+bool known_devices_contains(const uint8_t* bda) {
+    return find(bda) >= 0;
+}
+
 known_devices_result_t known_devices_list(uint8_t* buf, size_t cap, size_t* out_len) {
     if (cap < KNOWN_DEVICES_LIST_MAX_LEN) {
         return KNOWN_DEVICES_INTERNAL;
