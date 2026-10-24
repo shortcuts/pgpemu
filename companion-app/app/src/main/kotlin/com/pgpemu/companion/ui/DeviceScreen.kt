@@ -141,6 +141,8 @@ fun DeviceScreen(
         onStopOrDispose { viewModel.setForeground(false) }
     }
 
+    LaunchedEffect(Unit) { if (granted() && adapterOn()) viewModel.resumeLastDevice() }
+
     // Result ignored: the repository re-reads its associations when it needs one.
     val associationLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) {}
     LaunchedEffect(Unit) {

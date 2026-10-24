@@ -6,6 +6,7 @@ import com.pgpemu.companion.R
 import com.pgpemu.companion.ble.BleControlRepository
 import com.pgpemu.companion.ble.ConnectionState
 import com.pgpemu.companion.ble.DeviceInfo
+import com.pgpemu.companion.ble.LastDeviceStore
 import com.pgpemu.companion.ble.Opcode
 import com.pgpemu.companion.ble.OtaException
 import com.pgpemu.companion.ble.OtaImage
@@ -47,6 +48,9 @@ const val OTA_MIN_PROTOCOL_VERSION = 5
 // Poll interval while connected — other phones can connect/disconnect and
 // toggle profiles without this app knowing, so state can go stale otherwise.
 const val STATUS_POLL_INTERVAL_MS = 5000L
+
+// Waits before each reconnect attempt after an unexpected drop; the loop stops after the last one.
+val RECONNECT_BACKOFF_MS = longArrayOf(1000, 2000, 4000, 8000, 16000)
 
 data class DeviceUiState(
     val connectionState: ConnectionState = ConnectionState.Idle,
@@ -167,6 +171,7 @@ class DeviceViewModel
     @Inject
     constructor(
         private val repository: BleControlRepository,
+        private val lastDevice: LastDeviceStore,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow(DeviceUiState())
         val uiState: StateFlow<DeviceUiState> = _uiState.asStateFlow()
@@ -174,6 +179,10 @@ class DeviceViewModel
 
         private var pollJob: Job? = null
         private var pendingOta: OtaImage? = null
+        private var reconnectJob: Job? = null
+        private var currentAddress: String? = null
+        private var userDisconnected = false
+        private var resumed = false
 
         // Default true: the ViewModel is created by a started screen, which then reports every change.
         private val foreground = MutableStateFlow(true)
@@ -186,6 +195,7 @@ class DeviceViewModel
                 }
             }
             viewModelScope.launch {
+                var previous: ConnectionState = ConnectionState.Idle
                 repository.connectionState.collect { newState ->
                     _uiState.update {
                         // The next device may run other firmware, so forget what the last one reported.
@@ -195,6 +205,13 @@ class DeviceViewModel
                             it.copy(connectionState = newState, deviceInfo = null, firmwareOutdated = false)
                         }
                     }
+                    if (newState is ConnectionState.Ready) {
+                        reconnectJob?.cancel()
+                        currentAddress?.let { lastDevice.address = it }
+                    } else if (previous is ConnectionState.Ready && newState is ConnectionState.Disconnected && !userDisconnected) {
+                        reconnect()
+                    }
+                    previous = newState
                 }
             }
             // Poll only while connected and visible: a stopped activity would keep the BLE link busy.
@@ -235,12 +252,37 @@ class DeviceViewModel
             pollJob = null
         }
 
+        private fun reconnect() {
+            val address = currentAddress ?: return
+            reconnectJob?.cancel()
+            reconnectJob =
+                viewModelScope.launch {
+                    for (wait in RECONNECT_BACKOFF_MS) {
+                        delay(wait)
+                        repository.connect(address)
+                        if (repository.connectionState.value is ConnectionState.Ready) return@launch
+                    }
+                }
+        }
+
+        /** Connects to the remembered device once per ViewModel, without a scan. */
+        fun resumeLastDevice() {
+            val address = lastDevice.address ?: return
+            if (resumed || _uiState.value.connectionState !is ConnectionState.Idle) return
+            resumed = true
+            connectTo(address)
+        }
+
         fun startScan() {
+            reconnectJob?.cancel()
             _uiState.update { it.copy(hasScanned = true) }
             viewModelScope.launch { repository.startScan() }
         }
 
         fun connectTo(address: String) {
+            reconnectJob?.cancel()
+            currentAddress = address
+            userDisconnected = false
             viewModelScope.launch {
                 repository.stopScan()
                 repository.connect(address)
@@ -252,6 +294,8 @@ class DeviceViewModel
         }
 
         fun disconnect() {
+            userDisconnected = true
+            reconnectJob?.cancel()
             viewModelScope.launch { repository.disconnect() }
         }
 
