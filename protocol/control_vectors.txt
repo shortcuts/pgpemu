@@ -12,6 +12,8 @@
 #     request  = Command characteristic write: [opcode][payload]
 #     response = Response indication: [status][opcode][payload]
 #     prefix   = the firmware frame may be longer; only these bytes must match
+#     client_summary record flags: bit0 settings, bit1 stats, bit2 handshake done, bits3-4 warning
+#     (0 none, 1 bag full, 2 box full, 3 balls empty)
 #
 #   vector_event <name> <NAME> <frame>
 #     frame = Event characteristic notification [seq][type][slot], emitted for a game link on Device Profile slot 1
@@ -89,7 +91,7 @@ vector led_state default 07 000701
 vector set_log_level default 1603 001603
 vector set_autospin summary 140000 001400
 vector bad_max_connections default 0f05 020f
-vector client_summary summary 12 00120700070100020001000300ffff000000000000000000ffff000000000000000000ffff000000000000000000
+vector client_summary summary 12 00120700170100020001000300ffff000000000000000000ffff000000000000000000ffff000000000000000000
 vector device_info default 13 001309040305000000000000000000000000 prefix
 vector device_info_provisioning provisioning 13 001309040305000000000000000000000001 prefix
 

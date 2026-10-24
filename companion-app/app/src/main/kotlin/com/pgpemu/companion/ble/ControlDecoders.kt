@@ -21,6 +21,8 @@ data class ClientSummary(
     val caught: Int?,
     val fled: Int?,
     val spin: Int?,
+    /** [EventType.BAG_FULL], [EventType.BOX_FULL], [EventType.BALLS_EMPTY], or 0 for none. */
+    val warning: Int = 0,
 )
 
 /** Firmware facts from GET_DEVICE_INFO; the firmware version string is last, so a new field goes before it with a protocol bump. */
@@ -69,6 +71,9 @@ data class CrashReport(
 
 const val CLIENT_SUMMARY_RECORD_SIZE = 11
 const val EVENT_FRAME_SIZE = 3
+
+// Indexed by the flags bits 3-4 of a client summary record.
+private val WARNING_EVENT_TYPES = intArrayOf(0, EventType.BAG_FULL, EventType.BOX_FULL, EventType.BALLS_EMPTY)
 private const val KNOWN_DEVICE_RECORD_SIZE = 27
 private const val LIFETIME_COUNTERS = 6
 private const val LIFETIME_STATS_SIZE = 1 + LIFETIME_COUNTERS * 4 + LIFETIME_COUNTERS * 2
@@ -153,6 +158,7 @@ fun decodeClientSummary(payload: ByteArray): Result<List<ClientSummary>> =
                 caught = if (hasStats) u16(5) else null,
                 fled = if (hasStats) u16(7) else null,
                 spin = if (hasStats) u16(9) else null,
+                warning = WARNING_EVENT_TYPES[(flags shr 3) and 0x03],
             )
         }
     }

@@ -116,7 +116,7 @@ class ControlWireVectorsTest {
                 "set_autospin" -> assertEquals(false, decodeFlag(frame.payload).getOrThrow())
                 "client_summary" ->
                     assertEquals(
-                        listOf(ClientSummary(true, true, false, 2, 1, 3)) +
+                        listOf(ClientSummary(true, true, false, 2, 1, 3, EventType.BOX_FULL)) +
                             List(3) { ClientSummary(false, null, null, null, null, null) },
                         decodeClientSummary(frame.payload).getOrThrow(),
                     )

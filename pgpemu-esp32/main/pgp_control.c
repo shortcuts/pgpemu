@@ -726,6 +726,7 @@ static void pgp_control_handle_command_write(esp_gatt_if_t gatts_if,
                 if (entry->cert_state == PGP_CERT_DONE) {
                     flags |= 0x04;
                 }
+                flags |= (uint8_t)(entry->warning << 3);
             }
 
             resp[offset++] = (uint8_t)(conn_id & 0xFF);

@@ -249,6 +249,27 @@ static void test_led_state_events(void) {
     printf("PASS: led state events\n");
 }
 
+static void test_led_warning_kept_until_normal_pattern(void) {
+    uint8_t off[] = { 0, 0, 0, 1, 0x14, 0x00, 0x00 };
+    reset(0);
+    call_led(LED_BAG_FULL, sizeof(LED_BAG_FULL));
+    assert(g_state.warning == PGP_WARNING_BAG_FULL);
+    call_led(off, sizeof(off));
+    call_led(LED_UNHANDLED, sizeof(LED_UNHANDLED));
+    assert(g_state.warning == PGP_WARNING_BAG_FULL);
+    call_led(LED_BOX_FULL, sizeof(LED_BOX_FULL));
+    assert(g_state.warning == PGP_WARNING_BOX_FULL);
+    call_led(LED_BALLS_EMPTY, sizeof(LED_BALLS_EMPTY));
+    assert(g_state.warning == PGP_WARNING_BALLS_EMPTY);
+    call_led(LED_POKEMON_IN_RANGE, sizeof(LED_POKEMON_IN_RANGE));
+    assert(g_state.warning == PGP_WARNING_NONE);
+
+    call_led(LED_BOX_FULL, sizeof(LED_BOX_FULL));
+    call_led(LED_CAUGHT, sizeof(LED_CAUGHT));
+    assert(g_state.warning == PGP_WARNING_NONE);
+    printf("PASS: led warning kept until normal pattern\n");
+}
+
 static void test_cccd_short_write_ignored(void) {
     const uint8_t on[2] = { 0x01, 0x00 };
 
@@ -347,6 +368,7 @@ int main(void) {
     test_led_short_writes_ignored();
     test_led_events_classified();
     test_led_state_events();
+    test_led_warning_kept_until_normal_pattern();
     test_cccd_short_write_ignored();
     test_handshake_short_writes_ignored();
     test_cert_read_slice();

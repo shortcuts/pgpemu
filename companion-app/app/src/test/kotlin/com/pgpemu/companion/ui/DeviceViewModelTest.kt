@@ -40,10 +40,11 @@ private fun clientSummarySlotBytes(
     caught: Int = 0,
     fled: Int = 0,
     spin: Int = 0,
+    warning: Int = 0,
 ): ByteArray {
     val flags =
         (if (hasSettings) 0x01 else 0) or (if (hasStats) 0x02 else 0) or
-            (if (handshakeDone) 0x04 else 0)
+            (if (handshakeDone) 0x04 else 0) or (warning shl 3)
     return byteArrayOf(
         (connId and 0xFF).toByte(),
         ((connId shr 8) and 0xFF).toByte(),
@@ -1264,6 +1265,60 @@ class DeviceViewModelTest {
             assertTrue(
                 viewModel.uiState.value.activity
                     .isEmpty(),
+            )
+            repository.setConnectionState(ConnectionState.Disconnected())
+            dispatcher.scheduler.runCurrent()
+        }
+
+    @Test
+    fun `a warning from the summary shows on its profile until a normal pattern event clears it`() =
+        runTest {
+            val repository = FakeBleControlRepository()
+            stubStatusReplies(repository)
+            repository.stubResponse(
+                Opcode.GET_CLIENT_SUMMARY,
+                Result.success(
+                    ResponseFrame(
+                        StatusCode.OK,
+                        Opcode.GET_CLIENT_SUMMARY.toByte(),
+                        clientSummarySlotBytes(connId = 7, warning = 2) + emptyClientSummarySlot(),
+                    ),
+                ),
+            )
+            repository.stubResponse(
+                Opcode.GET_DEVICE_INFO,
+                Result.success(
+                    ResponseFrame(StatusCode.OK, Opcode.GET_DEVICE_INFO.toByte(), deviceInfoBytes(EVENTS_MIN_PROTOCOL_VERSION, 4)),
+                ),
+            )
+            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+            repository.setConnectionState(ConnectionState.Ready)
+            dispatcher.scheduler.runCurrent()
+            assertEquals(
+                EventType.BOX_FULL,
+                viewModel.uiState.value.profiles[0]
+                    .warning,
+            )
+            assertEquals(
+                NO_WARNING,
+                viewModel.uiState.value.profiles[1]
+                    .warning,
+            )
+
+            repository.emitEvent(DeviceEvent(0, EventType.POKEMON_IN_RANGE, 1))
+            dispatcher.scheduler.runCurrent()
+            assertEquals(
+                EventType.BOX_FULL,
+                viewModel.uiState.value.profiles[0]
+                    .warning,
+            )
+
+            repository.emitEvent(DeviceEvent(1, EventType.POKEMON_IN_RANGE, 0))
+            dispatcher.scheduler.runCurrent()
+            assertEquals(
+                NO_WARNING,
+                viewModel.uiState.value.profiles[0]
+                    .warning,
             )
             repository.setConnectionState(ConnectionState.Disconnected())
             dispatcher.scheduler.runCurrent()

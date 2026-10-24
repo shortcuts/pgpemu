@@ -72,6 +72,21 @@ const val EVENT_POLL_INTERVAL_MS = 30_000L
 
 const val ACTIVITY_LIMIT = 50
 
+const val NO_WARNING = 0
+
+private val WARNING_EVENTS = setOf(EventType.BAG_FULL, EventType.BOX_FULL, EventType.BALLS_EMPTY)
+
+// The firmware clears a warning on these patterns; the other events leave it alone.
+private val WARNING_CLEARING_EVENTS =
+    setOf(
+        EventType.POKEMON_IN_RANGE,
+        EventType.NEW_POKEMON_IN_RANGE,
+        EventType.POKESTOP_IN_RANGE,
+        EventType.CAUGHT,
+        EventType.FLED,
+        EventType.ITEMS_RECEIVED,
+    )
+
 // Events after which counters or connections changed; the in-range events only feed the activity list.
 private val REFRESH_EVENTS =
     setOf(
@@ -183,6 +198,8 @@ data class ProfileState(
     val caught: Int? = null,
     val fled: Int? = null,
     val spin: Int? = null,
+    /** Last bag/box/balls warning of the game; an [EventType] value, or [NO_WARNING]. */
+    val warning: Int = NO_WARNING,
 )
 
 data class SettingsState(
@@ -318,6 +335,15 @@ class DeviceViewModel
                                 ActivityItem(System.currentTimeMillis(), event.type, event.slot),
                             ) + it.activity
                         ).take(ACTIVITY_LIMIT),
+                    profiles =
+                        it.profiles.map { p ->
+                            when {
+                                p.index != event.slot -> p
+                                event.type in WARNING_EVENTS -> p.copy(warning = event.type)
+                                event.type in WARNING_CLEARING_EVENTS -> p.copy(warning = NO_WARNING)
+                                else -> p
+                            }
+                        },
                 )
             }
             if ((lost || event.type in REFRESH_EVENTS) && foreground.value) refreshStatus(clearError = false)
@@ -488,6 +514,7 @@ class DeviceViewModel
                                                 connected = summary.connected,
                                                 autospin = summary.autospin ?: p.autospin,
                                                 autocatch = summary.autocatch ?: p.autocatch,
+                                                warning = summary.warning,
                                             )
                                         },
                                 )

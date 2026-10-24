@@ -25,6 +25,15 @@ typedef enum {
     PGP_CERT_DONE = 6,
 } pgp_cert_state_t;
 
+// Last bag/box/balls warning the game's LED pattern showed; the wire values are the flags bits 3-4 of
+// GET_CLIENT_SUMMARY, see protocol/control_vectors.txt.
+typedef enum {
+    PGP_WARNING_NONE = 0,
+    PGP_WARNING_BAG_FULL = 1,
+    PGP_WARNING_BOX_FULL = 2,
+    PGP_WARNING_BALLS_EMPTY = 3,
+} pgp_warning_t;
+
 typedef struct {
     // connection informations
     uint16_t conn_id;
@@ -66,6 +75,8 @@ typedef struct {
     // Lets pgp_gap.c tell a fresh pairing's auth failure apart from a transient auth
     // hiccup on a link that already authenticated once and is still live.
     bool auth_succeeded;
+    // pgp_warning_t; reset with the entry on connect
+    uint8_t warning;
 } client_state_t;
 
 void init_handshake_multi();

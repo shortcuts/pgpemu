@@ -216,6 +216,7 @@ static void setup_summary(void) {
     e->settings.autospin = true;
     e->settings.autocatch = false;
     e->cert_state = PGP_CERT_DONE;
+    e->warning = PGP_WARNING_BOX_FULL;
     increment_caught(7);
     increment_caught(7);
     increment_fled(7);
@@ -390,7 +391,9 @@ static void test_client_summary_layout(void) {
 
     cmd1(CONTROL_OP_GET_CLIENT_SUMMARY, 0, 0);
     assert(sent_len == 2 + 4 * 11);
-    const uint8_t slot0[11] = { 0x07, 0x00, 0x07, 1, 0, 2, 0, 1, 0, 3, 0 };  // flags: settings|stats|handshake done
+    const uint8_t slot0[11] = {
+        0x07, 0x00, 0x17, 1, 0, 2, 0, 1, 0, 3, 0
+    };  // flags: settings|stats|handshake done|box full
     assert(memcmp(sent + 2, slot0, 11) == 0);
     const uint8_t empty[11] = { 0xff, 0xff };
     for (int i = 1; i < 4; i++) {

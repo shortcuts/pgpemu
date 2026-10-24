@@ -144,6 +144,9 @@
     <string name="device_signal">%1$s · %2$d dBm</string>
     <string name="device_connect_to">Connect to %1$s %2$s</string>
     <string name="settings_log_level">Log level: %1$s</string>
+    <string name="profile_warning_bag">Bag full</string>
+    <string name="profile_warning_box">Box full</string>
+    <string name="profile_warning_balls">No balls</string>
     <string name="profile_counters">C:%1$s F:%2$s S:%3$s</string>
     <string name="confirm_type_word">Type %1$s to confirm</string>
     <string name="confirm_forget_title">Forget pairings</string>

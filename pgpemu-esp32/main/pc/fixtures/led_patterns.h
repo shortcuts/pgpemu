@@ -32,6 +32,9 @@ static const uint8_t LED_SPIN[] = { 0,
     0x05,
     0x00,
     0x08 };
+static const uint8_t LED_BAG_FULL[] = { 0, 0, 0, 1, 0x14, 0x88, 0x08 };
+static const uint8_t LED_BOX_FULL[] = { 0, 0, 0, 1, 0x14, 0x08, 0x00 };
+static const uint8_t LED_BALLS_EMPTY[] = { 0, 0, 0, 2, 0x14, 0x08, 0x00, 0x14, 0x00, 0x00 };
 static const uint8_t LED_UNHANDLED[] = { 0, 0, 0, 2, 0x14, 0x80, 0x08, 0x14, 0x80, 0x08 };  // cyan
 #undef W
 #undef OFF

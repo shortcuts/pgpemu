@@ -869,6 +869,17 @@ private fun RowScope.ProfileChip(
         Spacer(modifier = Modifier.height(4.dp))
         FlagDot(label = stringResource(R.string.profile_catch), active = profile.autocatch == true, onClick = onToggleAutocatch)
         Spacer(modifier = Modifier.height(4.dp))
+        val warning =
+            when (profile.warning) {
+                EventType.BAG_FULL -> R.string.profile_warning_bag
+                EventType.BOX_FULL -> R.string.profile_warning_box
+                EventType.BALLS_EMPTY -> R.string.profile_warning_balls
+                else -> null
+            }
+        if (warning != null) {
+            Text(text = stringResource(warning), color = colors.danger, fontSize = 10.sp)
+            Spacer(modifier = Modifier.height(4.dp))
+        }
         Text(
             text =
                 stringResource(

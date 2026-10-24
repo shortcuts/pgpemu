@@ -100,11 +100,15 @@ void handle_led_notify_from_app(esp_gatt_if_t gatts_if, uint16_t conn_id, const 
 
     // Get device settings for this connection
     DeviceSettings* device_settings = GET_DEVICE_SETTINGS(conn_id);
+    client_state_t* client = get_client_state_entry(conn_id);
+    // Off and unrecognised patterns keep the last warning; every other pattern clears it.
+    uint8_t warning = client ? client->warning : PGP_WARNING_NONE;
 
     if (count_off && !count_notoff) {
         ESP_LOGD(LEDHANDLER_TAG, "[%d] Turn LEDs off.", conn_id);
     } else if (count_white && count_white == count_notoff) {
         // only white - bag is full
+        warning = PGP_WARNING_BAG_FULL;
         increment_bag_full(conn_id);
         pgp_control_emit_event(PGP_EVENT_BAG_FULL, conn_id);
         if (device_settings) {
@@ -112,6 +116,7 @@ void handle_led_notify_from_app(esp_gatt_if_t gatts_if, uint16_t conn_id, const 
         }
     } else if (count_red && count_off && count_red == count_notoff) {
         // blinking just red - pokeballs empty or stop out of range
+        warning = PGP_WARNING_BALLS_EMPTY;
         increment_balls_empty(conn_id);
         pgp_control_emit_event(PGP_EVENT_BALLS_EMPTY, conn_id);
         if (device_settings) {
@@ -119,6 +124,7 @@ void handle_led_notify_from_app(esp_gatt_if_t gatts_if, uint16_t conn_id, const 
         }
     } else if (count_red && !count_off && count_red == count_notoff) {
         // only red - box is full
+        warning = PGP_WARNING_BOX_FULL;
         increment_box_full(conn_id);
         pgp_control_emit_event(PGP_EVENT_BOX_FULL, conn_id);
         if (device_settings) {
@@ -126,6 +132,7 @@ void handle_led_notify_from_app(esp_gatt_if_t gatts_if, uint16_t conn_id, const 
         }
     } else if (count_green && count_green == count_notoff) {
         // blinking green
+        warning = PGP_WARNING_NONE;
         pgp_control_emit_event(PGP_EVENT_POKEMON_IN_RANGE, conn_id);
         if (device_settings) {
             ESP_LOGI(LEDHANDLER_TAG, "[%d] Pokemon in range", conn_id);
@@ -135,6 +142,7 @@ void handle_led_notify_from_app(esp_gatt_if_t gatts_if, uint16_t conn_id, const 
         }
     } else if (count_yellow && count_yellow == count_notoff) {
         // blinking yellow
+        warning = PGP_WARNING_NONE;
         pgp_control_emit_event(PGP_EVENT_NEW_POKEMON_IN_RANGE, conn_id);
         if (device_settings) {
             ESP_LOGI(LEDHANDLER_TAG, "[%d] New pokemon in range", conn_id);
@@ -144,12 +152,14 @@ void handle_led_notify_from_app(esp_gatt_if_t gatts_if, uint16_t conn_id, const 
         }
     } else if (count_blue && count_blue == count_notoff) {
         // blinking blue - pokestop in range
+        warning = PGP_WARNING_NONE;
         pgp_control_emit_event(PGP_EVENT_POKESTOP_IN_RANGE, conn_id);
         if (device_settings && device_settings->autospin) {
             ESP_LOGI(LEDHANDLER_TAG, "[%d] Pokestop in range: pressing button", conn_id);
             press_button = true;
         }
     } else if (count_ballshake) {
+        warning = PGP_WARNING_NONE;
         if (count_blue && count_green) {
             increment_caught(conn_id);
             pgp_control_emit_event(PGP_EVENT_CAUGHT, conn_id);
@@ -166,6 +176,7 @@ void handle_led_notify_from_app(esp_gatt_if_t gatts_if, uint16_t conn_id, const 
         }
     } else if (count_red && count_green && count_blue && !count_off) {
         // blinking grb-grb...
+        warning = PGP_WARNING_NONE;
         increment_spin(conn_id);
         pgp_control_emit_event(PGP_EVENT_ITEMS_RECEIVED, conn_id);
         ESP_LOGI(LEDHANDLER_TAG, "[%d] Got items from Pokestop.", conn_id);
@@ -176,6 +187,10 @@ void handle_led_notify_from_app(esp_gatt_if_t gatts_if, uint16_t conn_id, const 
         } else {
             ESP_LOGE(LEDHANDLER_TAG, "[%d] Unhandled Color pattern", conn_id);
         }
+    }
+
+    if (client) {
+        client->warning = warning;
     }
 
     if (press_button) {
