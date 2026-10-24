@@ -38,6 +38,7 @@ Autocatcher/Gotcha/Pokemon Go Plus device emulator for Pokemon Go, with autospin
 - Statically loaded secrets (see [Load Pokemon Go Plus Secrets](#load-pokemon-go-plus-secrets)) in [NVS](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/storage/nvs_flash.html)
 - Provisioning mode: a device without secrets starts a setup-only Bluetooth service, and the companion app uploads `secrets.csv` (see [Load Pokemon Go Plus Secrets](#load-pokemon-go-plus-secrets))
 - Toggle autocatch/autospin
+- Activity feed in the companion app: caught, fled, items, bag/box full, and Pokémon GO connect/disconnect, pushed by the device as they happen
 - Known devices list in the companion app: see the paired phones, name them, forget one (the device keeps up to 15)
 - Firmware update from the companion app over Bluetooth, with automatic rollback if the new firmware does not start
 - Update-available notice in the companion app (checks GitHub once a day)

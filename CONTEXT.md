@@ -15,6 +15,10 @@ The u8 in byte 0 of the GET_DEVICE_INFO reply. The firmware bumps it on a breaki
 The two characteristics on the Control Service. The app writes an opcode+payload to Command; the firmware answers on Response (notify/indicate). One pair carries every control operation — no per-setting characteristic.
 _Avoid_: request/reply characteristic
 
+**Event characteristic** / **Device Event**:
+The third Control Service characteristic (notify only, bonded link) and the 3-byte frame `[seq][type][slot]` the firmware pushes on it when a game link connects, disconnects, or the LED handler classifies a pattern. Never a command response. The Companion App shows them as its activity feed.
+_Avoid_: notification, log line
+
 **Companion App**:
 The standalone Android (Kotlin, Jetpack Compose) app that replaces the UART/USB-console as the only way to read or change device state. Scans for nearby devices and lists them; the user picks one to connect to. Connects to one device at a time. Remembers the last connected device and reconnects to it; no saved multi-device list.
 _Avoid_: config app, control app, mobile app

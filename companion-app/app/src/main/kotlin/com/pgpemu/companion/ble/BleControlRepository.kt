@@ -10,6 +10,9 @@ interface BleControlRepository {
     /** System pairing dialogs the UI must launch (CompanionDeviceManager association). */
     val associationRequests: SharedFlow<IntentSender>
 
+    /** Device Events pushed over the Event characteristic; empty on firmware without it. */
+    val events: SharedFlow<DeviceEvent>
+
     /** Devices found by the current/last scan, strongest signal first. */
     val discoveredDevices: StateFlow<List<ScannedDevice>>
 

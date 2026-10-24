@@ -91,7 +91,7 @@ make companion-lint    # when companion-app/ changed
 | `pgp_gatts.c` | BLE GATT server: Pokémon GO Plus services, handshake exchange, notifications |
 | `pgp_handshake_multi.c` | Up to 4 simultaneous connections: conn_id → profile map, cert/recon state, session-key cache |
 | `pgp_handshake.c` / `pgp_cert.c` | Handshake crypto and certificate handling |
-| `pgp_control.c` | Custom Control Service (Command/Response characteristics) for the Companion App, bonded link only |
+| `pgp_control.c` | Custom Control Service (Command/Response/Event characteristics) for the Companion App, bonded link only |
 | `pgp_ota.c` | OTA firmware update over the Control Service: arm window, receive session, image validation, rollback confirm timer |
 | `pgp_gap.c` / `pgp_bluetooth.c` | Advertising, pairing/bonding, BLE stack init |
 | `pgp_adv_state.c` | Pure advertising state machine and retry backoff (PC-tested) |

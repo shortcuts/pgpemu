@@ -67,6 +67,14 @@ static void test_slots_fill_and_free(void) {
     assert(get_or_create_client_state_entry(99) != NULL);  // freed slot reused
 }
 
+static void test_client_slot(void) {
+    reset();
+    get_or_create_client_state_entry(10);
+    get_or_create_client_state_entry(11);
+    assert(get_client_slot(10) == 0 && get_client_slot(11) == 1);
+    assert(get_client_slot(12) == -1);
+}
+
 static void test_bda_lookup_follows_conn_id(void) {
     esp_bd_addr_t a = { 1, 2, 3, 4, 5, 6 }, b = { 6, 5, 4, 3, 2, 1 };
     reset();
@@ -156,6 +164,7 @@ static void test_reset_disconnects_only_live_slots(void) {
 
 int main(void) {
     test_slots_fill_and_free();
+    test_client_slot();
     test_bda_lookup_follows_conn_id();
     test_active_count_and_advertising_stop();
     test_stop_incomplete_handshake_does_not_undercount();

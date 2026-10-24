@@ -81,6 +81,7 @@ import com.pgpemu.companion.BuildConfig
 import com.pgpemu.companion.R
 import com.pgpemu.companion.ble.ConnectionState
 import com.pgpemu.companion.ble.DeviceInfo
+import com.pgpemu.companion.ble.EventType
 import com.pgpemu.companion.ble.KnownDevice
 import com.pgpemu.companion.ble.ScannedDevice
 import com.pgpemu.companion.ble.StatusCode
@@ -204,6 +205,9 @@ fun DeviceScreen(
                             onToggleAutospin = viewModel::toggleAutospin,
                             onToggleAutocatch = viewModel::toggleAutocatch,
                         )
+                    }
+                    if (uiState.eventsSupported) {
+                        item { ActivityFeedSection(uiState.activity, onClear = viewModel::clearActivity) }
                     }
                     if (uiState.knownDevicesSupported) {
                         item {
@@ -672,6 +676,49 @@ private fun DeviceProfilesSection(
                     )
                 }
             }
+        }
+    }
+}
+
+@StringRes
+private fun activityText(type: Int) =
+    when (type) {
+        EventType.GAME_CONNECTED -> R.string.activity_game_connected
+        EventType.GAME_DISCONNECTED -> R.string.activity_game_disconnected
+        EventType.POKEMON_IN_RANGE -> R.string.activity_pokemon_in_range
+        EventType.NEW_POKEMON_IN_RANGE -> R.string.activity_new_pokemon_in_range
+        EventType.POKESTOP_IN_RANGE -> R.string.activity_pokestop_in_range
+        EventType.CAUGHT -> R.string.activity_caught
+        EventType.FLED -> R.string.activity_fled
+        EventType.ITEMS_RECEIVED -> R.string.activity_items_received
+        EventType.BAG_FULL -> R.string.activity_bag_full
+        EventType.BOX_FULL -> R.string.activity_box_full
+        EventType.BALLS_EMPTY -> R.string.activity_balls_empty
+        else -> R.string.activity_unknown
+    }
+
+@Composable
+private fun ActivityFeedSection(
+    items: List<ActivityItem>,
+    onClear: () -> Unit,
+) {
+    val colors = LocalPgpColors.current
+    val timeFormat = remember { java.text.DateFormat.getTimeInstance(java.text.DateFormat.SHORT) }
+    SectionCard(title = stringResource(R.string.section_activity)) {
+        if (items.isEmpty()) {
+            Text(text = stringResource(R.string.activity_empty), color = colors.muted, fontSize = 12.sp)
+        }
+        items.forEach { item ->
+            val text = stringResource(activityText(item.type), item.slot + 1)
+            Text(
+                text = stringResource(R.string.activity_row, timeFormat.format(java.util.Date(item.timeMillis)), text),
+                color = colors.text,
+                fontSize = 12.sp,
+                modifier = Modifier.padding(vertical = 2.dp),
+            )
+        }
+        if (items.isNotEmpty()) {
+            TextButton(onClick = onClear) { Text(stringResource(R.string.activity_clear), color = colors.accent) }
         }
     }
 }

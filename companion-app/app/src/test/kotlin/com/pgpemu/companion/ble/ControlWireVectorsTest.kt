@@ -30,6 +30,7 @@ class ControlWireVectorsTest {
     fun `constants match the fixture`() {
         assertEquals(namedValues("opcode"), staticValues(Opcode::class.java))
         assertEquals(namedValues("status"), staticValues(StatusCode::class.java))
+        assertEquals(namedValues("event"), staticValues(EventType::class.java))
     }
 
     @Test
@@ -44,6 +45,7 @@ class ControlWireVectorsTest {
                 "control_service" to CONTROL_SERVICE_UUID,
                 "command_char" to COMMAND_CHARACTERISTIC_UUID,
                 "response_char" to RESPONSE_CHARACTERISTIC_UUID,
+                "event_char" to EVENT_CHARACTERISTIC_UUID,
             ),
             fixture,
         )
@@ -96,17 +98,29 @@ class ControlWireVectorsTest {
                     )
                 "device_info" ->
                     assertEquals(
-                        DeviceInfo(6, 4, 3, 5L, 0L, 0L, "", false),
+                        DeviceInfo(7, 4, 3, 5L, 0L, 0L, "", false),
                         decodeDeviceInfo(frame.payload).getOrThrow(),
                     )
                 "device_info_provisioning" ->
                     assertEquals(
-                        DeviceInfo(6, 4, 3, 5L, 0L, 0L, "", true),
+                        DeviceInfo(7, 4, 3, 5L, 0L, 0L, "", true),
                         decodeDeviceInfo(frame.payload).getOrThrow(),
                     )
                 else -> fail("no decode expectation for $name")
             }
         }
+    }
+
+    @Test
+    fun `event frames decode with the app decoder`() {
+        val frames = lines.filter { it.startsWith("vector_event ") }
+        assertTrue(frames.isNotEmpty())
+        val types = namedValues("event")
+        for (line in frames) {
+            val (_, name, typeName, frameHex) = line.split(" ")
+            assertEquals(name, DeviceEvent(0, types.getValue(typeName), 1), decodeEvent(hex(frameHex)).getOrThrow())
+        }
+        assertTrue(decodeEvent(byteArrayOf(0, 6)).isFailure)
     }
 
     private fun namedValues(kind: String): Map<String, Int> =

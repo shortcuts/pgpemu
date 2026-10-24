@@ -79,6 +79,8 @@ client_state_t* get_client_state_entry(uint16_t conn_id);
 client_state_t* get_or_create_client_state_entry(uint16_t conn_id);
 // returns NULL when idx has no associated connection
 client_state_t* get_client_state_entry_by_idx(int i);
+// returns the client_states index of conn_id, or -1 when unknown
+int get_client_slot(uint16_t conn_id);
 // returns NULL when no currently-connected client matches bda
 client_state_t* get_client_state_entry_by_bda(esp_bd_addr_t bda);
 

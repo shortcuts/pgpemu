@@ -5,6 +5,7 @@
 #include "../pgp_autobutton.h"
 #include "../pgp_bluetooth.h"
 #include "../pgp_cert.h"
+#include "../pgp_control.h"
 #include "../pgp_gatts.h"
 #include "../pgp_handshake_multi.h"
 #include "fixtures/led_patterns.h"
@@ -21,8 +22,14 @@ uint8_t bt_mac[6];
 
 static client_state_t g_state, g_other;
 static int caught_calls, fled_calls, spin_calls;
+static int emit_calls, last_event;
 static int button_presses, set_attr_calls, indicate_calls, decrypt_calls, reconnect_calls, persist_calls, touch_calls;
 
+void pgp_control_emit_event(pgp_event_t type, uint16_t game_conn_id) {
+    (void)game_conn_id;
+    emit_calls++;
+    last_event = type;
+}
 client_state_t* get_client_state_entry(uint16_t conn_id) {
     if (conn_id == 1) {
         return &g_other;
@@ -132,7 +139,7 @@ static void reset(int cert_state) {
     g_state.cert_state = cert_state;
     button_presses = set_attr_calls = indicate_calls = decrypt_calls = reconnect_calls = persist_calls = touch_calls =
         0;
-    caught_calls = fled_calls = spin_calls = 0;
+    caught_calls = fled_calls = spin_calls = emit_calls = last_event = 0;
 }
 
 // The three call_* wrappers are the only place that knows the handler signatures.
@@ -175,10 +182,12 @@ static void test_led_events_classified(void) {
     reset(0);
     call_led(LED_POKEMON_IN_RANGE, sizeof(LED_POKEMON_IN_RANGE));
     assert(button_presses == 1 && caught_calls + fled_calls + spin_calls == 0);
+    assert(emit_calls == 1 && last_event == PGP_EVENT_POKEMON_IN_RANGE);
 
     reset(0);
     call_led(LED_POKESTOP_IN_RANGE, sizeof(LED_POKESTOP_IN_RANGE));
     assert(button_presses == 0);
+    assert(emit_calls == 1 && last_event == PGP_EVENT_POKESTOP_IN_RANGE);
     g_state.settings.autospin = true;
     call_led(LED_POKESTOP_IN_RANGE, sizeof(LED_POKESTOP_IN_RANGE));
     assert(button_presses == 1);
@@ -186,23 +195,44 @@ static void test_led_events_classified(void) {
     reset(0);
     call_led(LED_CAUGHT, sizeof(LED_CAUGHT));
     assert(caught_calls == 1 && fled_calls == 0 && spin_calls == 0 && button_presses == 0);
+    assert(emit_calls == 1 && last_event == PGP_EVENT_CAUGHT);
 
     reset(0);
     call_led(LED_FLED, sizeof(LED_FLED));
     assert(caught_calls == 0 && fled_calls == 1 && spin_calls == 0 && button_presses == 0);
+    assert(emit_calls == 1 && last_event == PGP_EVENT_FLED);
 
     reset(0);
     call_led(LED_SPIN, sizeof(LED_SPIN));
     assert(caught_calls == 0 && fled_calls == 0 && spin_calls == 1 && button_presses == 0);
+    assert(emit_calls == 1 && last_event == PGP_EVENT_ITEMS_RECEIVED);
 
     // unknown pattern: pressed only while an auto feature is on
     reset(0);
     call_led(LED_UNHANDLED, sizeof(LED_UNHANDLED));
-    assert(button_presses == 1);
+    assert(button_presses == 1 && emit_calls == 0);
     g_state.settings.autocatch = false;
     call_led(LED_UNHANDLED, sizeof(LED_UNHANDLED));
     assert(button_presses == 1);
     printf("PASS: led events classified\n");
+}
+
+// One blinking colour (0x14 duration), plus an off pattern when `off` is set.
+static void check_blink(uint8_t rg, uint8_t b, bool off, int want_event) {
+    uint8_t led[] = { 0, 0, 0, off ? 2 : 1, 0x14, rg, b, 0x14, 0x00, 0x00 };
+    reset(0);
+    call_led(led, off ? 10 : 7);
+    assert(emit_calls == 1 && last_event == want_event);
+}
+
+static void test_led_state_events(void) {
+    check_blink(0x80, 0x00, false, PGP_EVENT_POKEMON_IN_RANGE);
+    check_blink(0x88, 0x00, false, PGP_EVENT_NEW_POKEMON_IN_RANGE);
+    check_blink(0x00, 0x08, false, PGP_EVENT_POKESTOP_IN_RANGE);
+    check_blink(0x88, 0x08, false, PGP_EVENT_BAG_FULL);
+    check_blink(0x08, 0x00, false, PGP_EVENT_BOX_FULL);
+    check_blink(0x08, 0x00, true, PGP_EVENT_BALLS_EMPTY);
+    printf("PASS: led state events\n");
 }
 
 static void test_cccd_short_write_ignored(void) {
@@ -238,6 +268,7 @@ static void test_handshake_short_writes_ignored(void) {
     reset(2);
     call_hs2(buf, 52);
     assert(decrypt_calls == 1 && g_state.cert_state == PGP_CERT_DONE && persist_calls == 1 && touch_calls == 1);
+    assert(emit_calls == 1 && last_event == PGP_EVENT_GAME_CONNECTED);
     reset(2);
     call_hs2(buf, 51);
     assert(decrypt_calls == 0 && g_state.cert_state == PGP_CERT_FULL_RESPONSE_PENDING && persist_calls == 0
@@ -263,7 +294,7 @@ static void test_handshake_short_writes_ignored(void) {
     assert(g_state.cert_state == PGP_CERT_RECON_RESPONSE_PENDING);
     reset(5);
     call_hs2(buf, 5);
-    assert(g_state.cert_state == PGP_CERT_DONE && touch_calls == 1);
+    assert(g_state.cert_state == PGP_CERT_DONE && touch_calls == 1 && emit_calls == 1);
     printf("PASS: handshake short writes ignored\n");
 }
 
@@ -301,6 +332,7 @@ static void test_cert_read_slice(void) {
 int main(void) {
     test_led_short_writes_ignored();
     test_led_events_classified();
+    test_led_state_events();
     test_cccd_short_write_ignored();
     test_handshake_short_writes_ignored();
     test_cert_read_slice();

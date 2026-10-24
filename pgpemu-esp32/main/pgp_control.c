@@ -26,6 +26,7 @@
 #include <string.h>
 
 #define CONTROL_CHAR_DECLARATION_SIZE (sizeof(uint8_t))
+#define EVENT_FRAME_LEN 3
 static const uint8_t CONTROL_INST_ID = 0;
 
 static void apply_log_level(uint8_t level) {
@@ -89,6 +90,7 @@ static const uint16_t control_char_declaration_uuid = ESP_GATT_UUID_CHAR_DECLARE
 static const uint16_t control_char_client_config_uuid = ESP_GATT_UUID_CHAR_CLIENT_CONFIG;
 static const uint8_t control_char_prop_write = ESP_GATT_CHAR_PROP_BIT_WRITE;
 static const uint8_t control_char_prop_indicate = ESP_GATT_CHAR_PROP_BIT_INDICATE;
+static const uint8_t control_char_prop_notify = ESP_GATT_CHAR_PROP_BIT_NOTIFY;
 static const uint8_t control_cccd_initial_value[2] = { 0x00, 0x00 };
 
 // Same base-suffix bytes as pgp_gatts.c's vendor UUIDs
@@ -142,12 +144,33 @@ static uint8_t GATTS_CHAR_UUID_CONTROL_RESPONSE[ESP_UUID_LEN_128] = { 0x42,
     0x77,
     0xe8,
     0xbb };
+static uint8_t GATTS_CHAR_UUID_CONTROL_EVENT[ESP_UUID_LEN_128] = { 0x43,
+    0x8e,
+    0x0d,
+    0xef,
+    0x8e,
+    0x8b,
+    0x7f,
+    0xab,
+    0x33,
+    0x44,
+    0x89,
+    0x5b,
+    0x09,
+    0x77,
+    0xe8,
+    0xbb };
 
 uint16_t control_handle_table[CONTROL_LAST_IDX];
 static uint8_t control_response_buffer[MAX_VALUE_LENGTH];  // {0x00,0x00} = status OK, opcode 0 until first response
 
 // ATT allows one unconfirmed indication per link; set on send, cleared by CONF_EVT or disconnect.
 static bool indicate_in_flight[CONFIG_BT_ACL_CONNECTIONS];
+
+// Events use their own unconfirmed characteristic so they never take the response's in-flight slot.
+static bool event_notify[CONFIG_BT_ACL_CONNECTIONS];
+static uint8_t event_seq[CONFIG_BT_ACL_CONNECTIONS];
+static esp_gatt_if_t event_gatts_if;
 
 static const esp_gatts_attr_db_t gatt_db_control[CONTROL_LAST_IDX] = {
     [IDX_CONTROL_SVC] = { { ESP_GATT_AUTO_RSP },
@@ -193,6 +216,28 @@ static const esp_gatts_attr_db_t gatt_db_control[CONTROL_LAST_IDX] = {
         { ESP_UUID_LEN_16,
             (uint8_t*)&control_char_client_config_uuid,
             ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
+            sizeof(uint16_t),
+            sizeof(control_cccd_initial_value),
+            (uint8_t*)control_cccd_initial_value } },
+
+    [IDX_CHAR_CONTROL_EVENT] = { { ESP_GATT_AUTO_RSP },
+        { ESP_UUID_LEN_16,
+            (uint8_t*)&control_char_declaration_uuid,
+            ESP_GATT_PERM_READ,
+            CONTROL_CHAR_DECLARATION_SIZE,
+            CONTROL_CHAR_DECLARATION_SIZE,
+            (uint8_t*)&control_char_prop_notify } },
+    [IDX_CHAR_CONTROL_EVENT_VAL] = { { ESP_GATT_AUTO_RSP },
+        { ESP_UUID_LEN_128,
+            (uint8_t*)&GATTS_CHAR_UUID_CONTROL_EVENT,
+            ESP_GATT_PERM_READ_ENCRYPTED,
+            EVENT_FRAME_LEN,
+            0,
+            NULL } },
+    [IDX_CHAR_CONTROL_EVENT_CFG] = { { ESP_GATT_AUTO_RSP },
+        { ESP_UUID_LEN_16,
+            (uint8_t*)&control_char_client_config_uuid,
+            ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE_ENCRYPTED,
             sizeof(uint16_t),
             sizeof(control_cccd_initial_value),
             (uint8_t*)control_cccd_initial_value } },
@@ -263,7 +308,26 @@ void pgp_control_on_conf(uint16_t conn_id) {
     }
 }
 
+void pgp_control_emit_event(pgp_event_t type, uint16_t game_conn_id) {
+    int slot = get_client_slot(game_conn_id);
+    if (slot < 0) {
+        return;
+    }
+    for (uint16_t conn = 0; conn < CONFIG_BT_ACL_CONNECTIONS; conn++) {
+        if (!event_notify[conn]) {
+            continue;
+        }
+        uint8_t frame[EVENT_FRAME_LEN] = { event_seq[conn]++, (uint8_t)type, (uint8_t)slot };
+        // A lost send shows up as a seq gap in the app, which then refreshes.
+        esp_ble_gatts_send_indicate(
+            event_gatts_if, conn, control_handle_table[IDX_CHAR_CONTROL_EVENT_VAL], sizeof(frame), frame, false);
+    }
+}
+
 void pgp_control_on_disconnect(uint16_t conn_id) {
+    if (conn_id < CONFIG_BT_ACL_CONNECTIONS) {
+        event_notify[conn_id] = false;
+    }
     pgp_control_on_conf(conn_id);
     pgp_ota_on_disconnect(conn_id);
 }
@@ -657,6 +721,18 @@ bool pgp_control_try_handle_write(esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param
         // Client toggling indications on/off — no action needed beyond the
         // CCCD write itself, which ESP_GATT_AUTO_RSP already handles.
         ESP_LOGD(CONTROL_TAG, "[%d] control response indicate CCCD write", param->write.conn_id);
+        return true;
+    }
+    if (control_handle_table[IDX_CHAR_CONTROL_EVENT_CFG] == param->write.handle) {
+        uint16_t conn = param->write.conn_id;
+        if (conn < CONFIG_BT_ACL_CONNECTIONS && param->write.len >= 1) {
+            bool on = (param->write.value[0] & 1) != 0;
+            if (on && !event_notify[conn]) {
+                event_seq[conn] = 0;
+            }
+            event_notify[conn] = on;
+            event_gatts_if = gatts_if;
+        }
         return true;
     }
     return false;

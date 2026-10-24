@@ -14,6 +14,9 @@ enum {
     IDX_CHAR_CONTROL_RESPONSE,
     IDX_CHAR_CONTROL_RESPONSE_VAL,
     IDX_CHAR_CONTROL_RESPONSE_CFG,
+    IDX_CHAR_CONTROL_EVENT,
+    IDX_CHAR_CONTROL_EVENT_VAL,
+    IDX_CHAR_CONTROL_EVENT_CFG,
     CONTROL_LAST_IDX
 };
 
@@ -23,7 +26,7 @@ extern uint16_t control_handle_table[CONTROL_LAST_IDX];
 // 2-byte [status][opcode] response header.
 #define CONTROL_MAX_RESPONSE_PAYLOAD (500 - 2)
 // Layout version of GET_DEVICE_INFO; bump on a breaking change (new fields are appended).
-#define CONTROL_PROTOCOL_VERSION 6
+#define CONTROL_PROTOCOL_VERSION 7
 
 typedef enum {
     CONTROL_OP_HELP = 0x01,
@@ -59,6 +62,21 @@ typedef enum {
     CONTROL_OP_FORGET_KNOWN_DEVICE = 0x1F,
 } control_opcode_t;
 
+// Event characteristic frame: [seq][type][slot]; values are wire format, see protocol/control_vectors.txt.
+typedef enum {
+    PGP_EVENT_GAME_CONNECTED = 1,
+    PGP_EVENT_GAME_DISCONNECTED = 2,
+    PGP_EVENT_POKEMON_IN_RANGE = 3,
+    PGP_EVENT_NEW_POKEMON_IN_RANGE = 4,
+    PGP_EVENT_POKESTOP_IN_RANGE = 5,
+    PGP_EVENT_CAUGHT = 6,
+    PGP_EVENT_FLED = 7,
+    PGP_EVENT_ITEMS_RECEIVED = 8,
+    PGP_EVENT_BAG_FULL = 9,
+    PGP_EVENT_BOX_FULL = 10,
+    PGP_EVENT_BALLS_EMPTY = 11,
+} pgp_event_t;
+
 typedef enum {
     CONTROL_STATUS_OK = 0x00,
     CONTROL_STATUS_ERR_UNKNOWN_OPCODE = 0x01,
@@ -92,5 +110,8 @@ void pgp_control_on_conf(uint16_t conn_id);
 
 // Called from ESP_GATTS_DISCONNECT_EVT: drops any in-flight indication state.
 void pgp_control_on_disconnect(uint16_t conn_id);
+
+// Notifies every subscribed Control link of a game event. BTC task only: it shares unlocked static state.
+void pgp_control_emit_event(pgp_event_t type, uint16_t game_conn_id);
 
 #endif /* PGP_CONTROL_H */

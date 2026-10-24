@@ -37,6 +37,7 @@ import javax.inject.Inject
 internal val CONTROL_SERVICE_UUID: UUID = UUID.fromString("bbe87709-5b89-4433-ab7f-8b8eef0d8e40")
 internal val COMMAND_CHARACTERISTIC_UUID: UUID = UUID.fromString("bbe87709-5b89-4433-ab7f-8b8eef0d8e41")
 internal val RESPONSE_CHARACTERISTIC_UUID: UUID = UUID.fromString("bbe87709-5b89-4433-ab7f-8b8eef0d8e42")
+internal val EVENT_CHARACTERISTIC_UUID: UUID = UUID.fromString("bbe87709-5b89-4433-ab7f-8b8eef0d8e43")
 private const val PROVISIONING_ADVERTISED_NAME = "PGPemu Setup" // matches PROVISIONING_DEVICE_NAME in pgp_gatts.c
 private const val PGP_ADVERTISED_NAME = "Pokemon GO Plus" // matches PGP_DEVICE_NAME in pgpemu-esp32/main/pgp_gatts.c
 private const val COMMAND_TIMEOUT_MS = 5_000L
@@ -94,6 +95,9 @@ class NordicBleControlRepository
         override val associationRequests: SharedFlow<IntentSender> = _associationRequests
 
         private val bluetoothAdapter = (context.getSystemService(Context.BLUETOOTH_SERVICE) as android.bluetooth.BluetoothManager).adapter
+
+        private val _events = MutableSharedFlow<DeviceEvent>(extraBufferCapacity = 16)
+        override val events: SharedFlow<DeviceEvent> = _events
 
         private val _discoveredDevices = MutableStateFlow<List<ScannedDevice>>(emptyList())
         override val discoveredDevices: StateFlow<List<ScannedDevice>> = _discoveredDevices.asStateFlow()
@@ -404,6 +408,7 @@ class NordicBleControlRepository
 
             private var commandCharacteristic: android.bluetooth.BluetoothGattCharacteristic? = null
             private var responseCharacteristic: android.bluetooth.BluetoothGattCharacteristic? = null
+            private var eventCharacteristic: android.bluetooth.BluetoothGattCharacteristic? = null
 
             override fun getGattCallback(): BleManagerGattCallback =
                 object : BleManagerGattCallback() {
@@ -411,6 +416,7 @@ class NordicBleControlRepository
                         val service = gatt.getService(CONTROL_SERVICE_UUID) ?: return false
                         commandCharacteristic = service.getCharacteristic(COMMAND_CHARACTERISTIC_UUID)
                         responseCharacteristic = service.getCharacteristic(RESPONSE_CHARACTERISTIC_UUID)
+                        eventCharacteristic = service.getCharacteristic(EVENT_CHARACTERISTIC_UUID) // absent on older firmware
                         return commandCharacteristic != null && responseCharacteristic != null
                     }
 
@@ -450,11 +456,18 @@ class NordicBleControlRepository
                             }
                         }
                         enableIndications(responseCharacteristic).enqueue()
+                        eventCharacteristic?.let { event ->
+                            setNotificationCallback(event).with { _, data ->
+                                data.value?.let { bytes -> decodeEvent(bytes).onSuccess { _events.tryEmit(it) } }
+                            }
+                            enableNotifications(event).enqueue()
+                        }
                     }
 
                     override fun onServicesInvalidated() {
                         commandCharacteristic = null
                         responseCharacteristic = null
+                        eventCharacteristic = null
                     }
                 }
 

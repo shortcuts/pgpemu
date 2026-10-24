@@ -7,10 +7,15 @@
 #   opcode <NAME> <hex>                              NAME = CONTROL_OP_<NAME> = Opcode.<NAME>
 #   status <NAME> <hex>                              NAME = CONTROL_STATUS_<NAME> = StatusCode.<NAME>
 #   uuid <key> <uuid>                                standard UUID string form
+#   event <NAME> <hex>                               NAME = PGP_EVENT_<NAME> = EventType.<NAME>
 #   vector <name> <setup> <request> <response> [prefix]
 #     request  = Command characteristic write: [opcode][payload]
 #     response = Response indication: [status][opcode][payload]
 #     prefix   = the firmware frame may be longer; only these bytes must match
+#
+#   vector_event <name> <NAME> <frame>
+#     frame = Event characteristic notification [seq][type][slot], emitted for a game link on Device Profile slot 1
+#     to a subscribed link whose first event this is
 #
 # Setups (C side): default, log2, summary, provisioning, known.
 
@@ -46,6 +51,18 @@ opcode LIST_KNOWN_DEVICES 1D
 opcode RENAME_KNOWN_DEVICE 1E
 opcode FORGET_KNOWN_DEVICE 1F
 
+event GAME_CONNECTED 01
+event GAME_DISCONNECTED 02
+event POKEMON_IN_RANGE 03
+event NEW_POKEMON_IN_RANGE 04
+event POKESTOP_IN_RANGE 05
+event CAUGHT 06
+event FLED 07
+event ITEMS_RECEIVED 08
+event BAG_FULL 09
+event BOX_FULL 0A
+event BALLS_EMPTY 0B
+
 status OK 00
 status ERR_UNKNOWN_OPCODE 01
 status ERR_MALFORMED_PAYLOAD 02
@@ -60,6 +77,7 @@ status ERR_NOT_FOUND 09
 uuid control_service bbe87709-5b89-4433-ab7f-8b8eef0d8e40
 uuid command_char bbe87709-5b89-4433-ab7f-8b8eef0d8e41
 uuid response_char bbe87709-5b89-4433-ab7f-8b8eef0d8e42
+uuid event_char bbe87709-5b89-4433-ab7f-8b8eef0d8e43
 
 vector unknown_opcode default 7f 017f
 vector global_settings log2 02 00020201000102
@@ -68,8 +86,12 @@ vector set_log_level default 1603 001603
 vector set_autospin summary 140000 001400
 vector bad_max_connections default 0f05 020f
 vector client_summary summary 12 00120700070100020001000300ffff000000000000000000ffff000000000000000000ffff000000000000000000
-vector device_info default 13 001306040305000000000000000000000000 prefix
-vector device_info_provisioning provisioning 13 001306040305000000000000000000000001 prefix
+vector device_info default 13 001307040305000000000000000000000000 prefix
+vector device_info_provisioning provisioning 13 001307040305000000000000000000000001 prefix
+
+vector_event game_connected GAME_CONNECTED 000101
+vector_event caught CAUGHT 000601
+vector_event balls_empty BALLS_EMPTY 000B01
 
 # known setup: aa:bb:cc:dd:ee:01 seen first and named "Pixel"; aa:bb:cc:dd:ee:02 seen second and connected.
 vector known_devices_list known 1d 001d02aabbccddee02020000000100000000000000000000000000000000aabbccddee010100000000506978656c0000000000000000000000

@@ -7,6 +7,7 @@
 #include "log_tags.h"
 #include "pgp_bluetooth.h"
 #include "pgp_cert.h"
+#include "pgp_control.h"
 #include "pgp_gap.h"
 #include "pgp_gatts.h"
 #include "pgp_handshake_multi.h"
@@ -276,6 +277,7 @@ void handle_pgp_handshake_second(esp_gatt_if_t gatts_if, const uint8_t* prepare_
             false);
 
         client_state->cert_state = PGP_CERT_DONE;
+        pgp_control_emit_event(PGP_EVENT_GAME_CONNECTED, conn_id);
         known_devices_touch(client_state->remote_bda);
         connection_start(conn_id);
         advertise_if_needed();
@@ -346,6 +348,7 @@ void handle_pgp_handshake_second(esp_gatt_if_t gatts_if, const uint8_t* prepare_
                 false);
 
             client_state->cert_state = PGP_CERT_DONE;
+            pgp_control_emit_event(PGP_EVENT_GAME_CONNECTED, conn_id);
             known_devices_touch(client_state->remote_bda);
             // For reconnections on a fresh entry (connection_start == 0), increment the counter.
             // For reconnections on an existing entry (connection_start != 0), just update timestamp.

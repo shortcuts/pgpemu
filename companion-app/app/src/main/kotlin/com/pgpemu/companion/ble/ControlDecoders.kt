@@ -48,6 +48,7 @@ data class KnownDevice(
 )
 
 const val CLIENT_SUMMARY_RECORD_SIZE = 11
+const val EVENT_FRAME_SIZE = 3
 private const val KNOWN_DEVICE_RECORD_SIZE = 27
 private const val KNOWN_DEVICE_NAME_OFFSET = 11
 private const val GLOBAL_SETTINGS_MIN_SIZE = 4
@@ -95,6 +96,18 @@ fun decodeDeviceInfo(p: ByteArray): Result<DeviceInfo> =
 fun decodeFlag(p: ByteArray): Result<Boolean> = p.require(1, "flag").map { p[0] == 1.toByte() }
 
 fun decodeLogLevel(p: ByteArray): Result<Int> = p.require(1, "log level").map { p[0].toInt() }
+
+/** One Event characteristic notification; [slot] is the Device Profile index. See protocol/control_vectors.txt. */
+data class DeviceEvent(
+    val seq: Int,
+    val type: Int,
+    val slot: Int,
+)
+
+fun decodeEvent(p: ByteArray): Result<DeviceEvent> =
+    p.require(EVENT_FRAME_SIZE, "event").map {
+        DeviceEvent(p[0].toInt() and 0xFF, p[1].toInt() and 0xFF, p[2].toInt() and 0xFF)
+    }
 
 /** Layout: see pgp_control.c's CONTROL_OP_GET_CLIENT_SUMMARY case and protocol/control_vectors.txt; one record per firmware connection slot. */
 fun decodeClientSummary(payload: ByteArray): Result<List<ClientSummary>> =

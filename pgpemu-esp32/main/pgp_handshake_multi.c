@@ -75,6 +75,15 @@ client_state_t* get_client_state_entry_by_idx(int i) {
     return NULL;
 }
 
+int get_client_slot(uint16_t conn_id) {
+    for (int i = 0; i < MAX_CONNECTIONS; i++) {
+        if (conn_id_map[i] == conn_id) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 bool is_connection_active(uint16_t conn_id) {
     return get_client_state_entry(conn_id) != NULL;
 }

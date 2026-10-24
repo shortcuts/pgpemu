@@ -5,7 +5,9 @@ import androidx.lifecycle.viewModelScope
 import com.pgpemu.companion.R
 import com.pgpemu.companion.ble.BleControlRepository
 import com.pgpemu.companion.ble.ConnectionState
+import com.pgpemu.companion.ble.DeviceEvent
 import com.pgpemu.companion.ble.DeviceInfo
+import com.pgpemu.companion.ble.EventType
 import com.pgpemu.companion.ble.KnownDevice
 import com.pgpemu.companion.ble.LastDeviceStore
 import com.pgpemu.companion.ble.Opcode
@@ -52,6 +54,27 @@ const val OTA_MIN_PROTOCOL_VERSION = 5
 // First GET_DEVICE_INFO layout version with the known-device opcodes.
 const val KNOWN_DEVICES_MIN_PROTOCOL_VERSION = 6
 
+// First GET_DEVICE_INFO layout version with the Event characteristic.
+const val EVENTS_MIN_PROTOCOL_VERSION = 7
+
+// Event-capable firmware pushes changes; the poll only covers what raises no event (other phones' toggles).
+const val EVENT_POLL_INTERVAL_MS = 30_000L
+
+const val ACTIVITY_LIMIT = 50
+
+// Events after which counters or connections changed; the in-range events only feed the activity list.
+private val REFRESH_EVENTS =
+    setOf(
+        EventType.GAME_CONNECTED,
+        EventType.GAME_DISCONNECTED,
+        EventType.CAUGHT,
+        EventType.FLED,
+        EventType.ITEMS_RECEIVED,
+        EventType.BAG_FULL,
+        EventType.BOX_FULL,
+        EventType.BALLS_EMPTY,
+    )
+
 // Poll interval while connected — other phones can connect/disconnect and
 // toggle profiles without this app knowing, so state can go stale otherwise.
 const val STATUS_POLL_INTERVAL_MS = 5000L
@@ -77,10 +100,20 @@ data class DeviceUiState(
     val otaProgress: Int? = null,
     /** Game phones the device has seen, newest first. */
     val knownDevices: List<KnownDevice> = emptyList(),
+    /** Device Events since the last connect, newest first; the phone clock stamps them. */
+    val activity: List<ActivityItem> = emptyList(),
 ) {
+    val eventsSupported: Boolean
+        get() = (deviceInfo?.protocolVersion ?: 0) >= EVENTS_MIN_PROTOCOL_VERSION && deviceInfo?.provisioning == false
     val otaSupported: Boolean get() = (deviceInfo?.protocolVersion ?: 0) >= OTA_MIN_PROTOCOL_VERSION
     val knownDevicesSupported: Boolean get() = (deviceInfo?.protocolVersion ?: 0) >= KNOWN_DEVICES_MIN_PROTOCOL_VERSION
 }
+
+data class ActivityItem(
+    val timeMillis: Long,
+    val type: Int,
+    val slot: Int,
+)
 
 /** Text for the user; the screen maps each case to a string resource, raw codes ride along for bug reports. */
 sealed interface UiMessage {
@@ -201,6 +234,7 @@ class DeviceViewModel
         private var currentAddress: String? = null
         private var userDisconnected = false
         private var resumed = false
+        private var lastEventSeq: Int? = null
 
         // Default true: the ViewModel is created by a started screen, which then reports every change.
         private val foreground = MutableStateFlow(true)
@@ -223,6 +257,7 @@ class DeviceViewModel
                             it.copy(connectionState = newState, deviceInfo = null, firmwareOutdated = false)
                         }
                     }
+                    lastEventSeq = null // the device restarts the sequence for each link
                     if (newState is ConnectionState.Ready) {
                         reconnectJob?.cancel()
                         currentAddress?.let { lastDevice.address = it }
@@ -232,6 +267,7 @@ class DeviceViewModel
                     previous = newState
                 }
             }
+            viewModelScope.launch { repository.events.collect(::onEvent) }
             // Poll only while connected and visible: a stopped activity would keep the BLE link busy.
             viewModelScope.launch {
                 combine(repository.connectionState, foreground) { state, fg -> state is ConnectionState.Ready && fg }
@@ -247,6 +283,26 @@ class DeviceViewModel
             }
         }
 
+        private fun onEvent(event: DeviceEvent) {
+            val lost = event.seq != (((lastEventSeq ?: -1) + 1) and 0xFF)
+            lastEventSeq = event.seq
+            _uiState.update {
+                it.copy(
+                    activity =
+                        (
+                            listOf(
+                                ActivityItem(System.currentTimeMillis(), event.type, event.slot),
+                            ) + it.activity
+                        ).take(ACTIVITY_LIMIT),
+                )
+            }
+            if ((lost || event.type in REFRESH_EVENTS) && foreground.value) refreshStatus(clearError = false)
+        }
+
+        fun clearActivity() {
+            _uiState.update { it.copy(activity = emptyList()) }
+        }
+
         /** Called by the screen with its lifecycle: true at STARTED, false at STOPPED. */
         fun setForeground(visible: Boolean) {
             foreground.value = visible
@@ -258,9 +314,15 @@ class DeviceViewModel
             if (pollJob?.isActive == true) return
             pollJob =
                 viewModelScope.launch {
+                    var idleMs = 0L
                     while (isActive) {
                         delay(STATUS_POLL_INTERVAL_MS)
-                        refreshStatus(clearError = false)
+                        idleMs += STATUS_POLL_INTERVAL_MS
+                        // Device info arrives after polling starts, so the interval is decided per tick.
+                        if (!_uiState.value.eventsSupported || idleMs >= EVENT_POLL_INTERVAL_MS) {
+                            idleMs = 0
+                            refreshStatus(clearError = false)
+                        }
                     }
                 }
         }
@@ -301,6 +363,7 @@ class DeviceViewModel
             reconnectJob?.cancel()
             currentAddress = address
             userDisconnected = false
+            _uiState.update { it.copy(activity = emptyList()) }
             viewModelScope.launch {
                 repository.stopScan()
                 repository.connect(address)

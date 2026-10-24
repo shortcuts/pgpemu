@@ -746,7 +746,12 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
         advertise_if_needed();
 
         break;
-    case ESP_GATTS_DISCONNECT_EVT:
+    case ESP_GATTS_DISCONNECT_EVT: {
+        // Before pgp_handshake_disconnect deletes the entry, so the slot still resolves.
+        client_state_t* game = get_client_state_entry(param->disconnect.conn_id);
+        if (game != NULL && game->cert_state == PGP_CERT_DONE) {
+            pgp_control_emit_event(PGP_EVENT_GAME_DISCONNECTED, param->disconnect.conn_id);
+        }
         pgp_handshake_disconnect(param->disconnect.conn_id, param->disconnect.reason);
         pgp_control_on_disconnect(param->disconnect.conn_id);
 
@@ -771,6 +776,7 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
 
         advertise_if_needed();
         break;
+    }
     case ESP_GATTS_CREAT_ATTR_TAB_EVT: {
         if (param->add_attr_tab.status != ESP_GATT_OK) {
             ESP_LOGE(BT_GATTS_TAG, "create attribute table failed, error code=0x%x", param->add_attr_tab.status);

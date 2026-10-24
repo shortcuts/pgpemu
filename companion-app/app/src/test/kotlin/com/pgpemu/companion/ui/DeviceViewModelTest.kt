@@ -1,6 +1,8 @@
 package com.pgpemu.companion.ui
 
 import com.pgpemu.companion.ble.ConnectionState
+import com.pgpemu.companion.ble.DeviceEvent
+import com.pgpemu.companion.ble.EventType
 import com.pgpemu.companion.ble.KnownDevice
 import com.pgpemu.companion.ble.Opcode
 import com.pgpemu.companion.ble.ResponseFrame
@@ -1076,5 +1078,119 @@ class DeviceViewModelTest {
 
             assertTrue(empty.connectedAddresses.isEmpty())
             assertTrue(busy.connectedAddresses.isEmpty())
+        }
+
+    private fun connectedWithProtocol(
+        repository: FakeBleControlRepository,
+        protocol: Int,
+    ): DeviceViewModel {
+        stubStatusReplies(repository)
+        repository.stubResponse(
+            Opcode.GET_DEVICE_INFO,
+            Result.success(ResponseFrame(StatusCode.OK, Opcode.GET_DEVICE_INFO.toByte(), deviceInfoBytes(protocol, 4))),
+        )
+        val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+        repository.setConnectionState(ConnectionState.Ready)
+        dispatcher.scheduler.runCurrent()
+        return viewModel
+    }
+
+    private fun refreshes(repository: FakeBleControlRepository) = repository.sentCommands.count { it.first == Opcode.GET_GLOBAL_SETTINGS }
+
+    @Test
+    fun `events fill the activity feed newest first, capped, and unknown types stay`() =
+        runTest {
+            val repository = FakeBleControlRepository()
+            val viewModel = connectedWithProtocol(repository, EVENTS_MIN_PROTOCOL_VERSION)
+            assertTrue(viewModel.uiState.value.eventsSupported)
+
+            repository.emitEvent(DeviceEvent(0, EventType.CAUGHT, 1))
+            repository.emitEvent(DeviceEvent(1, 99, 2))
+            dispatcher.scheduler.runCurrent()
+            assertEquals(
+                listOf(99 to 2, EventType.CAUGHT to 1),
+                viewModel.uiState.value.activity
+                    .map { it.type to it.slot },
+            )
+
+            for (seq in 2 until ACTIVITY_LIMIT + 10) {
+                repository.emitEvent(DeviceEvent(seq and 0xFF, EventType.POKEMON_IN_RANGE, 0))
+                dispatcher.scheduler.runCurrent()
+            }
+            assertEquals(ACTIVITY_LIMIT, viewModel.uiState.value.activity.size)
+
+            viewModel.clearActivity()
+            assertTrue(
+                viewModel.uiState.value.activity
+                    .isEmpty(),
+            )
+            repository.setConnectionState(ConnectionState.Disconnected())
+            dispatcher.scheduler.runCurrent()
+        }
+
+    @Test
+    fun `state-changing events refresh the status and in-range events do not`() =
+        runTest {
+            val repository = FakeBleControlRepository()
+            val viewModel = connectedWithProtocol(repository, EVENTS_MIN_PROTOCOL_VERSION)
+            val before = refreshes(repository)
+
+            repository.emitEvent(DeviceEvent(0, EventType.POKEMON_IN_RANGE, 0))
+            dispatcher.scheduler.runCurrent()
+            assertEquals(before, refreshes(repository))
+
+            repository.emitEvent(DeviceEvent(1, EventType.CAUGHT, 0))
+            dispatcher.scheduler.runCurrent()
+            assertEquals(before + 1, refreshes(repository))
+            assertEquals(2, viewModel.uiState.value.activity.size)
+
+            repository.setConnectionState(ConnectionState.Disconnected())
+            dispatcher.scheduler.runCurrent()
+        }
+
+    @Test
+    fun `a sequence gap refreshes even for an in-range event`() =
+        runTest {
+            val repository = FakeBleControlRepository()
+            connectedWithProtocol(repository, EVENTS_MIN_PROTOCOL_VERSION)
+            repository.emitEvent(DeviceEvent(0, EventType.POKEMON_IN_RANGE, 0))
+            dispatcher.scheduler.runCurrent()
+            val before = refreshes(repository)
+
+            repository.emitEvent(DeviceEvent(1, EventType.POKEMON_IN_RANGE, 0))
+            dispatcher.scheduler.runCurrent()
+            assertEquals(before, refreshes(repository))
+
+            repository.emitEvent(DeviceEvent(3, EventType.POKEMON_IN_RANGE, 0))
+            dispatcher.scheduler.runCurrent()
+            assertEquals(before + 1, refreshes(repository))
+
+            repository.setConnectionState(ConnectionState.Disconnected())
+            dispatcher.scheduler.runCurrent()
+        }
+
+    @Test
+    fun `event firmware polls every 30 seconds, older firmware every 5`() =
+        runTest {
+            val repository = FakeBleControlRepository()
+            connectedWithProtocol(repository, EVENTS_MIN_PROTOCOL_VERSION)
+            val before = refreshes(repository)
+            dispatcher.scheduler.advanceTimeBy(EVENT_POLL_INTERVAL_MS - 1000)
+            dispatcher.scheduler.runCurrent()
+            assertEquals(before, refreshes(repository))
+            dispatcher.scheduler.advanceTimeBy(1000 + 1)
+            dispatcher.scheduler.runCurrent()
+            assertEquals(before + 1, refreshes(repository))
+            repository.setConnectionState(ConnectionState.Disconnected())
+            dispatcher.scheduler.runCurrent()
+
+            val older = FakeBleControlRepository()
+            connectedWithProtocol(older, EVENTS_MIN_PROTOCOL_VERSION - 1)
+            val olderBefore = refreshes(older)
+            dispatcher.scheduler.advanceTimeBy(STATUS_POLL_INTERVAL_MS + 1)
+            dispatcher.scheduler.runCurrent()
+            assertEquals(olderBefore + 1, refreshes(older))
+            older.setConnectionState(ConnectionState.Disconnected())
+            dispatcher.scheduler.runCurrent()
         }
 }

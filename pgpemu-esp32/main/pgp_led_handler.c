@@ -5,6 +5,7 @@
 #include "freertos/task.h"
 #include "log_tags.h"
 #include "pgp_autobutton.h"
+#include "pgp_control.h"
 #include "pgp_handshake_multi.h"
 #include "settings.h"
 #include "stats.h"
@@ -104,21 +105,25 @@ void handle_led_notify_from_app(esp_gatt_if_t gatts_if, uint16_t conn_id, const 
         ESP_LOGD(LEDHANDLER_TAG, "[%d] Turn LEDs off.", conn_id);
     } else if (count_white && count_white == count_notoff) {
         // only white - bag is full
+        pgp_control_emit_event(PGP_EVENT_BAG_FULL, conn_id);
         if (device_settings) {
             ESP_LOGW(LEDHANDLER_TAG, "[%d] Bag is full", conn_id);
         }
     } else if (count_red && count_off && count_red == count_notoff) {
         // blinking just red - pokeballs empty or stop out of range
+        pgp_control_emit_event(PGP_EVENT_BALLS_EMPTY, conn_id);
         if (device_settings) {
             ESP_LOGW(LEDHANDLER_TAG, "[%d] Pokeballs are empty or Pokestop went out of range", conn_id);
         }
     } else if (count_red && !count_off && count_red == count_notoff) {
         // only red - box is full
+        pgp_control_emit_event(PGP_EVENT_BOX_FULL, conn_id);
         if (device_settings) {
             ESP_LOGW(LEDHANDLER_TAG, "[%d] Box is full", conn_id);
         }
     } else if (count_green && count_green == count_notoff) {
         // blinking green
+        pgp_control_emit_event(PGP_EVENT_POKEMON_IN_RANGE, conn_id);
         if (device_settings) {
             ESP_LOGI(LEDHANDLER_TAG, "[%d] Pokemon in range", conn_id);
             if (device_settings->autocatch) {
@@ -127,6 +132,7 @@ void handle_led_notify_from_app(esp_gatt_if_t gatts_if, uint16_t conn_id, const 
         }
     } else if (count_yellow && count_yellow == count_notoff) {
         // blinking yellow
+        pgp_control_emit_event(PGP_EVENT_NEW_POKEMON_IN_RANGE, conn_id);
         if (device_settings) {
             ESP_LOGI(LEDHANDLER_TAG, "[%d] New pokemon in range", conn_id);
             if (device_settings->autocatch) {
@@ -135,6 +141,7 @@ void handle_led_notify_from_app(esp_gatt_if_t gatts_if, uint16_t conn_id, const 
         }
     } else if (count_blue && count_blue == count_notoff) {
         // blinking blue - pokestop in range
+        pgp_control_emit_event(PGP_EVENT_POKESTOP_IN_RANGE, conn_id);
         if (device_settings && device_settings->autospin) {
             ESP_LOGI(LEDHANDLER_TAG, "[%d] Pokestop in range: pressing button", conn_id);
             press_button = true;
@@ -142,9 +149,11 @@ void handle_led_notify_from_app(esp_gatt_if_t gatts_if, uint16_t conn_id, const 
     } else if (count_ballshake) {
         if (count_blue && count_green) {
             increment_caught(conn_id);
+            pgp_control_emit_event(PGP_EVENT_CAUGHT, conn_id);
             ESP_LOGI(LEDHANDLER_TAG, "[%d] Caught Pokemon after %d ball shakes.", conn_id, count_ballshake);
         } else if (count_red) {
             increment_fled(conn_id);
+            pgp_control_emit_event(PGP_EVENT_FLED, conn_id);
             ESP_LOGW(LEDHANDLER_TAG, "[%d] Pokemon fled after %d ball shakes.", conn_id, count_ballshake);
         } else {
             ESP_LOGE(LEDHANDLER_TAG,
@@ -155,6 +164,7 @@ void handle_led_notify_from_app(esp_gatt_if_t gatts_if, uint16_t conn_id, const 
     } else if (count_red && count_green && count_blue && !count_off) {
         // blinking grb-grb...
         increment_spin(conn_id);
+        pgp_control_emit_event(PGP_EVENT_ITEMS_RECEIVED, conn_id);
         ESP_LOGI(LEDHANDLER_TAG, "[%d] Got items from Pokestop.", conn_id);
     } else {
         if (device_settings && (device_settings->autospin || device_settings->autocatch)) {

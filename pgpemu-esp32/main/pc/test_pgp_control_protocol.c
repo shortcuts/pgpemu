@@ -25,6 +25,8 @@ uint8_t PGP_BLOB[256] = { 0xb0 };
 
 static uint8_t sent[600];
 static uint16_t sent_len, sent_conn;
+static bool sent_confirm;
+static uint16_t sent_handle;
 static int sent_count, advertise_calls, reset_secrets_ok = 1, save_ok = 1;
 static int global_writes, device_writes, device_write_slot;
 
@@ -37,7 +39,9 @@ int esp_ble_gatts_start_service(uint16_t h) {
     return 0;
 }
 int esp_ble_gatts_send_indicate(esp_gatt_if_t i, uint16_t conn, uint16_t h, uint16_t len, uint8_t* v, bool confirm) {
-    (void)i, (void)h, (void)confirm;
+    (void)i;
+    sent_handle = h;
+    sent_confirm = confirm;
     memcpy(sent, v, len);
     sent_len = len;
     sent_conn = conn;
@@ -125,6 +129,8 @@ void log_levels_verbose(void) {
 static void reset(void) {
     memset(client_states, 0, sizeof(client_states));
     memset(indicate_in_flight, 0, sizeof(indicate_in_flight));
+    memset(event_notify, 0, sizeof(event_notify));
+    memset(event_seq, 0, sizeof(event_seq));
     active_connections_mutex = NULL;
     active_connections = 0;
     init_handshake_multi();
@@ -141,6 +147,14 @@ static void reset(void) {
     known_devices_init();
     control_handle_table[IDX_CHAR_CONTROL_COMMAND_VAL] = 40;
     control_handle_table[IDX_CHAR_CONTROL_RESPONSE_CFG] = 43;
+    control_handle_table[IDX_CHAR_CONTROL_EVENT_VAL] = 45;
+    control_handle_table[IDX_CHAR_CONTROL_EVENT_CFG] = 46;
+}
+
+static bool write_event_cccd(uint16_t conn_id, uint8_t on) {
+    uint8_t value[2] = { on, 0 };
+    esp_ble_gatts_cb_param_t p = { .write = { .conn_id = conn_id, .handle = 46, .len = 2, .value = value } };
+    return pgp_control_try_handle_write(3, &p);
 }
 
 // Writes `len` bytes to the Command characteristic of conn_id and reports whether the stack handled it.
@@ -613,6 +627,20 @@ static const named_value_t opcode_table[] = {
     { "FORGET_KNOWN_DEVICE", CONTROL_OP_FORGET_KNOWN_DEVICE },
 };
 
+static const named_value_t event_table[] = {
+    { "GAME_CONNECTED", PGP_EVENT_GAME_CONNECTED },
+    { "GAME_DISCONNECTED", PGP_EVENT_GAME_DISCONNECTED },
+    { "POKEMON_IN_RANGE", PGP_EVENT_POKEMON_IN_RANGE },
+    { "NEW_POKEMON_IN_RANGE", PGP_EVENT_NEW_POKEMON_IN_RANGE },
+    { "POKESTOP_IN_RANGE", PGP_EVENT_POKESTOP_IN_RANGE },
+    { "CAUGHT", PGP_EVENT_CAUGHT },
+    { "FLED", PGP_EVENT_FLED },
+    { "ITEMS_RECEIVED", PGP_EVENT_ITEMS_RECEIVED },
+    { "BAG_FULL", PGP_EVENT_BAG_FULL },
+    { "BOX_FULL", PGP_EVENT_BOX_FULL },
+    { "BALLS_EMPTY", PGP_EVENT_BALLS_EMPTY },
+};
+
 static const named_value_t status_table[] = {
     { "OK", CONTROL_STATUS_OK },
     { "ERR_UNKNOWN_OPCODE", CONTROL_STATUS_ERR_UNKNOWN_OPCODE },
@@ -633,6 +661,7 @@ static const struct {
     { "control_service", GATTS_SERVICE_UUID_CONTROL },
     { "command_char", GATTS_CHAR_UUID_CONTROL_COMMAND },
     { "response_char", GATTS_CHAR_UUID_CONTROL_RESPONSE },
+    { "event_char", GATTS_CHAR_UUID_CONTROL_EVENT },
 };
 
 // run_tests.sh runs the binary from the repo root.
@@ -702,6 +731,7 @@ static void uuid_string(const uint8_t* le, char* out) {
 static void test_wire_constants(void) {
     FILE* f = open_fixture();
     check_named_values(f, "opcode", opcode_table, sizeof(opcode_table) / sizeof(opcode_table[0]));
+    check_named_values(f, "event", event_table, sizeof(event_table) / sizeof(event_table[0]));
     check_named_values(f, "status", status_table, sizeof(status_table) / sizeof(status_table[0]));
 
     size_t seen = 0;
@@ -765,9 +795,87 @@ static void test_wire_vectors(void) {
     fclose(f);
 }
 
+// Game link conn 3 sits on slot 0 and conn 7 on slot 1; conn 0 is the subscribed companion link.
+static void setup_events(void) {
+    get_or_create_client_state_entry(3);
+    get_or_create_client_state_entry(7);
+    assert(write_event_cccd(0, 1) && sent_count == 0);
+}
+
+static void test_event_vectors(void) {
+    FILE* f = open_fixture();
+    char line[1024];
+    while (fgets(line, sizeof(line), f)) {
+        if (strncmp(line, "vector_event ", 13) != 0) {
+            continue;
+        }
+        char name[32], type_name[32], frame_hex[16];
+        assert(sscanf(line, "vector_event %31s %31s %15s", name, type_name, frame_hex) == 3);
+        uint8_t want[3];
+        assert(hex_decode(frame_hex, want, sizeof(want)) == sizeof(want));
+        pgp_event_t type = 0;
+        for (size_t i = 0; i < sizeof(event_table) / sizeof(event_table[0]); i++) {
+            if (strcmp(event_table[i].name, type_name) == 0) {
+                type = (pgp_event_t)event_table[i].value;
+            }
+        }
+        assert(type != 0);
+
+        reset();
+        setup_events();
+        pgp_control_emit_event(type, 7);
+        assert(sent_count == 1 && sent_conn == 0 && sent_len == sizeof(want) && memcmp(sent, want, sizeof(want)) == 0);
+        assert(!sent_confirm && sent_handle == 45);
+    }
+    fclose(f);
+}
+
+static void test_event_subscription(void) {
+    reset();
+    get_or_create_client_state_entry(7);
+    pgp_control_emit_event(PGP_EVENT_CAUGHT, 7);
+    assert(sent_count == 0);  // nobody subscribed
+
+    assert(write_event_cccd(0, 1) && write_event_cccd(2, 1));
+    pgp_control_emit_event(PGP_EVENT_CAUGHT, 7);
+    assert(sent_count == 2);  // one per subscribed link
+    pgp_control_emit_event(PGP_EVENT_FLED, 7);
+    assert(sent_count == 4 && sent[0] == 1);  // seq counts per link
+
+    write_event_cccd(0, 0);
+    pgp_control_emit_event(PGP_EVENT_FLED, 7);
+    assert(sent_count == 5 && sent_conn == 2);
+
+    pgp_control_on_disconnect(2);
+    pgp_control_emit_event(PGP_EVENT_FLED, 7);
+    assert(sent_count == 5);
+
+    assert(write_event_cccd(0, 1));  // resubscribing restarts seq
+    pgp_control_emit_event(PGP_EVENT_FLED, 7);
+    assert(sent_count == 6 && sent[0] == 0);
+
+    pgp_control_emit_event(PGP_EVENT_FLED, 9);  // unknown game link: no frame
+    assert(sent_count == 6);
+}
+
+static void test_event_does_not_touch_response_slot(void) {
+    reset();
+    setup_events();
+    cmd1(CONTROL_OP_GET_LED_STATE, 0, 0);
+    assert(sent_count == 1 && indicate_in_flight[0]);
+    pgp_control_emit_event(PGP_EVENT_CAUGHT, 7);
+    assert(sent_count == 2 && indicate_in_flight[0]);
+    pgp_control_on_conf(0);
+    cmd1(CONTROL_OP_GET_LED_STATE, 0, 0);
+    assert(sent_count == 3 && sent_confirm);
+}
+
 int main(void) {
     test_wire_constants();
     test_wire_vectors();
+    test_event_vectors();
+    test_event_subscription();
+    test_event_does_not_touch_response_slot();
     test_unknown_opcode_and_empty_write();
     test_foreign_handles();
     test_global_settings_frame();
