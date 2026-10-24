@@ -20,7 +20,9 @@
     <string name="status_log_level">Log level</string>
     <string name="device_no_devices_connected">No devices connected</string>
     <string name="profile_spin">SPIN</string>
-    <string name="profile_catch">CATCH</string>
+    <string name="profile_catch_off">CATCH off</string>
+    <string name="profile_catch_new">CATCH new</string>
+    <string name="profile_catch_all">CATCH all</string>
     <string name="settings_advertising">Advertising</string>
     <string name="settings_max_connections">Max connections</string>
     <string name="diag_runtime_stats">Runtime stats</string>

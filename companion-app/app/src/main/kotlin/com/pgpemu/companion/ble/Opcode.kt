@@ -36,4 +36,5 @@ object Opcode {
     const val RESET_LIFETIME_STATS: Int = 0x21
     const val GET_CRASH_REPORT: Int = 0x22
     const val CLEAR_CRASH_REPORT: Int = 0x23
+    const val SET_CATCH_MODE: Int = 0x24
 }

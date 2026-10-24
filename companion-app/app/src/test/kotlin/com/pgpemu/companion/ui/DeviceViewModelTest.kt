@@ -34,7 +34,7 @@ private fun clientSummarySlotBytes(
     connId: Int,
     hasSettings: Boolean = false,
     autospin: Boolean = false,
-    autocatch: Boolean = false,
+    catchMode: Int = 0,
     hasStats: Boolean = false,
     handshakeDone: Boolean = connId != 0xFFFF,
     caught: Int = 0,
@@ -50,7 +50,7 @@ private fun clientSummarySlotBytes(
         ((connId shr 8) and 0xFF).toByte(),
         flags.toByte(),
         (if (autospin) 1 else 0).toByte(),
-        (if (autocatch) 1 else 0).toByte(),
+        catchMode.toByte(),
         (caught and 0xFF).toByte(),
         ((caught shr 8) and 0xFF).toByte(),
         (fled and 0xFF).toByte(),
@@ -339,9 +339,9 @@ class DeviceViewModelTest {
                         StatusCode.OK,
                         Opcode.GET_CLIENT_SUMMARY.toByte(),
                         (
-                            clientSummarySlotBytes(connId = 1, hasSettings = true, autospin = true, autocatch = false) +
+                            clientSummarySlotBytes(connId = 1, hasSettings = true, autospin = true, catchMode = 0) +
                                 emptyClientSummarySlot() +
-                                clientSummarySlotBytes(connId = 5, hasSettings = true, autospin = false, autocatch = true) +
+                                clientSummarySlotBytes(connId = 5, hasSettings = true, autospin = false, catchMode = 2) +
                                 emptyClientSummarySlot()
                         ),
                     ),
@@ -360,10 +360,10 @@ class DeviceViewModelTest {
             assertEquals(4, state.settings.maxConnections)
             assertEquals(true, state.status.ledOn)
             assertEquals(true, state.profiles[0].autospin)
-            assertEquals(false, state.profiles[0].autocatch)
+            assertEquals(0, state.profiles[0].catchMode)
             assertNull(state.profiles[1].autospin)
             assertEquals(false, state.profiles[2].autospin)
-            assertEquals(true, state.profiles[2].autocatch)
+            assertEquals(2, state.profiles[2].catchMode)
         }
 
     private fun stubStatusReplies(repository: FakeBleControlRepository) {
@@ -622,6 +622,68 @@ class DeviceViewModelTest {
                 viewModel.uiState.value.profiles[2]
                     .autospin,
             )
+        }
+
+    private fun catchModeDevice(protocol: Int): FakeBleControlRepository {
+        val repository = FakeBleControlRepository()
+        stubStatusReplies(repository)
+        repository.stubResponse(
+            Opcode.GET_DEVICE_INFO,
+            Result.success(ResponseFrame(StatusCode.OK, Opcode.GET_DEVICE_INFO.toByte(), deviceInfoBytes(protocol, 4))),
+        )
+        repository.responder = { opcode, payload ->
+            when (opcode) {
+                Opcode.SET_CATCH_MODE, Opcode.SET_AUTOCATCH ->
+                    Result.success(ResponseFrame(StatusCode.OK, opcode.toByte(), byteArrayOf(payload[1])))
+                else -> null
+            }
+        }
+        return repository
+    }
+
+    @Test
+    fun `cycleCatchMode sends the target mode and walks off, new only, all`() =
+        runTest {
+            val repository = catchModeDevice(10)
+            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+            viewModel.refreshStatus()
+            dispatcher.scheduler.advanceUntilIdle()
+
+            val sent = mutableListOf<List<Byte>>()
+            repeat(3) {
+                viewModel.cycleCatchMode(1)
+                dispatcher.scheduler.advanceUntilIdle()
+            }
+            repository.sentCommands.filter { it.first == Opcode.SET_CATCH_MODE }.forEach { sent += it.second.toList() }
+
+            assertEquals(listOf(listOf<Byte>(1, 2), listOf<Byte>(1, 1), listOf<Byte>(1, 0)), sent)
+            assertEquals(
+                0,
+                viewModel.uiState.value.profiles[1]
+                    .catchMode,
+            )
+        }
+
+    @Test
+    fun `cycleCatchMode on protocol 9 flips with SET_AUTOCATCH`() =
+        runTest {
+            val repository = catchModeDevice(9)
+            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+            viewModel.refreshStatus()
+            dispatcher.scheduler.advanceUntilIdle()
+
+            viewModel.cycleCatchMode(1)
+            dispatcher.scheduler.advanceUntilIdle()
+
+            val (opcode, payload) = repository.sentCommands.single { it.first == Opcode.SET_AUTOCATCH }
+            assertEquals(Opcode.SET_AUTOCATCH, opcode)
+            assertEquals(listOf<Byte>(1, 1), payload.toList())
+            assertEquals(
+                1,
+                viewModel.uiState.value.profiles[1]
+                    .catchMode,
+            )
+            assertFalse(repository.sentCommands.any { it.first == Opcode.SET_CATCH_MODE })
         }
 
     @Test

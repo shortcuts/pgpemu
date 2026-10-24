@@ -672,11 +672,32 @@ static void pgp_control_handle_command_write(esp_gatt_if_t gatts_if,
             break;
         }
         bool val = payload[1] == 1;
-        bool old = opcode == CONTROL_OP_SET_AUTOSPIN ? entry->settings.autospin : entry->settings.autocatch;
+        bool old =
+            opcode == CONTROL_OP_SET_AUTOSPIN ? entry->settings.autospin : entry->settings.catch_mode != PGP_CATCH_OFF;
         bool ok = opcode == CONTROL_OP_SET_AUTOSPIN ? set_device_autospin(payload[0], val)
                                                     : set_device_autocatch(payload[0], val);
         // The new value stays applied on a failed write; the error says it will not survive a reboot.
         if (!ok || (old != val && !write_device_settings_to_nvs(payload[0]))) {
+            status = CONTROL_STATUS_ERR_INTERNAL;
+            break;
+        }
+        resp[0] = payload[1];
+        resp_len = 1;
+        break;
+    }
+    case CONTROL_OP_SET_CATCH_MODE: {
+        if (payload_len < 2 || payload[0] > 3 || payload[1] > PGP_CATCH_NEW_ONLY) {
+            status = CONTROL_STATUS_ERR_MALFORMED_PAYLOAD;
+            break;
+        }
+        client_state_t* entry = get_client_state_entry_by_idx(payload[0]);
+        if (entry == NULL || !entry->has_settings) {
+            status = CONTROL_STATUS_ERR_MALFORMED_PAYLOAD;
+            break;
+        }
+        uint8_t old = entry->settings.catch_mode;
+        if (!set_device_catch_mode(payload[0], payload[1])
+            || (old != payload[1] && !write_device_settings_to_nvs(payload[0]))) {
             status = CONTROL_STATUS_ERR_INTERNAL;
             break;
         }
@@ -717,7 +738,7 @@ static void pgp_control_handle_command_write(esp_gatt_if_t gatts_if,
                 if (entry->has_settings) {
                     flags |= 0x01;
                     autospin = get_setting(&entry->settings.autospin) ? 1 : 0;
-                    autocatch = get_setting(&entry->settings.autocatch) ? 1 : 0;
+                    autocatch = get_setting_uint8(&entry->settings.catch_mode);
                 }
                 if (stats_get_for_conn(entry->conn_id, &stats)) {
                     flags |= 0x02;

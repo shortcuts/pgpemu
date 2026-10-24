@@ -136,7 +136,7 @@ void handle_led_notify_from_app(esp_gatt_if_t gatts_if, uint16_t conn_id, const 
         pgp_control_emit_event(PGP_EVENT_POKEMON_IN_RANGE, conn_id);
         if (device_settings) {
             ESP_LOGI(LEDHANDLER_TAG, "[%d] Pokemon in range", conn_id);
-            if (device_settings->autocatch) {
+            if (device_settings->catch_mode == PGP_CATCH_ALL) {
                 press_button = true;
             }
         }
@@ -146,7 +146,7 @@ void handle_led_notify_from_app(esp_gatt_if_t gatts_if, uint16_t conn_id, const 
         pgp_control_emit_event(PGP_EVENT_NEW_POKEMON_IN_RANGE, conn_id);
         if (device_settings) {
             ESP_LOGI(LEDHANDLER_TAG, "[%d] New pokemon in range", conn_id);
-            if (device_settings->autocatch) {
+            if (device_settings->catch_mode != PGP_CATCH_OFF) {
                 press_button = true;
             }
         }
@@ -181,7 +181,7 @@ void handle_led_notify_from_app(esp_gatt_if_t gatts_if, uint16_t conn_id, const 
         pgp_control_emit_event(PGP_EVENT_ITEMS_RECEIVED, conn_id);
         ESP_LOGI(LEDHANDLER_TAG, "[%d] Got items from Pokestop.", conn_id);
     } else {
-        if (device_settings && (device_settings->autospin || device_settings->autocatch)) {
+        if (device_settings && (device_settings->autospin || device_settings->catch_mode != PGP_CATCH_OFF)) {
             ESP_LOGE(LEDHANDLER_TAG, "[%d] Unhandled Color pattern, pushing button in any case", conn_id);
             press_button = true;
         } else {

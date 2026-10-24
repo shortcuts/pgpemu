@@ -20,7 +20,7 @@
     </p>
     <div class="feature-section" id="profiles-card">
       <ul class="section-bullets">
-        <li>Each card has a <strong>SPIN</strong> dot and a <strong>CATCH</strong> dot. Tap either to turn that behavior on or off for that slot.</li>
+        <li>Each card has a <strong>SPIN</strong> dot and a <strong>CATCH</strong> dot. Tap SPIN to turn it on or off for that slot. Tap CATCH to step through <strong>off</strong>, <strong>new</strong>, and <strong>all</strong>.</li>
         <li>A lit, colored dot means the behavior is on. A dim dot means it's off.</li>
         <li>Underneath, a small counter tracks how many Pokémon were caught (<strong>C</strong>), how many fled (<strong>F</strong>), and how many Pokéstops were spun (<strong>S</strong>) since the device last restarted.</li>
       </ul>
@@ -74,6 +74,13 @@
       a wild Pokémon encounter, the same way pressing the button on a real GO Plus registers a
       catch attempt.
     </p>
+    <p>Autocatch has three modes. The CATCH dot on the card shows which one is active.</p>
+    <ul>
+      <li><strong>CATCH off</strong> — the device never presses for a wild Pokémon.</li>
+      <li><strong>CATCH new</strong> — the device presses only for a Pokémon you have not caught yet, which saves Poké Balls.</li>
+      <li><strong>CATCH all</strong> — the device presses for every wild Pokémon.</li>
+    </ul>
+    <p>CATCH new needs a device updated to the matching firmware version. An older device only offers off and all.</p>
 
     <h2 id="how-it-decides">How it decides when to press</h2>
     <p>
@@ -100,9 +107,9 @@
 
     <h2 id="persisted">Settings stick around</h2>
     <p>
-      The device remembers Autospin and Autocatch for each Pokémon GO account and keeps them
+      The device remembers Autospin and the Autocatch mode for each Pokémon GO account and keeps them
       across reconnects and restarts.
-      An account the device has never seen before starts with both turned on.
+      An account the device has never seen before starts with Autospin on and Autocatch set to all.
     </p>
   </main>
 

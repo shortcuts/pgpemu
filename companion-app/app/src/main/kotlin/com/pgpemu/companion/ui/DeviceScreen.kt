@@ -79,6 +79,7 @@ import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pgpemu.companion.BuildConfig
 import com.pgpemu.companion.R
+import com.pgpemu.companion.ble.CatchMode
 import com.pgpemu.companion.ble.ConnectionState
 import com.pgpemu.companion.ble.CrashReport
 import com.pgpemu.companion.ble.DeviceInfo
@@ -210,7 +211,7 @@ fun DeviceScreen(
                             profiles = uiState.profiles,
                             maxConnections = uiState.settings.maxConnections,
                             onToggleAutospin = viewModel::toggleAutospin,
-                            onToggleAutocatch = viewModel::toggleAutocatch,
+                            onCycleCatchMode = viewModel::cycleCatchMode,
                         )
                     }
                     if (uiState.eventsSupported) {
@@ -697,7 +698,7 @@ private fun DeviceProfilesSection(
     profiles: List<ProfileState>,
     maxConnections: Int?,
     onToggleAutospin: (Int) -> Unit,
-    onToggleAutocatch: (Int) -> Unit,
+    onCycleCatchMode: (Int) -> Unit,
 ) {
     val active = profiles.filter { it.connected }.let { conn -> maxConnections?.let { conn.take(it) } ?: conn }
     SectionCard(title = stringResource(R.string.section_profiles)) {
@@ -710,7 +711,7 @@ private fun DeviceProfilesSection(
                         profile = profile,
                         modifier = Modifier.weight(1f),
                         onToggleAutospin = { onToggleAutospin(profile.index) },
-                        onToggleAutocatch = { onToggleAutocatch(profile.index) },
+                        onCycleCatchMode = { onCycleCatchMode(profile.index) },
                     )
                 }
             }
@@ -851,7 +852,7 @@ private fun RowScope.ProfileChip(
     profile: ProfileState,
     modifier: Modifier,
     onToggleAutospin: () -> Unit,
-    onToggleAutocatch: () -> Unit,
+    onCycleCatchMode: () -> Unit,
 ) {
     val colors = LocalPgpColors.current
     val dash = stringResource(R.string.dash)
@@ -867,7 +868,17 @@ private fun RowScope.ProfileChip(
         Spacer(modifier = Modifier.height(6.dp))
         FlagDot(label = stringResource(R.string.profile_spin), active = profile.autospin == true, onClick = onToggleAutospin)
         Spacer(modifier = Modifier.height(4.dp))
-        FlagDot(label = stringResource(R.string.profile_catch), active = profile.autocatch == true, onClick = onToggleAutocatch)
+        val catchLabel =
+            when (profile.catchMode) {
+                CatchMode.ALL -> R.string.profile_catch_all
+                CatchMode.NEW_ONLY -> R.string.profile_catch_new
+                else -> R.string.profile_catch_off
+            }
+        FlagDot(
+            label = stringResource(catchLabel),
+            active = (profile.catchMode ?: CatchMode.OFF) != CatchMode.OFF,
+            onClick = onCycleCatchMode,
+        )
         Spacer(modifier = Modifier.height(4.dp))
         val warning =
             when (profile.warning) {

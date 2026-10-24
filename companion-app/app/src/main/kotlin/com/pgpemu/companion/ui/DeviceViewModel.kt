@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pgpemu.companion.R
 import com.pgpemu.companion.ble.BleControlRepository
+import com.pgpemu.companion.ble.CatchMode
 import com.pgpemu.companion.ble.ConnectionState
 import com.pgpemu.companion.ble.CrashReport
 import com.pgpemu.companion.ble.DeviceEvent
@@ -19,6 +20,7 @@ import com.pgpemu.companion.ble.OtaTransfer
 import com.pgpemu.companion.ble.ResponseFrame
 import com.pgpemu.companion.ble.ScannedDevice
 import com.pgpemu.companion.ble.StatusCode
+import com.pgpemu.companion.ble.decodeCatchMode
 import com.pgpemu.companion.ble.decodeClientSummary
 import com.pgpemu.companion.ble.decodeCrashReport
 import com.pgpemu.companion.ble.decodeDeviceInfo
@@ -66,6 +68,9 @@ const val LIFETIME_MIN_PROTOCOL_VERSION = 8
 
 // First GET_DEVICE_INFO layout version with the crash report opcodes.
 const val CRASH_MIN_PROTOCOL_VERSION = 9
+
+// First GET_DEVICE_INFO layout version with the SET_CATCH_MODE opcode.
+const val CATCH_MODE_MIN_PROTOCOL_VERSION = 10
 
 // Event-capable firmware pushes changes; the poll only covers what raises no event (other phones' toggles).
 const val EVENT_POLL_INTERVAL_MS = 30_000L
@@ -137,6 +142,7 @@ data class DeviceUiState(
     val otaSupported: Boolean get() = (deviceInfo?.protocolVersion ?: 0) >= OTA_MIN_PROTOCOL_VERSION
     val knownDevicesSupported: Boolean get() = (deviceInfo?.protocolVersion ?: 0) >= KNOWN_DEVICES_MIN_PROTOCOL_VERSION
     val crashSupported: Boolean get() = (deviceInfo?.protocolVersion ?: 0) >= CRASH_MIN_PROTOCOL_VERSION
+    val catchModeSupported: Boolean get() = (deviceInfo?.protocolVersion ?: 0) >= CATCH_MODE_MIN_PROTOCOL_VERSION
     val lifetimeSupported: Boolean get() = knownDevicesSupported && (deviceInfo?.protocolVersion ?: 0) >= LIFETIME_MIN_PROTOCOL_VERSION
 }
 
@@ -194,7 +200,7 @@ data class ProfileState(
     val index: Int,
     val connected: Boolean = false,
     val autospin: Boolean? = null,
-    val autocatch: Boolean? = null,
+    val catchMode: Int? = null,
     val caught: Int? = null,
     val fled: Int? = null,
     val spin: Int? = null,
@@ -513,7 +519,7 @@ class DeviceViewModel
                                             p.copy(
                                                 connected = summary.connected,
                                                 autospin = summary.autospin ?: p.autospin,
-                                                autocatch = summary.autocatch ?: p.autocatch,
+                                                catchMode = summary.catchMode ?: p.catchMode,
                                                 warning = summary.warning,
                                             )
                                         },
@@ -622,13 +628,29 @@ class DeviceViewModel
             }
         }
 
-        fun toggleAutocatch(index: Int) {
-            val target =
+        fun cycleCatchMode(index: Int) {
+            val current =
                 _uiState.value.profiles
                     .getOrNull(index)
-                    ?.autocatch != true
-            runCommand(Opcode.SET_AUTOCATCH, byteArrayOf(index.toByte(), if (target) 1 else 0)) { frame ->
-                decoded(decodeFlag(frame.payload)) { on -> updateProfile(index) { it.copy(autocatch = on) } }
+                    ?.catchMode ?: CatchMode.OFF
+            // Send the target, not "next": a retried frame then cannot step the mode twice.
+            if (_uiState.value.catchModeSupported) {
+                val target =
+                    when (current) {
+                        CatchMode.OFF -> CatchMode.NEW_ONLY
+                        CatchMode.NEW_ONLY -> CatchMode.ALL
+                        else -> CatchMode.OFF
+                    }
+                runCommand(Opcode.SET_CATCH_MODE, byteArrayOf(index.toByte(), target.toByte())) { frame ->
+                    decoded(decodeCatchMode(frame.payload)) { mode -> updateProfile(index) { it.copy(catchMode = mode) } }
+                }
+            } else {
+                val on = current == CatchMode.OFF
+                runCommand(Opcode.SET_AUTOCATCH, byteArrayOf(index.toByte(), if (on) 1 else 0)) { frame ->
+                    decoded(decodeFlag(frame.payload)) { flag ->
+                        updateProfile(index) { it.copy(catchMode = if (flag) CatchMode.ALL else CatchMode.OFF) }
+                    }
+                }
             }
         }
 

@@ -142,7 +142,7 @@ static void test_device_settings_round_trip(void) {
     g_slots[0].has_settings = true;
     g_slots[0].settings.mutex = xSemaphoreCreateMutex();
     g_slots[0].settings.autospin = false;
-    g_slots[0].settings.autocatch = true;
+    g_slots[0].settings.catch_mode = PGP_CATCH_NEW_ONLY;
     memcpy(g_slots[1].remote_bda, BDA_B, 6);
     g_slots[1].has_settings = true;
     g_slots[1].settings.mutex = xSemaphoreCreateMutex();
@@ -150,17 +150,36 @@ static void test_device_settings_round_trip(void) {
     assert(write_devices_settings_to_nvs());
 
     assert(read_stored_device_settings(BDA_A, &out));
-    assert(!out.autospin && out.autocatch);
+    assert(!out.autospin && out.catch_mode == PGP_CATCH_NEW_ONLY);
     assert(read_stored_device_settings(BDA_B, &out));
-    assert(out.autospin && !out.autocatch);
+    assert(out.autospin && out.catch_mode == PGP_CATCH_OFF);
+}
+
+static void test_legacy_catch_values(void) {
+    const struct {
+        int8_t stored;
+        uint8_t want;
+    } cases[] = { { 0, PGP_CATCH_OFF }, { 1, PGP_CATCH_ALL }, { 7, PGP_CATCH_ALL }, { -1, PGP_CATCH_ALL } };
+    for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
+        DeviceSettings out = { 0 };
+        nvs_handle_t h;
+        char key[NVS_KEY_MAX_LEN + 1];
+        nvs_mem_reset();
+        make_device_key_for_option("catch", BDA_A, key);
+        assert(nvs_open("device_settings", NVS_READWRITE, &h) == ESP_OK);
+        nvs_set_i8(h, key, cases[i].stored);
+        nvs_close(h);
+        assert(read_stored_device_settings(BDA_A, &out));
+        assert(out.catch_mode == cases[i].want);
+    }
 }
 
 static void test_device_settings_defaults_and_invalid_bda(void) {
     DeviceSettings out = { 0 };
     esp_bd_addr_t zero = { 0 };
     nvs_mem_reset();
-    assert(!read_stored_device_settings(BDA_A, &out));  // namespace never written
-    assert(out.autospin && out.autocatch);              // defaults survive
+    assert(!read_stored_device_settings(BDA_A, &out));        // namespace never written
+    assert(out.autospin && out.catch_mode == PGP_CATCH_ALL);  // defaults survive
     assert(!read_stored_device_settings(zero, &out));
     assert(!read_stored_device_settings(BDA_A, NULL));
 }
@@ -194,6 +213,7 @@ int main(void) {
     test_global_settings_round_trip();
     test_global_settings_reject_out_of_range();
     test_device_settings_round_trip();
+    test_legacy_catch_values();
     test_device_settings_defaults_and_invalid_bda();
     test_write_single_device_slot();
     printf("test_config_storage: all passed\n");

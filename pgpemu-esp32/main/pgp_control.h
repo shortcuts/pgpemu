@@ -26,7 +26,7 @@ extern uint16_t control_handle_table[CONTROL_LAST_IDX];
 // 2-byte [status][opcode] response header.
 #define CONTROL_MAX_RESPONSE_PAYLOAD (500 - 2)
 // Layout version of GET_DEVICE_INFO; bump on a breaking change (new fields are appended).
-#define CONTROL_PROTOCOL_VERSION 9
+#define CONTROL_PROTOCOL_VERSION 10
 
 typedef enum {
     CONTROL_OP_HELP = 0x01,
@@ -64,6 +64,7 @@ typedef enum {
     CONTROL_OP_RESET_LIFETIME_STATS = 0x21,
     CONTROL_OP_GET_CRASH_REPORT = 0x22,
     CONTROL_OP_CLEAR_CRASH_REPORT = 0x23,
+    CONTROL_OP_SET_CATCH_MODE = 0x24,
 } control_opcode_t;
 
 // Event characteristic frame: [seq][type][slot]; values are wire format, see protocol/control_vectors.txt.

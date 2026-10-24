@@ -279,9 +279,9 @@ size_t dump_client_states_format(char* buf, size_t buf_len) {
             entry->connection_end);
         if (entry->has_settings) {
             buf_writer_appendf(&writer,
-                "  autospin=%s autocatch=%s\n",
+                "  autospin=%s catch=%u\n",
                 get_setting_log_value(&entry->settings.autospin),
-                get_setting_log_value(&entry->settings.autocatch));
+                get_setting_uint8(&entry->settings.catch_mode));
         }
         buf_writer_append_hex(&writer, "state_0_nonce", entry->state_0_nonce, sizeof(entry->state_0_nonce));
         buf_writer_append_hex(&writer, "the_challenge", entry->the_challenge, sizeof(entry->the_challenge));

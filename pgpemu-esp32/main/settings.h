@@ -25,6 +25,8 @@ typedef struct {
 
 extern GlobalSettings global_settings;
 
+typedef enum { PGP_CATCH_OFF = 0, PGP_CATCH_ALL = 1, PGP_CATCH_NEW_ONLY = 2 } pgp_catch_mode_t;
+
 typedef struct {
     // any read/write must lock this
     SemaphoreHandle_t mutex;
@@ -32,7 +34,8 @@ typedef struct {
     esp_bd_addr_t bda;
 
     // gotcha functions
-    bool autocatch, autospin;
+    bool autospin;
+    uint8_t catch_mode;  // pgp_catch_mode_t
 } DeviceSettings;
 
 void init_global_settings();
@@ -42,6 +45,7 @@ bool toggle_device_autospin(uint8_t c);
 bool toggle_device_autocatch(uint8_t c);
 bool set_device_autospin(uint8_t c, bool val);
 bool set_device_autocatch(uint8_t c, bool val);
+bool set_device_catch_mode(uint8_t c, uint8_t mode);
 bool cycle_log_level(uint8_t* var);
 bool get_setting(bool* var);
 char* get_setting_log_value(bool* var);

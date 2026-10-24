@@ -146,7 +146,7 @@ void increment_balls_empty(uint16_t conn_id) {
 // ---- helpers ----
 static void reset(int cert_state) {
     memset(&g_state, 0, sizeof(g_state));
-    g_state.settings.autocatch = true;
+    g_state.settings.catch_mode = PGP_CATCH_ALL;
     g_state.has_settings = true;
     g_state.cert_state = cert_state;
     button_presses = set_attr_calls = indicate_calls = decrypt_calls = reconnect_calls = persist_calls = touch_calls =
@@ -223,10 +223,34 @@ static void test_led_events_classified(void) {
     reset(0);
     call_led(LED_UNHANDLED, sizeof(LED_UNHANDLED));
     assert(button_presses == 1 && emit_calls == 0);
-    g_state.settings.autocatch = false;
+    g_state.settings.catch_mode = PGP_CATCH_OFF;
     call_led(LED_UNHANDLED, sizeof(LED_UNHANDLED));
     assert(button_presses == 1);
     printf("PASS: led events classified\n");
+}
+
+static void test_led_catch_modes(void) {
+    const struct {
+        uint8_t mode;
+        int green, yellow, unhandled;
+    } cases[] = {
+        { PGP_CATCH_OFF, 0, 0, 0 },
+        { PGP_CATCH_ALL, 1, 1, 1 },
+        { PGP_CATCH_NEW_ONLY, 0, 1, 1 },
+    };
+    for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
+        reset(0);
+        g_state.settings.catch_mode = cases[i].mode;
+        call_led(LED_POKEMON_IN_RANGE, sizeof(LED_POKEMON_IN_RANGE));
+        assert(button_presses == cases[i].green);
+        button_presses = 0;
+        call_led(LED_NEW_POKEMON_IN_RANGE, sizeof(LED_NEW_POKEMON_IN_RANGE));
+        assert(button_presses == cases[i].yellow && last_event == PGP_EVENT_NEW_POKEMON_IN_RANGE);
+        button_presses = 0;
+        call_led(LED_UNHANDLED, sizeof(LED_UNHANDLED));
+        assert(button_presses == cases[i].unhandled);
+    }
+    printf("PASS: led catch modes\n");
 }
 
 // One blinking colour (0x14 duration), plus an off pattern when `off` is set.
@@ -367,6 +391,7 @@ static void test_cert_read_slice(void) {
 int main(void) {
     test_led_short_writes_ignored();
     test_led_events_classified();
+    test_led_catch_modes();
     test_led_state_events();
     test_led_warning_kept_until_normal_pattern();
     test_cccd_short_write_ignored();

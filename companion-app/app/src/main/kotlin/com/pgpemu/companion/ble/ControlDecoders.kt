@@ -17,7 +17,8 @@ data class GlobalSettings(
 data class ClientSummary(
     val connected: Boolean,
     val autospin: Boolean?,
-    val autocatch: Boolean?,
+    /** [CatchMode] value; null until the device reports settings. */
+    val catchMode: Int?,
     val caught: Int?,
     val fled: Int?,
     val spin: Int?,
@@ -123,6 +124,15 @@ fun decodeDeviceInfo(p: ByteArray): Result<DeviceInfo> =
 /** LED state and the autospin/autocatch toggles reply with one flag byte. */
 fun decodeFlag(p: ByteArray): Result<Boolean> = p.require(1, "flag").map { p[0] == 1.toByte() }
 
+/** Per-profile catch behavior, as the device stores it. */
+object CatchMode {
+    const val OFF = 0
+    const val ALL = 1
+    const val NEW_ONLY = 2
+}
+
+fun decodeCatchMode(p: ByteArray): Result<Int> = p.require(1, "catch mode").map { p[0].toInt() }
+
 fun decodeLogLevel(p: ByteArray): Result<Int> = p.require(1, "log level").map { p[0].toInt() }
 
 /** One Event characteristic notification; [slot] is the Device Profile index. See protocol/control_vectors.txt. */
@@ -154,7 +164,7 @@ fun decodeClientSummary(payload: ByteArray): Result<List<ClientSummary>> =
             ClientSummary(
                 connected = connId != 0xFFFF && handshakeDone,
                 autospin = if (hasSettings) payload[base + 3] == 1.toByte() else null,
-                autocatch = if (hasSettings) payload[base + 4] == 1.toByte() else null,
+                catchMode = if (hasSettings) (payload[base + 4].toInt() and 0xFF).coerceIn(CatchMode.OFF, CatchMode.NEW_ONLY) else null,
                 caught = if (hasStats) u16(5) else null,
                 fled = if (hasStats) u16(7) else null,
                 spin = if (hasStats) u16(9) else null,

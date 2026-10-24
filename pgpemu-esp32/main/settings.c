@@ -79,9 +79,8 @@ bool toggle_device_autocatch(uint8_t c) {
         return false;
     }
 
-    bool new_value = false;
-    toggle_bool_locked(entry->settings.mutex, &entry->settings.autocatch, &new_value);
-    return new_value;
+    uint8_t mode = entry->settings.catch_mode == PGP_CATCH_OFF ? PGP_CATCH_ALL : PGP_CATCH_OFF;
+    return set_device_catch_mode(c, mode) && mode == PGP_CATCH_ALL;
 }
 
 // Unlike the toggles, assigns the caller's value, so a repeated command cannot flip it back.
@@ -100,10 +99,19 @@ bool set_device_autospin(uint8_t c, bool val) {
            && set_bool_locked(entry->settings.mutex, &entry->settings.autospin, val);
 }
 
-bool set_device_autocatch(uint8_t c, bool val) {
+bool set_device_catch_mode(uint8_t c, uint8_t mode) {
     client_state_t* entry = get_client_state_entry_by_idx(c);
-    return entry != NULL && entry->has_settings
-           && set_bool_locked(entry->settings.mutex, &entry->settings.autocatch, val);
+    if (entry == NULL || !entry->has_settings || mode > PGP_CATCH_NEW_ONLY
+        || !mutex_acquire_timeout(entry->settings.mutex, 10000)) {
+        return false;
+    }
+    entry->settings.catch_mode = mode;
+    mutex_release(entry->settings.mutex);
+    return true;
+}
+
+bool set_device_autocatch(uint8_t c, bool val) {
+    return set_device_catch_mode(c, val ? PGP_CATCH_ALL : PGP_CATCH_OFF);
 }
 
 bool set_setting_bool(bool* var, bool val) {

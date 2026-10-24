@@ -214,7 +214,7 @@ static void setup_summary(void) {
     client_state_t* e = get_or_create_client_state_entry(7);
     e->has_settings = true;
     e->settings.autospin = true;
-    e->settings.autocatch = false;
+    e->settings.catch_mode = PGP_CATCH_OFF;
     e->cert_state = PGP_CERT_DONE;
     e->warning = PGP_WARNING_BOX_FULL;
     increment_caught(7);
@@ -557,9 +557,8 @@ static void test_set_device_payload(void) {
     reset();
     const uint8_t ops[] = { CONTROL_OP_SET_AUTOSPIN, CONTROL_OP_SET_AUTOCATCH };
     for (int k = 0; k < 2; k++) {
-        bool* flag = NULL;
         client_state_t* e = get_or_create_client_state_entry(1 + k);  // conn 1, 2 -> slot 0, 1
-        flag = k ? &e->settings.autocatch : &e->settings.autospin;
+#define FLAG (k ? e->settings.catch_mode == PGP_CATCH_ALL : e->settings.autospin)
 
         cmd1(ops[k], 0, 0);  // payload too short
         assert(sent[0] == CONTROL_STATUS_ERR_MALFORMED_PAYLOAD);
@@ -572,19 +571,54 @@ static void test_set_device_payload(void) {
         pgp_control_on_conf(0);
         e->has_settings = false;
         cmd2(ops[k], (uint8_t)k, 1);  // no profile in slot
-        assert(sent[0] == CONTROL_STATUS_ERR_MALFORMED_PAYLOAD && !*flag);
+        assert(sent[0] == CONTROL_STATUS_ERR_MALFORMED_PAYLOAD && !FLAG);
         pgp_control_on_conf(0);
 
         e->has_settings = true;
         for (int i = 0; i < 2; i++) {  // a repeated frame must not flip the value back
             cmd2(ops[k], (uint8_t)k, 1);
-            assert(sent_len == 3 && sent[0] == CONTROL_STATUS_OK && sent[1] == ops[k] && sent[2] == 1 && *flag);
+            assert(sent_len == 3 && sent[0] == CONTROL_STATUS_OK && sent[1] == ops[k] && sent[2] == 1 && FLAG);
             pgp_control_on_conf(0);
         }
         cmd2(ops[k], (uint8_t)k, 0);
-        assert(sent[0] == CONTROL_STATUS_OK && sent[2] == 0 && !*flag);
+        assert(sent[0] == CONTROL_STATUS_OK && sent[2] == 0 && !FLAG);
+        pgp_control_on_conf(0);
+#undef FLAG
+    }
+}
+
+static void test_set_catch_mode(void) {
+    reset();
+    client_state_t* e = get_or_create_client_state_entry(1);
+    e->has_settings = true;
+    e->settings.catch_mode = PGP_CATCH_ALL;
+
+    cmd1(CONTROL_OP_SET_CATCH_MODE, 0, 0);  // payload too short
+    assert(sent[0] == CONTROL_STATUS_ERR_MALFORMED_PAYLOAD);
+    pgp_control_on_conf(0);
+    cmd2(CONTROL_OP_SET_CATCH_MODE, 4, 1);  // slot out of range
+    assert(sent[0] == CONTROL_STATUS_ERR_MALFORMED_PAYLOAD);
+    pgp_control_on_conf(0);
+    cmd2(CONTROL_OP_SET_CATCH_MODE, 0, 3);  // mode out of range
+    assert(sent[0] == CONTROL_STATUS_ERR_MALFORMED_PAYLOAD && e->settings.catch_mode == PGP_CATCH_ALL);
+    pgp_control_on_conf(0);
+    cmd2(CONTROL_OP_SET_CATCH_MODE, 1, 2);  // no profile in slot
+    assert(sent[0] == CONTROL_STATUS_ERR_MALFORMED_PAYLOAD);
+    pgp_control_on_conf(0);
+
+    for (int i = 0; i < 2; i++) {  // a repeated frame keeps the value
+        cmd2(CONTROL_OP_SET_CATCH_MODE, 0, PGP_CATCH_NEW_ONLY);
+        assert(sent_len == 3 && sent[0] == CONTROL_STATUS_OK && sent[1] == CONTROL_OP_SET_CATCH_MODE
+               && sent[2] == PGP_CATCH_NEW_ONLY && e->settings.catch_mode == PGP_CATCH_NEW_ONLY);
         pgp_control_on_conf(0);
     }
+
+    cmd1(CONTROL_OP_TOGGLE_AUTOCATCH, 0, 1);  // any non-off mode toggles to off
+    assert(sent[0] == CONTROL_STATUS_OK && sent[2] == 0 && e->settings.catch_mode == PGP_CATCH_OFF);
+    pgp_control_on_conf(0);
+    cmd2(CONTROL_OP_SET_AUTOCATCH, 0, 1);
+    assert(sent[0] == CONTROL_STATUS_OK && e->settings.catch_mode == PGP_CATCH_ALL);
+    pgp_control_on_conf(0);
 }
 
 static void test_set_log_level(void) {
@@ -610,7 +644,8 @@ static void test_set_log_level(void) {
 static void test_set_persists_only_on_change(void) {
     reset();
     client_state_t* e = get_or_create_client_state_entry(1);
-    e->has_settings = e->settings.autospin = e->settings.autocatch = true;
+    e->has_settings = e->settings.autospin = true;
+    e->settings.catch_mode = PGP_CATCH_ALL;
     const struct {
         uint8_t op, a, b;
         int len;
@@ -703,6 +738,7 @@ static const named_value_t opcode_table[] = {
     { "RESET_LIFETIME_STATS", CONTROL_OP_RESET_LIFETIME_STATS },
     { "GET_CRASH_REPORT", CONTROL_OP_GET_CRASH_REPORT },
     { "CLEAR_CRASH_REPORT", CONTROL_OP_CLEAR_CRASH_REPORT },
+    { "SET_CATCH_MODE", CONTROL_OP_SET_CATCH_MODE },
 };
 
 static const named_value_t event_table[] = {
@@ -999,6 +1035,7 @@ int main(void) {
     test_ota_frames();
     test_toggle_device_payload();
     test_set_device_payload();
+    test_set_catch_mode();
     test_set_log_level();
     test_set_persists_only_on_change();
     test_set_reports_persist_failure();

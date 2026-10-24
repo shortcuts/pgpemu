@@ -130,7 +130,7 @@ bool read_stored_device_settings(esp_bd_addr_t bda, DeviceSettings* out_settings
     int8_t autospin = 0;
 
     // Set defaults
-    out_settings->autocatch = 1;
+    out_settings->catch_mode = PGP_CATCH_ALL;
     out_settings->autospin = 1;
     memcpy(out_settings->bda, bda, sizeof(esp_bd_addr_t));
 
@@ -162,8 +162,9 @@ bool read_stored_device_settings(esp_bd_addr_t bda, DeviceSettings* out_settings
     make_device_key_for_option(KEY_AUTOCATCH, bda, key_out);
     ESP_LOGD(CONFIG_STORAGE_TAG, "reading autocatch from key: %s", key_out);
     esp_err_t err = nvs_get_i8(device_settings_handle, key_out, &autocatch);
-    if (nvs_read_check(CONFIG_STORAGE_TAG, err, KEY_AUTOCATCH)) {
-        out_settings->autocatch = (bool)autocatch;
+    if (nvs_read_check(CONFIG_STORAGE_TAG, err, KEY_AUTOCATCH) && autocatch >= PGP_CATCH_OFF
+        && autocatch <= PGP_CATCH_NEW_ONLY) {
+        out_settings->catch_mode = (uint8_t)autocatch;
     }
 
     make_device_key_for_option(KEY_AUTOSPIN, bda, key_out);
@@ -268,7 +269,7 @@ bool write_device_settings_to_nvs(uint8_t slot) {
 
     make_device_key_for_option(KEY_AUTOCATCH, entry->remote_bda, key_out);
     ESP_LOGD(CONFIG_STORAGE_TAG, "[%d] writing autocatch to key: %s", entry->conn_id, key_out);
-    err = nvs_set_i8(device_settings_handle, key_out, entry->settings.autocatch);
+    err = nvs_set_i8(device_settings_handle, key_out, entry->settings.catch_mode);
     if (err != ESP_OK) {
         ESP_LOGW(CONFIG_STORAGE_TAG, "[%d] failed to set autocatch: %d", entry->conn_id, err);
         all_ok = false;

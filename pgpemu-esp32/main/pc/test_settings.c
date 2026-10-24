@@ -50,11 +50,14 @@ static void test_device_toggle_is_per_slot(void) {
     assert(g_slots[0].settings.autospin && !g_slots[1].settings.autospin);
     assert(toggle_device_autospin(0) == false);
     assert(toggle_device_autocatch(1) == true);
-    assert(g_slots[1].settings.autocatch && !g_slots[0].settings.autocatch);
+    assert(g_slots[1].settings.catch_mode == PGP_CATCH_ALL && !g_slots[0].settings.catch_mode);
+    g_slots[1].settings.catch_mode = PGP_CATCH_NEW_ONLY;
+    assert(toggle_device_autocatch(1) == false && g_slots[1].settings.catch_mode == PGP_CATCH_OFF);
+    assert(toggle_device_autocatch(1) == true);
 
     // unknown slot or slot without loaded settings: no change, returns false
     g_slots[1].has_settings = false;
-    assert(!toggle_device_autocatch(1) && g_slots[1].settings.autocatch);
+    assert(!toggle_device_autocatch(1) && g_slots[1].settings.catch_mode == PGP_CATCH_ALL);
     assert(!toggle_device_autospin(5));
 }
 
@@ -68,10 +71,12 @@ static void test_device_set_is_idempotent_and_per_slot(void) {
     assert(g_slots[0].settings.autospin && !g_slots[1].settings.autospin);
     assert(set_device_autospin(0, false) && !g_slots[0].settings.autospin);
     assert(set_device_autocatch(1, true) && set_device_autocatch(1, true));
-    assert(g_slots[1].settings.autocatch && !g_slots[0].settings.autocatch);
+    assert(g_slots[1].settings.catch_mode == PGP_CATCH_ALL && !g_slots[0].settings.catch_mode);
+    assert(set_device_catch_mode(1, PGP_CATCH_NEW_ONLY) && g_slots[1].settings.catch_mode == PGP_CATCH_NEW_ONLY);
+    assert(!set_device_catch_mode(1, 3) && g_slots[1].settings.catch_mode == PGP_CATCH_NEW_ONLY);
 
     g_slots[1].has_settings = false;
-    assert(!set_device_autocatch(1, false) && g_slots[1].settings.autocatch);
+    assert(!set_device_autocatch(1, false) && g_slots[1].settings.catch_mode == PGP_CATCH_NEW_ONLY);
     assert(!set_device_autospin(5, true));
 }
 

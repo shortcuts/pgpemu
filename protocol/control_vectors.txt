@@ -56,6 +56,7 @@ opcode GET_LIFETIME_STATS 20
 opcode RESET_LIFETIME_STATS 21
 opcode GET_CRASH_REPORT 22
 opcode CLEAR_CRASH_REPORT 23
+opcode SET_CATCH_MODE 24
 
 event GAME_CONNECTED 01
 event GAME_DISCONNECTED 02
@@ -90,10 +91,13 @@ vector global_settings log2 02 00020201000102
 vector led_state default 07 000701
 vector set_log_level default 1603 001603
 vector set_autospin summary 140000 001400
+vector set_catch_mode summary 240002 002402
+vector set_catch_mode_bad_value summary 240003 0224
+vector set_catch_mode_short default 2400 0224
 vector bad_max_connections default 0f05 020f
 vector client_summary summary 12 00120700170100020001000300ffff000000000000000000ffff000000000000000000ffff000000000000000000
-vector device_info default 13 001309040305000000000000000000000000 prefix
-vector device_info_provisioning provisioning 13 001309040305000000000000000000000001 prefix
+vector device_info default 13 00130a040305000000000000000000000000 prefix
+vector device_info_provisioning provisioning 13 00130a040305000000000000000000000001 prefix
 
 vector_event game_connected GAME_CONNECTED 000101
 vector_event caught CAUGHT 000601
