@@ -28,6 +28,8 @@ class ControlWireVectorsTest {
             "lifetime_stats_short" to StatusCode.ERR_MALFORMED_PAYLOAD,
             "reset_lifetime_stats_missing" to StatusCode.ERR_NOT_FOUND,
             "reset_lifetime_stats_short" to StatusCode.ERR_MALFORMED_PAYLOAD,
+            "crash_report_with_payload" to StatusCode.ERR_MALFORMED_PAYLOAD,
+            "clear_crash_report_busy" to StatusCode.ERR_BUSY,
         )
 
     @Test
@@ -81,6 +83,9 @@ class ControlWireVectorsTest {
                 "reset_lifetime_stats",
                 "reset_lifetime_stats_missing",
                 "reset_lifetime_stats_short",
+                "crash_report_with_payload",
+                "clear_crash_report",
+                "clear_crash_report_busy",
                 -> assertEquals(0, frame.payload.size)
                 "lifetime_stats_stored" ->
                     assertEquals(
@@ -117,13 +122,19 @@ class ControlWireVectorsTest {
                     )
                 "device_info" ->
                     assertEquals(
-                        DeviceInfo(8, 4, 3, 5L, 0L, 0L, "", false),
+                        DeviceInfo(9, 4, 3, 5L, 0L, 0L, "", false),
                         decodeDeviceInfo(frame.payload).getOrThrow(),
                     )
                 "device_info_provisioning" ->
                     assertEquals(
-                        DeviceInfo(8, 4, 3, 5L, 0L, 0L, "", true),
+                        DeviceInfo(9, 4, 3, 5L, 0L, 0L, "", true),
                         decodeDeviceInfo(frame.payload).getOrThrow(),
+                    )
+                "crash_report_none" -> assertEquals(null, decodeCrashReport(frame.payload).getOrThrow())
+                "crash_report" ->
+                    assertEquals(
+                        CrashReport("main", 7L, 0L, 0x42001234L, 0x42005678L, 0x3fc90000L, "abcdef012", listOf(0x42000100L, 0x4037c000L)),
+                        decodeCrashReport(frame.payload).getOrThrow(),
                     )
                 else -> fail("no decode expectation for $name")
             }

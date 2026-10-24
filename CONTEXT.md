@@ -35,6 +35,10 @@ _Avoid_: account, paired device
 Six event counters per Known Device kept in NVS across reboots and reconnects: caught, fled, spin, bag full, box full, balls empty (also Pokéstop out of range). Erased with the Known Device and by Forget Pairings. Distinct from the session counters in `stats.c`, which live in RAM per connection and reset when it ends.
 _Avoid_: totals, history
 
+**Crash Report**:
+A compact summary of the last panic, read once at boot from the core dump in the `coredump` partition: crash task, registers (`mcause`, `mtval`, `pc`, `ra`, `sp`), the first 9 characters of the build's ELF SHA-256, and up to 16 candidate return addresses scanned from the stack. It stays until the app clears it, across reboots and OTA updates. Distinct from the reset reason, which only says the last restart was a panic.
+_Avoid_: crash log, core dump
+
 **Session Secrets**:
 The Pokémon-GO pairing material persisted per Device Profile in the dedicated `pgpsecret` NVS partition, never auto-erased: clone name, MAC, device key, blob. Readable/resettable through the Control Service once bonded; writable only in Provisioning Mode.
 _Avoid_: pairing data, credentials

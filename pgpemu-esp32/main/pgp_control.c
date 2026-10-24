@@ -2,6 +2,7 @@
 
 #include "config_secrets.h"  // reset_secrets(), write_secrets()
 #include "config_storage.h"  // write_global_settings_to_nvs, write_device(s)_settings_to_nvs
+#include "crash_report.h"
 #include "esp_gap_ble_api.h"
 #include "esp_gatt_defs.h"
 #include "esp_log.h"
@@ -553,6 +554,26 @@ static void pgp_control_handle_command_write(esp_gatt_if_t gatts_if,
         } else if (!known_devices_contains(payload)) {
             status = CONTROL_STATUS_ERR_NOT_FOUND;
         } else if (!lifetime_stats_reset(payload)) {
+            status = CONTROL_STATUS_ERR_INTERNAL;
+        }
+        break;
+    }
+    case CONTROL_OP_GET_CRASH_REPORT: {
+        if (payload_len != 0) {
+            status = CONTROL_STATUS_ERR_MALFORMED_PAYLOAD;
+            break;
+        }
+        resp_len = crash_report_encode(resp, sizeof(resp));
+        status = resp_len > 0 ? CONTROL_STATUS_OK : CONTROL_STATUS_ERR_INTERNAL;
+        break;
+    }
+    case CONTROL_OP_CLEAR_CRASH_REPORT: {
+        if (payload_len != 0) {
+            status = CONTROL_STATUS_ERR_MALFORMED_PAYLOAD;
+        } else if (game_link_active()) {
+            // The erase stalls the flash cache, which a live game link cannot afford.
+            status = CONTROL_STATUS_ERR_BUSY;
+        } else if (!crash_report_clear()) {
             status = CONTROL_STATUS_ERR_INTERNAL;
         }
         break;

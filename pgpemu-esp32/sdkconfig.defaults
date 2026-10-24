@@ -18,6 +18,8 @@ CONFIG_BT_BTC_TASK_STACK_SIZE=6144
 # Panic reboots (unattended device) and keeps a core dump in the coredump partition.
 CONFIG_ESP_SYSTEM_PANIC_PRINT_REBOOT=y
 CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH=y
+# crash_report.c needs the ELF summary API
+CONFIG_ESP_COREDUMP_DATA_FORMAT_ELF=y
 
 # A new OTA image must confirm itself (pgp_ota.c) or the bootloader returns to the old slot.
 CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y

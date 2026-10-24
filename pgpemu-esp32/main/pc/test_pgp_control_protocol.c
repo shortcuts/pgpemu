@@ -9,6 +9,7 @@
 #include "../led_output.h"
 #include "../pgp_autobutton.h"
 #include "../pgp_gap.h"
+#include "esp_core_dump.h"
 #include "esp_gap_ble_api.h"
 #include "esp_timer.h"
 #include "nvs_mem.h"
@@ -143,6 +144,7 @@ void log_levels_verbose(void) {
 }
 
 #include "../buf_writer.c"
+#include "../crash_report.c"
 #include "../known_devices.c"
 #include "../lifetime_stats.c"
 #include "../nvs_helper.c"
@@ -172,6 +174,10 @@ static void reset(void) {
     write_secrets_calls = 0;
     nvs_mem_reset();
     known_devices_init();
+    memset(&core_dump_stub_summary, 0, sizeof(core_dump_stub_summary));
+    core_dump_check_result = ESP_ERR_NOT_FOUND;
+    core_dump_erase_result = ESP_OK;
+    crash_report_init();
     memset(entries, 0, sizeof(entries));
     memset(lifetime_store, 0, sizeof(lifetime_store));
     lifetime_writes = 0;
@@ -242,6 +248,24 @@ static void setup_lifetime(void) {
     increment_caught(7);
     increment_bag_full(7);
 }
+static void setup_crash(void) {
+    esp_core_dump_summary_t* s = &core_dump_stub_summary;
+    s->ex_info.mcause = 7;
+    s->exc_pc = 0x42001234;
+    s->ex_info.ra = 0x42005678;
+    s->ex_info.sp = 0x3fc90000;
+    strcpy(s->exc_task, "main");
+    memcpy(s->app_elf_sha256, "abcdef012", 9);
+    const uint32_t stack[3] = { 0x3fc90010, 0x42000100, 0x4037c000 };
+    memcpy(s->exc_bt_info.stackdump, stack, sizeof(stack));
+    s->exc_bt_info.dump_size = sizeof(stack);
+    core_dump_check_result = ESP_OK;
+    crash_report_init();
+}
+static void setup_crash_linked(void) {
+    setup_crash();
+    get_or_create_client_state_entry(7)->cert_state = PGP_CERT_DONE;
+}
 static const struct {
     const char* name;
     void (*fn)(void);
@@ -252,6 +276,8 @@ static const struct {
     { "provisioning", setup_provisioning },
     { "known", setup_known },
     { "lifetime", setup_lifetime },
+    { "crash", setup_crash },
+    { "crash_linked", setup_crash_linked },
 };
 
 int64_t esp_timer_get_time(void) {
@@ -672,6 +698,8 @@ static const named_value_t opcode_table[] = {
     { "FORGET_KNOWN_DEVICE", CONTROL_OP_FORGET_KNOWN_DEVICE },
     { "GET_LIFETIME_STATS", CONTROL_OP_GET_LIFETIME_STATS },
     { "RESET_LIFETIME_STATS", CONTROL_OP_RESET_LIFETIME_STATS },
+    { "GET_CRASH_REPORT", CONTROL_OP_GET_CRASH_REPORT },
+    { "CLEAR_CRASH_REPORT", CONTROL_OP_CLEAR_CRASH_REPORT },
 };
 
 static const named_value_t event_table[] = {

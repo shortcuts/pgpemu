@@ -100,6 +100,7 @@ make companion-lint    # when companion-app/ changed
 | `pgp_autobutton.c` | Per-profile autospin/autocatch button simulation |
 | `known_devices.c` | Known Device index in NVS (`known_devs`, up to 15 records): touch at handshake done, least-recently-seen eviction with keys, settings and bond, rename, forget (PC-tested) |
 | `config_storage.c` / `config_secrets.c` / `nvs_helper.c` / `settings.c` | NVS persistence for Global/Device Settings and Session Secrets (`config_secrets.c` also writes them for the Control Service's PROVISION_SECRETS) |
+| `crash_report.c` | Crash Report: reads the last panic's core dump once at boot, keeps a compact summary in RAM for GET_CRASH_REPORT, erases it on CLEAR_CRASH_REPORT (PC-tested) |
 | `lifetime_stats.c` | Lifetime Stats: per Known Device event counters in NVS, flushed in batches (every 16 events, on disconnect, before restart) |
 | `stats.c` / `log_tags.c` | Runtime (session) stats and log tags |
 

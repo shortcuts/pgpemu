@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.pgpemu.companion.R
 import com.pgpemu.companion.ble.BleControlRepository
 import com.pgpemu.companion.ble.ConnectionState
+import com.pgpemu.companion.ble.CrashReport
 import com.pgpemu.companion.ble.DeviceEvent
 import com.pgpemu.companion.ble.DeviceInfo
 import com.pgpemu.companion.ble.EventType
@@ -19,6 +20,7 @@ import com.pgpemu.companion.ble.ResponseFrame
 import com.pgpemu.companion.ble.ScannedDevice
 import com.pgpemu.companion.ble.StatusCode
 import com.pgpemu.companion.ble.decodeClientSummary
+import com.pgpemu.companion.ble.decodeCrashReport
 import com.pgpemu.companion.ble.decodeDeviceInfo
 import com.pgpemu.companion.ble.decodeFlag
 import com.pgpemu.companion.ble.decodeGlobalSettings
@@ -61,6 +63,9 @@ const val EVENTS_MIN_PROTOCOL_VERSION = 7
 
 // First GET_DEVICE_INFO layout version with the lifetime stats opcodes.
 const val LIFETIME_MIN_PROTOCOL_VERSION = 8
+
+// First GET_DEVICE_INFO layout version with the crash report opcodes.
+const val CRASH_MIN_PROTOCOL_VERSION = 9
 
 // Event-capable firmware pushes changes; the poll only covers what raises no event (other phones' toggles).
 const val EVENT_POLL_INTERVAL_MS = 30_000L
@@ -107,6 +112,8 @@ data class DeviceUiState(
     val knownDevices: List<KnownDevice> = emptyList(),
     /** Lifetime and session counters by phone address; empty when the firmware has none. */
     val knownLifetime: Map<String, LifetimeStats> = emptyMap(),
+    /** Core dump summary of the last panic; null when the device holds none. */
+    val crashReport: CrashReport? = null,
     /** Device Events since the last connect, newest first; the phone clock stamps them. */
     val activity: List<ActivityItem> = emptyList(),
 ) {
@@ -114,6 +121,7 @@ data class DeviceUiState(
         get() = (deviceInfo?.protocolVersion ?: 0) >= EVENTS_MIN_PROTOCOL_VERSION && deviceInfo?.provisioning == false
     val otaSupported: Boolean get() = (deviceInfo?.protocolVersion ?: 0) >= OTA_MIN_PROTOCOL_VERSION
     val knownDevicesSupported: Boolean get() = (deviceInfo?.protocolVersion ?: 0) >= KNOWN_DEVICES_MIN_PROTOCOL_VERSION
+    val crashSupported: Boolean get() = (deviceInfo?.protocolVersion ?: 0) >= CRASH_MIN_PROTOCOL_VERSION
     val lifetimeSupported: Boolean get() = knownDevicesSupported && (deviceInfo?.protocolVersion ?: 0) >= LIFETIME_MIN_PROTOCOL_VERSION
 }
 
@@ -486,7 +494,10 @@ class DeviceViewModel
                             }
                         }
                     }
-                    if (clearError) fetchKnownDevices()
+                    if (clearError) {
+                        fetchKnownDevices()
+                        fetchCrashReport()
+                    }
                     _uiState.update { it.copy(isBusy = false) }
                 }
             }
@@ -499,6 +510,18 @@ class DeviceViewModel
                 decoded(decodeKnownDevices(frame.payload)) { devices -> _uiState.update { it.copy(knownDevices = devices) } }
             }
             if (_uiState.value.lifetimeSupported) fetchLifetime()
+        }
+
+        /** Runs inside the command lock. The report changes only at boot or on dismiss, so the poll skips it. */
+        private suspend fun fetchCrashReport() {
+            if (!_uiState.value.crashSupported) return
+            runStep(Opcode.GET_CRASH_REPORT) { frame ->
+                decoded(decodeCrashReport(frame.payload)) { report -> _uiState.update { it.copy(crashReport = report) } }
+            }
+        }
+
+        fun dismissCrashReport() {
+            runCommand(Opcode.CLEAR_CRASH_REPORT) { _uiState.update { it.copy(crashReport = null) } }
         }
 
         /** Runs inside the command lock; one request per phone, since a list reply would not fit one response. */

@@ -80,6 +80,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pgpemu.companion.BuildConfig
 import com.pgpemu.companion.R
 import com.pgpemu.companion.ble.ConnectionState
+import com.pgpemu.companion.ble.CrashReport
 import com.pgpemu.companion.ble.DeviceInfo
 import com.pgpemu.companion.ble.EventType
 import com.pgpemu.companion.ble.KnownDevice
@@ -199,6 +200,11 @@ fun DeviceScreen(
                 ) {
                     item { StatusSection(uiState.status) }
                     item { DeviceInfoSection(uiState.deviceInfo, uiState.firmwareOutdated) }
+                    val crash = uiState.crashReport
+                    val info = uiState.deviceInfo
+                    if (uiState.crashSupported && crash != null && info != null) {
+                        item { CrashReportSection(crash, info, onDismiss = viewModel::dismissCrashReport) }
+                    }
                     item {
                         DeviceProfilesSection(
                             profiles = uiState.profiles,
@@ -630,6 +636,35 @@ private fun DeviceInfoSection(
         )
         LabeledValue(stringResource(R.string.about_free_heap), info?.let { formatKib(it.freeHeap) } ?: dash)
         LabeledValue(stringResource(R.string.about_min_free_heap), info?.let { formatKib(it.minFreeHeap) } ?: dash, isLast = true)
+    }
+}
+
+@Composable
+private fun CrashReportSection(
+    report: CrashReport,
+    info: DeviceInfo,
+    onDismiss: () -> Unit,
+) {
+    val context = LocalContext.current
+    val colors = LocalPgpColors.current
+    val chooserTitle = stringResource(R.string.crash_report_share_title)
+    SectionCard(title = stringResource(R.string.section_crash_report)) {
+        Text(text = stringResource(R.string.crash_report_body), color = colors.text)
+        LabeledValue(stringResource(R.string.crash_report_task), report.task)
+        LabeledValue(stringResource(R.string.crash_report_address), "0x%08x".format(report.pc))
+        LabeledValue(stringResource(R.string.crash_report_build), report.elfSha, isLast = true)
+        Row {
+            TextButton(
+                onClick = {
+                    val send =
+                        Intent(Intent.ACTION_SEND)
+                            .setType("text/plain")
+                            .putExtra(Intent.EXTRA_TEXT, formatCrashReport(report, info, BuildConfig.VERSION_NAME))
+                    context.startActivity(Intent.createChooser(send, chooserTitle))
+                },
+            ) { Text(stringResource(R.string.crash_report_share), color = colors.accent) }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.crash_report_dismiss), color = colors.accent) }
+        }
     }
 }
 

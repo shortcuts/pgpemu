@@ -97,6 +97,14 @@
     <string name="activity_box_full">Profile %1$d: Pokémon box is full</string>
     <string name="activity_balls_empty">Profile %1$d: out of Poké Balls</string>
     <string name="activity_unknown">Device event</string>
+    <string name="section_crash_report">Crash report</string>
+    <string name="crash_report_body">The device restarted after a crash.</string>
+    <string name="crash_report_task">Where it crashed</string>
+    <string name="crash_report_address">Address</string>
+    <string name="crash_report_build">Firmware build</string>
+    <string name="crash_report_share">Share report</string>
+    <string name="crash_report_dismiss">Dismiss</string>
+    <string name="crash_report_share_title">Share crash report</string>
     <string name="section_known_devices">Known devices</string>
     <string name="known_devices_empty">No phone has finished a Pokémon GO connection yet.</string>
     <string name="known_devices_connected">Connected</string>

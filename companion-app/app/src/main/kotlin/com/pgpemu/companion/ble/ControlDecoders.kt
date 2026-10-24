@@ -55,11 +55,24 @@ data class LifetimeStats(
     val session: List<Int>,
 )
 
+/** Core dump summary of the last panic; [pcs] are stack words in code ranges, candidates to resolve against the build [elfSha]. */
+data class CrashReport(
+    val task: String,
+    val mcause: Long,
+    val mtval: Long,
+    val pc: Long,
+    val ra: Long,
+    val sp: Long,
+    val elfSha: String,
+    val pcs: List<Long>,
+)
+
 const val CLIENT_SUMMARY_RECORD_SIZE = 11
 const val EVENT_FRAME_SIZE = 3
 private const val KNOWN_DEVICE_RECORD_SIZE = 27
 private const val LIFETIME_COUNTERS = 6
 private const val LIFETIME_STATS_SIZE = 1 + LIFETIME_COUNTERS * 4 + LIFETIME_COUNTERS * 2
+private const val CRASH_REPORT_FIXED_SIZE = 47
 private const val KNOWN_DEVICE_NAME_OFFSET = 11
 private const val GLOBAL_SETTINGS_MIN_SIZE = 4
 private const val DEVICE_INFO_MIN_SIZE = 16
@@ -171,6 +184,34 @@ fun decodeLifetimeStats(p: ByteArray): Result<LifetimeStats> =
                 List(LIFETIME_COUNTERS) { i ->
                     (p[25 + 2 * i].toInt() and 0xFF) or ((p[26 + 2 * i].toInt() and 0xFF) shl 8)
                 },
+        )
+    }
+
+/** Layout: see crash_report.h and protocol/control_vectors.txt. Null when the device holds no report. */
+fun decodeCrashReport(p: ByteArray): Result<CrashReport?> =
+    p.require(1, "crash report").mapCatching {
+        if (p[0] == 0.toByte()) return@mapCatching null
+        p.require(CRASH_REPORT_FIXED_SIZE, "crash report").getOrThrow()
+        val count = p[CRASH_REPORT_FIXED_SIZE - 1].toInt() and 0xFF
+        if (p.size != CRASH_REPORT_FIXED_SIZE + 4 * count) {
+            throw DecodeError("crash report: expected ${CRASH_REPORT_FIXED_SIZE + 4 * count} bytes, got ${p.size}")
+        }
+
+        fun u32(offset: Int) = (0 until 4).sumOf { (p[offset + it].toLong() and 0xFF) shl (8 * it) }
+
+        fun text(
+            from: Int,
+            to: Int,
+        ) = String(p, from, p.copyOfRange(from, to).indexOf(0).let { if (it < 0) to - from else it }, Charsets.US_ASCII)
+        CrashReport(
+            task = text(21, 37),
+            mcause = u32(1),
+            mtval = u32(5),
+            pc = u32(9),
+            ra = u32(13),
+            sp = u32(17),
+            elfSha = text(37, 46),
+            pcs = List(count) { u32(CRASH_REPORT_FIXED_SIZE + 4 * it) },
         )
     }
 

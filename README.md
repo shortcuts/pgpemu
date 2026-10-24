@@ -41,6 +41,7 @@ Autocatcher/Gotcha/Pokemon Go Plus device emulator for Pokemon Go, with autospin
 - Activity feed in the companion app: caught, fled, items, bag/box full, and Pokémon GO connect/disconnect, pushed by the device as they happen
 - Known devices list in the companion app: see the paired phones, name them, forget one (the device keeps up to 15)
 - Lifetime stats per phone in the companion app: caught, fled, spins, bag full, box full and out-of-balls counts that survive reboots, with a reset
+- Crash report in the companion app: after a panic, the app shows the crashed task and address, and shares the report for a bug report
 - Firmware update from the companion app over Bluetooth, with automatic rollback if the new firmware does not start
 - Update-available notice in the companion app (checks GitHub once a day)
 - Android 15+ support
@@ -320,6 +321,7 @@ pgpemu/
 │   │   │   ├── config_secrets.c(.h)         # Secret management
 │   │   │   ├── known_devices.c(.h)          # Known Device index
 │   │   │   ├── lifetime_stats.c(.h)         # Lifetime Stats per Known Device
+│   │   │   ├── crash_report.c(.h)           # Crash Report from the last panic's core dump
 │   │   │   ├── settings.c(.h)               # Settings logic
 │   │   │   └── nvs_helper.c(.h)             # NVS utilities
 │   │   │

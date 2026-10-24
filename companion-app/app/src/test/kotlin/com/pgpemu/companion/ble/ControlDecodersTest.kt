@@ -95,6 +95,27 @@ class ControlDecodersTest {
     }
 
     @Test
+    fun `crash report decodes a present frame, an absent one, and rejects a wrong length`() {
+        val frame =
+            ByteArray(47 + 4).also {
+                it[0] = 1
+                it[9] = 0x34 // pc 0x42001234
+                it[10] = 0x12
+                it[12] = 0x42
+                "main".toByteArray().copyInto(it, 21)
+                "abcdef012".toByteArray().copyInto(it, 37)
+                it[46] = 1
+                it[47] = 0x01 // candidate 0x00000001
+            }
+        val report = decodeCrashReport(frame).getOrThrow()!!
+        assertEquals(CrashReport("main", 0L, 0L, 0x42001234L, 0L, 0L, "abcdef012", listOf(1L)), report)
+        assertEquals(null, decodeCrashReport(byteArrayOf(0)).getOrThrow())
+        assertTrue(decodeCrashReport(frame.copyOf(50)).exceptionOrNull() is DecodeError)
+        assertTrue(decodeCrashReport(frame.copyOf(46)).exceptionOrNull() is DecodeError)
+        assertTrue(decodeCrashReport(ByteArray(0)).exceptionOrNull() is DecodeError)
+    }
+
+    @Test
     fun `address and rename payloads are the six address bytes then the name`() {
         assertEquals(listOf(0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0x01), parseAddress("AA:BB:CC:DD:EE:01").map { it.toInt() and 0xFF })
         assertEquals("AABBCCDDEE01" + "41", encodeRename("AA:BB:CC:DD:EE:01", "A").joinToString("") { "%02X".format(it) })

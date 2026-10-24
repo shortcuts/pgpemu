@@ -1,6 +1,7 @@
 package com.pgpemu.companion.ui
 
 import com.pgpemu.companion.ble.ConnectionState
+import com.pgpemu.companion.ble.CrashReport
 import com.pgpemu.companion.ble.DeviceEvent
 import com.pgpemu.companion.ble.EventType
 import com.pgpemu.companion.ble.KnownDevice
@@ -950,6 +951,75 @@ class DeviceViewModelTest {
             assertEquals("AABBCCDDEE01", forgets.single().second.joinToString("") { "%02X".format(it) })
             assertNull(viewModel.uiState.value.pendingConfirmation)
             assertEquals(emptyList<KnownDevice>(), viewModel.uiState.value.knownDevices)
+        }
+
+    private fun crashDevice(
+        protocol: Int,
+        clearStatus: Byte = StatusCode.OK,
+    ): FakeBleControlRepository {
+        val repository = FakeBleControlRepository()
+        stubStatusReplies(repository)
+        repository.stubResponse(
+            Opcode.GET_DEVICE_INFO,
+            Result.success(ResponseFrame(StatusCode.OK, Opcode.GET_DEVICE_INFO.toByte(), deviceInfoBytes(protocol, 4))),
+        )
+        repository.responder = { opcode, _ ->
+            when (opcode) {
+                Opcode.GET_CRASH_REPORT ->
+                    Result.success(ResponseFrame(StatusCode.OK, opcode.toByte(), ByteArray(47).also { it[0] = 1 }))
+                Opcode.CLEAR_CRASH_REPORT -> Result.success(ResponseFrame(clearStatus, opcode.toByte(), byteArrayOf()))
+                else -> null
+            }
+        }
+        return repository
+    }
+
+    @Test
+    fun `crash report is fetched once per connect and dismissing clears it`() =
+        runTest {
+            val repository = crashDevice(9)
+            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+
+            viewModel.refreshStatus()
+            dispatcher.scheduler.advanceUntilIdle()
+            viewModel.refreshStatus(clearError = false)
+            dispatcher.scheduler.advanceUntilIdle()
+
+            assertTrue(viewModel.uiState.value.crashSupported)
+            assertEquals(CrashReport("", 0L, 0L, 0L, 0L, 0L, "", emptyList()), viewModel.uiState.value.crashReport)
+            assertEquals(1, repository.sentCommands.count { it.first == Opcode.GET_CRASH_REPORT })
+
+            viewModel.dismissCrashReport()
+            dispatcher.scheduler.advanceUntilIdle()
+            assertEquals(1, repository.sentCommands.count { it.first == Opcode.CLEAR_CRASH_REPORT })
+            assertNull(viewModel.uiState.value.crashReport)
+        }
+
+    @Test
+    fun `a busy device keeps the crash report and reports the status`() =
+        runTest {
+            val viewModel = DeviceViewModel(crashDevice(9, StatusCode.ERR_BUSY), FakeLastDeviceStore())
+            viewModel.refreshStatus()
+            dispatcher.scheduler.advanceUntilIdle()
+
+            viewModel.dismissCrashReport()
+            dispatcher.scheduler.advanceUntilIdle()
+
+            assertTrue(viewModel.uiState.value.crashReport != null)
+            assertEquals(UiMessage.DeviceStatus(StatusCode.ERR_BUSY.toInt()), viewModel.uiState.value.message)
+        }
+
+    @Test
+    fun `crash report is neither offered nor fetched on protocol 8`() =
+        runTest {
+            val repository = crashDevice(8)
+            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+
+            viewModel.refreshStatus()
+            dispatcher.scheduler.advanceUntilIdle()
+
+            assertFalse(viewModel.uiState.value.crashSupported)
+            assertFalse(repository.sentCommands.any { it.first == Opcode.GET_CRASH_REPORT })
         }
 
     private fun lifetimeFrame(caught: Int) =

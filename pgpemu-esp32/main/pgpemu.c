@@ -1,6 +1,7 @@
 #include "button_input.h"
 #include "config_secrets.h"
 #include "config_storage.h"
+#include "crash_report.h"
 #include "esp_log.h"
 #include "esp_system.h"
 #include "forget_pairings.h"
@@ -29,6 +30,7 @@ void app_main() {
     }
 
     forget_pairings_if_requested();
+    crash_report_init();
 
     init_settings_nvs_partition();
     init_secrets_partition();

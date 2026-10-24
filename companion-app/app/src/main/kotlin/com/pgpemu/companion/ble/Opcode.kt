@@ -34,4 +34,6 @@ object Opcode {
     const val FORGET_KNOWN_DEVICE: Int = 0x1F
     const val GET_LIFETIME_STATS: Int = 0x20
     const val RESET_LIFETIME_STATS: Int = 0x21
+    const val GET_CRASH_REPORT: Int = 0x22
+    const val CLEAR_CRASH_REPORT: Int = 0x23
 }
