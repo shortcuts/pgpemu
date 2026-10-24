@@ -39,6 +39,24 @@ The manual **Alpha Release** workflow (Actions tab, `workflow_dispatch`) builds 
 prerelease tagged `v<base>-alpha.<run_number>`, reusing the same signing secrets. Alphas share the base
 version's `versionCode`, so an alpha cannot be installed over the same-base stable build: uninstall first.
 
+## Smoke Test (maintainer, on device)
+
+`make smoke-test` checks pairing, reconnection and the Control Service on a flashed device. The maintainer runs it. Agents and CI never run it.
+
+```bash
+python3 -m pip install bleak
+make smoke-test ARGS="--name <advertised name> --cycles 10"
+```
+
+* Use `--address <addr>` instead of `--name` when you know the address.
+* The first write bonds the link. Accept the OS pairing dialog.
+* It checks every read opcode, every fixture error vector with the `default` setup, and the malformed-payload reject path of each mutating opcode.
+* It skips destructive opcodes (restart, forget, reset, provisioning, OTA transfer, valid setting writes) and prints them as `SKIP (destructive)`.
+* Each reconnect cycle compares `GET_DEVICE_INFO` with the first sample: protocol version, reset reason, uptime (reboot) and free heap.
+* `--heap-tolerance <bytes>` sets the allowed free-heap drop. Default 1024.
+
+`make smoke-test-selftest` runs the script's hardware-free logic tests. `make test` includes it.
+
 The firmware and companion app share one version managed by release-please. Never edit the `x-release-please-version` line in `companion-app/app/build.gradle.kts` by hand.
 
 Fix all errors. Never suppress without an inline comment explaining the false positive.

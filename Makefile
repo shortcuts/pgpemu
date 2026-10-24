@@ -1,4 +1,4 @@
-.PHONY: build clean menuconfig flash monitor run install format test companion-build companion-build-release companion-install companion-reinstall companion-start companion-log companion-test companion-coverage companion-coverage-open companion-lint companion-format companion-clean wiki-serve
+.PHONY: build clean menuconfig flash monitor run install format test smoke-test smoke-test-selftest companion-build companion-build-release companion-install companion-reinstall companion-start companion-log companion-test companion-coverage companion-coverage-open companion-lint companion-format companion-clean wiki-serve
 .DEFAULT_GOAL := install-deps
 
 IDF_EXPORT := . $(HOME)/esp/v5.4.1/esp-idf/export.sh >/dev/null
@@ -46,6 +46,15 @@ format: ## Formats the firmware C sources
 
 test: ## Runs the PC unit test suite
 	./run_tests.sh
+	$(MAKE) smoke-test-selftest
+
+##@ Hardware smoke test
+
+smoke-test: ## Maintainer only: pairing, reconnect and Control Service check on a flashed device (ARGS="--name <name>")
+	python3 scripts/smoke_test.py $(ARGS)
+
+smoke-test-selftest: ## Runs the smoke test's hardware-free self-test
+	python3 -m unittest discover -s scripts -p 'test_smoke_test.py'
 
 ##@ Companion app (Android)
 

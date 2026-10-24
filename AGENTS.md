@@ -29,7 +29,7 @@ This repository targets **ESP32-C3** firmware built with **ESP-IDF v5.4.1**. The
 * Unit tests for protocol encoding/decoding.
 * Control Service wire vectors: `protocol/control_vectors.txt` feeds the firmware PC test and `ControlWireVectorsTest.kt`. Change the fixture with the Control Service.
 * PC tests include the real firmware `.c`; never re-declare firmware code in a test.
-* On-device integration tests for pairing and reconnection.
+* On-device integration tests for pairing and reconnection: `make smoke-test` is the maintainer's on-device pairing, reconnect and Control Service check. Agents never run it.
 * Packet captures are the source of truth. If tests disagree with captures, tests are wrong.
 
 ## Code Review Bar
