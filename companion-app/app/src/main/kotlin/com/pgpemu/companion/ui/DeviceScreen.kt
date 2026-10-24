@@ -23,7 +23,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
@@ -60,6 +59,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -117,6 +117,7 @@ fun DeviceScreen(
     val colors = LocalPgpColors.current
     val context = LocalContext.current
     var blocker by remember { mutableStateOf<ScanBlocker?>(null) }
+    var tab by rememberSaveable { mutableStateOf(DeviceTab.Dashboard) }
 
     fun granted() = BLE_PERMISSIONS.all { ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED }
 
@@ -195,71 +196,16 @@ fun DeviceScreen(
                     DisconnectRow(onDisconnect = viewModel::disconnect)
                 }
             } else if (uiState.connectionState is ConnectionState.Ready) {
-                LazyColumn(
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    item { StatusSection(uiState.status) }
-                    item { DeviceInfoSection(uiState.deviceInfo, uiState.firmwareOutdated) }
-                    val crash = uiState.crashReport
-                    val info = uiState.deviceInfo
-                    if (uiState.crashSupported && crash != null && info != null) {
-                        item { CrashReportSection(crash, info, onDismiss = viewModel::dismissCrashReport) }
-                    }
-                    item {
-                        DeviceProfilesSection(
-                            profiles = uiState.profiles,
-                            maxConnections = uiState.settings.maxConnections,
-                            onToggleAutospin = viewModel::toggleAutospin,
-                            onCycleCatchMode = viewModel::cycleCatchMode,
-                        )
-                    }
-                    if (uiState.eventsSupported) {
-                        item { ActivityFeedSection(uiState.activity, onClear = viewModel::clearActivity) }
-                    }
-                    if (uiState.knownDevicesSupported) {
-                        item {
-                            KnownDevicesSection(
-                                devices = uiState.knownDevices,
-                                lifetime = uiState.knownLifetime,
-                                onRename = viewModel::renameKnownDevice,
-                                onForget = viewModel::requestForgetKnownDevice,
-                                onResetStats = viewModel::requestResetLifetimeStats,
-                            )
+                Column(modifier = Modifier.weight(1f)) {
+                    Box(modifier = Modifier.weight(1f)) {
+                        when (tab) {
+                            DeviceTab.Dashboard -> DashboardTab(uiState, viewModel)
+                            DeviceTab.Settings -> SettingsTab(uiState, viewModel)
+                            DeviceTab.Diagnostics -> DiagnosticsTab(uiState, viewModel)
+                            DeviceTab.About -> AboutTab(uiState, viewModel)
                         }
                     }
-                    item {
-                        SettingsSection(
-                            status = uiState.status,
-                            settings = uiState.settings,
-                            onToggleAdvertising = viewModel::toggleAdvertising,
-                            onToggleStatusLed = viewModel::toggleStatusLed,
-                            onSetMaxConnections = viewModel::setMaxConnections,
-                            onCycleLogLevel = viewModel::cycleLogLevel,
-                        )
-                    }
-                    item {
-                        DiagnosticsSection(
-                            diagnostics = uiState.diagnostics,
-                            onRefreshStats = viewModel::refreshRuntimeStats,
-                            onRefreshTasks = viewModel::refreshTaskList,
-                            onRefreshClientStates = viewModel::refreshClientStates,
-                            onDisconnectAll = viewModel::disconnectAllClients,
-                        )
-                    }
-                    if (uiState.otaSupported) {
-                        item {
-                            OtaSection(progress = uiState.otaProgress, isBusy = uiState.isBusy, onPicked = viewModel::requestFirmwareUpdate)
-                        }
-                    }
-                    item {
-                        DangerZoneSection(
-                            onForgetPairings = viewModel::requestForgetPairings,
-                            onResetSecrets = viewModel::requestResetSecrets,
-                            onRestart = viewModel::requestRestart,
-                        )
-                    }
-                    item { DisconnectRow(onDisconnect = viewModel::disconnect) }
+                    DeviceTabBar(selected = tab, onSelect = { tab = it })
                 }
             } else {
                 ConnectPanel(
@@ -578,7 +524,7 @@ private fun UpdateNoticeCard(
 }
 
 @Composable
-private fun DisconnectRow(onDisconnect: () -> Unit) {
+internal fun DisconnectRow(onDisconnect: () -> Unit) {
     val colors = LocalPgpColors.current
     OutlinedButton(
         onClick = onDisconnect,
@@ -590,7 +536,7 @@ private fun DisconnectRow(onDisconnect: () -> Unit) {
 }
 
 @Composable
-private fun StatusSection(status: StatusState) {
+internal fun StatusSection(status: StatusState) {
     val dash = stringResource(R.string.dash)
     SectionCard(title = stringResource(R.string.section_status)) {
         LabeledValue(
@@ -619,7 +565,7 @@ private fun StatusSection(status: StatusState) {
 }
 
 @Composable
-private fun DeviceInfoSection(
+internal fun DeviceInfoSection(
     info: DeviceInfo?,
     firmwareOutdated: Boolean,
 ) {
@@ -642,7 +588,7 @@ private fun DeviceInfoSection(
 }
 
 @Composable
-private fun CrashReportSection(
+internal fun CrashReportSection(
     report: CrashReport,
     info: DeviceInfo,
     onDismiss: () -> Unit,
@@ -695,7 +641,7 @@ private fun logLevelName(level: Int) =
     }
 
 @Composable
-private fun DeviceProfilesSection(
+internal fun DeviceProfilesSection(
     profiles: List<ProfileState>,
     maxConnections: Int?,
     onToggleAutospin: (Int) -> Unit,
@@ -738,7 +684,7 @@ private fun activityText(type: Int) =
     }
 
 @Composable
-private fun ActivityFeedSection(
+internal fun ActivityFeedSection(
     items: List<ActivityItem>,
     onClear: () -> Unit,
 ) {
@@ -764,7 +710,7 @@ private fun ActivityFeedSection(
 }
 
 @Composable
-private fun KnownDevicesSection(
+internal fun KnownDevicesSection(
     devices: List<KnownDevice>,
     lifetime: Map<String, LifetimeStats>,
     onRename: (String, String) -> Unit,
@@ -925,7 +871,7 @@ private fun FlagDot(
 }
 
 @Composable
-private fun SettingsSection(
+internal fun SettingsSection(
     status: StatusState,
     settings: SettingsState,
     onToggleAdvertising: () -> Unit,
@@ -997,7 +943,7 @@ private fun StepperButton(
 }
 
 @Composable
-private fun DiagnosticsSection(
+internal fun DiagnosticsSection(
     diagnostics: DiagnosticsState,
     onRefreshStats: () -> Unit,
     onRefreshTasks: () -> Unit,
@@ -1014,7 +960,7 @@ private fun DiagnosticsSection(
 }
 
 @Composable
-private fun OtaSection(
+internal fun OtaSection(
     progress: Int?,
     isBusy: Boolean,
     onPicked: (ByteArray?) -> Unit,
@@ -1043,7 +989,7 @@ private fun OtaSection(
 }
 
 @Composable
-private fun DangerZoneSection(
+internal fun DangerZoneSection(
     onForgetPairings: () -> Unit,
     onResetSecrets: () -> Unit,
     onRestart: () -> Unit,
@@ -1080,7 +1026,7 @@ private fun DangerButton(
 }
 
 @Composable
-private fun SectionCard(
+internal fun SectionCard(
     title: String,
     titleColor: Color? = null,
     content: @Composable ColumnScope.() -> Unit,
@@ -1106,7 +1052,7 @@ private fun SectionCard(
 }
 
 @Composable
-private fun LabeledValue(
+internal fun LabeledValue(
     label: String,
     value: String,
     isLast: Boolean = false,
@@ -1120,7 +1066,7 @@ private fun LabeledValue(
 }
 
 @Composable
-private fun TextRow(
+internal fun TextRow(
     label: String,
     onClick: () -> Unit,
     isLast: Boolean = false,
