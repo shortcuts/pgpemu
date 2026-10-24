@@ -190,6 +190,8 @@ sealed interface UiMessage {
 data class StatusState(
     val ledOn: Boolean? = null,
     val advertisingEnabled: Boolean? = null,
+    /** Status light switch; null when the device firmware is too old to report it. */
+    val ledEnabled: Boolean? = null,
     /** Radio state (starting or on); null when the device firmware is too old to report it. */
     val advertisingActive: Boolean? = null,
     val activeConnections: Int? = null,
@@ -496,6 +498,7 @@ class DeviceViewModel
                                         it.status.copy(
                                             logLevel = g.logLevel,
                                             advertisingEnabled = g.advertisingEnabled,
+                                            ledEnabled = g.ledEnabled,
                                             advertisingActive = g.advertisingActive,
                                             activeConnections = g.activeConnections,
                                         ),
@@ -599,6 +602,14 @@ class DeviceViewModel
             val turningOn = _uiState.value.status.advertisingEnabled != true
             val opcode = if (turningOn) Opcode.ADVERTISE_START else Opcode.ADVERTISE_STOP
             runCommand(opcode) { _uiState.update { it.copy(status = it.status.copy(advertisingEnabled = turningOn)) } }
+        }
+
+        fun toggleStatusLed() {
+            // Send the target, not "toggle": a retried frame then cannot flip it twice.
+            val target = _uiState.value.status.ledEnabled != true
+            runCommand(Opcode.SET_LED_ENABLED, byteArrayOf(if (target) 1 else 0)) { frame ->
+                decoded(decodeFlag(frame.payload)) { on -> _uiState.update { it.copy(status = it.status.copy(ledEnabled = on)) } }
+            }
         }
 
         fun setMaxConnections(value: Int) {

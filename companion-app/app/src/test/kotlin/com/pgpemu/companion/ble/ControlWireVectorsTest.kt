@@ -32,6 +32,8 @@ class ControlWireVectorsTest {
             "clear_crash_report_busy" to StatusCode.ERR_BUSY,
             "set_catch_mode_bad_value" to StatusCode.ERR_MALFORMED_PAYLOAD,
             "set_catch_mode_short" to StatusCode.ERR_MALFORMED_PAYLOAD,
+            "set_led_enabled_bad_value" to StatusCode.ERR_MALFORMED_PAYLOAD,
+            "set_led_enabled_short" to StatusCode.ERR_MALFORMED_PAYLOAD,
         )
 
     @Test
@@ -90,6 +92,8 @@ class ControlWireVectorsTest {
                 "clear_crash_report_busy",
                 "set_catch_mode_bad_value",
                 "set_catch_mode_short",
+                "set_led_enabled_bad_value",
+                "set_led_enabled_short",
                 -> assertEquals(0, frame.payload.size)
                 "lifetime_stats_stored" ->
                     assertEquals(
@@ -112,12 +116,14 @@ class ControlWireVectorsTest {
                 "known_devices_empty" -> assertEquals(emptyList<KnownDevice>(), decodeKnownDevices(frame.payload).getOrThrow())
                 "global_settings" ->
                     assertEquals(
-                        GlobalSettings(2, true, 0, 1, true),
+                        GlobalSettings(2, true, 0, 1, true, true),
                         decodeGlobalSettings(frame.payload).getOrThrow(),
                     )
                 "led_state" -> assertEquals(true, decodeFlag(frame.payload).getOrThrow())
                 "set_log_level" -> assertEquals(3, decodeLogLevel(frame.payload).getOrThrow())
                 "set_catch_mode" -> assertEquals(CatchMode.NEW_ONLY, decodeCatchMode(frame.payload).getOrThrow())
+                "set_led_enabled_off" -> assertEquals(false, decodeFlag(frame.payload).getOrThrow())
+                "set_led_enabled_on" -> assertEquals(true, decodeFlag(frame.payload).getOrThrow())
                 "set_autospin" -> assertEquals(false, decodeFlag(frame.payload).getOrThrow())
                 "client_summary" ->
                     assertEquals(

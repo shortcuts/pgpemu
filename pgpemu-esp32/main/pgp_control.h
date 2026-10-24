@@ -65,6 +65,7 @@ typedef enum {
     CONTROL_OP_GET_CRASH_REPORT = 0x22,
     CONTROL_OP_CLEAR_CRASH_REPORT = 0x23,
     CONTROL_OP_SET_CATCH_MODE = 0x24,
+    CONTROL_OP_SET_LED_ENABLED = 0x25,
 } control_opcode_t;
 
 // Event characteristic frame: [seq][type][slot]; values are wire format, see protocol/control_vectors.txt.

@@ -16,6 +16,10 @@ client_state_t* get_client_state_entry_by_idx(int i) {
 
 #include "../settings.c"
 
+static void test_led_defaults_on(void) {
+    assert(global_settings.led_enabled);
+}
+
 static void test_toggle_and_null(void) {
     bool v = false;
     assert(toggle_setting(&v) && v);
@@ -82,6 +86,7 @@ static void test_device_set_is_idempotent_and_per_slot(void) {
 
 int main(void) {
     init_global_settings();
+    test_led_defaults_on();
     test_toggle_and_null();
     test_cycle_log_level_wraps_after_3();
     test_get_set();

@@ -13,7 +13,7 @@
 #include "freertos/task.h"  // vTaskList
 #include "fw_version.h"     // PGP_FW_VERSION
 #include "known_devices.h"
-#include "led_output.h"  // get_led_advertising
+#include "led_output.h"  // get_led_advertising, led_output_set_enabled
 #include "lifetime_stats.h"
 #include "log_tags.h"
 #include "pgp_gap.h"              // advertise_if_needed, pgp_adv_get_state
@@ -396,7 +396,8 @@ static void pgp_control_handle_command_write(esp_gatt_if_t gatts_if,
         resp[2] = (uint8_t)get_active_connections();
         resp[3] = get_setting_uint8(&global_settings.target_active_connections);
         resp[4] = (uint8_t)pgp_adv_get_state();
-        resp_len = 5;
+        resp[5] = get_setting(&global_settings.led_enabled) ? 1 : 0;
+        resp_len = 6;
         break;
     }
     case CONTROL_OP_SAVE_SETTINGS: {
@@ -717,6 +718,25 @@ static void pgp_control_handle_command_write(esp_gatt_if_t gatts_if,
         }
         apply_log_level(payload[0]);
         if (old != payload[0] && !write_global_settings_to_nvs()) {
+            status = CONTROL_STATUS_ERR_INTERNAL;
+            break;
+        }
+        resp[0] = payload[0];
+        resp_len = 1;
+        break;
+    }
+    case CONTROL_OP_SET_LED_ENABLED: {
+        if (payload_len != 1 || payload[0] > 1) {
+            status = CONTROL_STATUS_ERR_MALFORMED_PAYLOAD;
+            break;
+        }
+        bool old = get_setting(&global_settings.led_enabled);
+        if (!set_setting_bool(&global_settings.led_enabled, payload[0] != 0)) {
+            status = CONTROL_STATUS_ERR_INTERNAL;
+            break;
+        }
+        led_output_set_enabled(payload[0] != 0);
+        if (old != (payload[0] != 0) && !write_global_settings_to_nvs()) {
             status = CONTROL_STATUS_ERR_INTERNAL;
             break;
         }

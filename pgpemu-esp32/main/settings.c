@@ -15,6 +15,7 @@ GlobalSettings global_settings = {
     .target_active_connections = 1,
     .log_level = 1,
     .advertising_enabled = true,
+    .led_enabled = true,
 };
 
 void init_global_settings() {

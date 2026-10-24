@@ -62,6 +62,10 @@ _Avoid_: flash, upgrade
 The boot mode of a device with no Session Secrets: BLE runs with only the Control Service, advertised as "PGPemu Setup". The Companion App uploads the secrets with PROVISION_SECRETS, then restarts the device. Not a stored flag: it is `!PGP_VALID()`.
 _Avoid_: setup mode, recovery mode
 
+**Status LED**:
+The light on GPIO 8. A 50 ms timer shows one pattern for the device state: waiting for a phone, 1-4 game connections, no secrets, or a restart after a crash. The Status light switch (`led_enabled`) turns it off.
+_Avoid_: advertising LED
+
 **Update notice**:
 The dismissible card the Companion App shows when the latest GitHub release is newer than the app or the connected firmware.
 _Avoid_: update badge

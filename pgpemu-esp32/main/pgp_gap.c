@@ -2,7 +2,6 @@
 
 #include "esp_log.h"
 #include "esp_timer.h"
-#include "led_output.h"
 #include "log_tags.h"
 #include "pgp_adv_state.h"
 #include "pgp_handshake_multi.h"
@@ -49,12 +48,10 @@ adv_state_t pgp_adv_get_state(void) {
     return state;
 }
 
-// Moves the state under the lock; the LED mirrors the radio, so it follows only ON and OFF.
 static void adv_set_state(adv_state_t state) {
     portENTER_CRITICAL(&adv_lock);
     adv_state = state;
     portEXIT_CRITICAL(&adv_lock);
-    set_led_advertising(state == ADV_ON);
 }
 
 static void adv_start_failed(void) {

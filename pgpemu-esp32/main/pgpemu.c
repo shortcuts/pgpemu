@@ -62,7 +62,9 @@ void app_main() {
         ESP_LOGI(PGPEMU_TAG, "setup button pressed on boot; continuing startup");
     }
 
-    init_led_output();
+    const bool crashed = reset_reason == ESP_RST_PANIC || reset_reason == ESP_RST_INT_WDT
+                         || reset_reason == ESP_RST_TASK_WDT || reset_reason == ESP_RST_WDT;
+    init_led_output(provisioning, crashed);
 
     if (!provisioning) {
         known_devices_init();
@@ -104,5 +106,6 @@ void app_main() {
     // This prevents deadlock during boot window when advertising needs to query settings.
     global_settings_ready();
 
+    led_output_set_enabled(get_setting(&global_settings.led_enabled));
     advertise_if_needed();
 }

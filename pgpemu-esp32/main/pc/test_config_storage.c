@@ -109,16 +109,19 @@ static void test_global_settings_round_trip(void) {
     global_settings.log_level = 3;
     global_settings.target_active_connections = 2;
     global_settings.advertising_enabled = false;
+    global_settings.led_enabled = false;
     global_settings_ready();
     assert(write_global_settings_to_nvs());
 
     global_settings.log_level = 1;
     global_settings.target_active_connections = 1;
     global_settings.advertising_enabled = true;
+    global_settings.led_enabled = true;
     read_stored_global_settings(true);
     assert(global_settings.log_level == 3);
     assert(global_settings.target_active_connections == 2);
     assert(!global_settings.advertising_enabled);
+    assert(!global_settings.led_enabled);
 }
 
 static void test_global_settings_reject_out_of_range(void) {
@@ -130,8 +133,10 @@ static void test_global_settings_reject_out_of_range(void) {
     nvs_close(h);
     global_settings.log_level = 2;
     global_settings.target_active_connections = 1;
+    global_settings.led_enabled = true;
     read_stored_global_settings(true);
     assert(global_settings.log_level == 2 && global_settings.target_active_connections == 1);
+    assert(global_settings.led_enabled);
 }
 
 static void test_device_settings_round_trip(void) {

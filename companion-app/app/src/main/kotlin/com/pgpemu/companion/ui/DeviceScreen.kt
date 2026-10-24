@@ -233,6 +233,7 @@ fun DeviceScreen(
                             status = uiState.status,
                             settings = uiState.settings,
                             onToggleAdvertising = viewModel::toggleAdvertising,
+                            onToggleStatusLed = viewModel::toggleStatusLed,
                             onSetMaxConnections = viewModel::setMaxConnections,
                             onCycleLogLevel = viewModel::cycleLogLevel,
                         )
@@ -928,6 +929,7 @@ private fun SettingsSection(
     status: StatusState,
     settings: SettingsState,
     onToggleAdvertising: () -> Unit,
+    onToggleStatusLed: () -> Unit,
     onSetMaxConnections: (Int) -> Unit,
     onCycleLogLevel: () -> Unit,
 ) {
@@ -942,6 +944,17 @@ private fun SettingsSection(
             )
         }
         Divider()
+        status.ledEnabled?.let { ledEnabled ->
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+                Text(text = stringResource(R.string.settings_status_light), color = colors.text, modifier = Modifier.weight(1f))
+                Switch(
+                    checked = ledEnabled,
+                    onCheckedChange = { onToggleStatusLed() },
+                    colors = SwitchDefaults.colors(checkedTrackColor = colors.accentDim, checkedThumbColor = colors.accent),
+                )
+            }
+            Divider()
+        }
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
             Text(text = stringResource(R.string.settings_max_connections), color = colors.text, modifier = Modifier.weight(1f))
             Text(

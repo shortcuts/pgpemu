@@ -38,6 +38,7 @@ Autocatcher/Gotcha/Pokemon Go Plus device emulator for Pokemon Go, with autospin
 - Statically loaded secrets (see [Load Pokemon Go Plus Secrets](#load-pokemon-go-plus-secrets)) in [NVS](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/storage/nvs_flash.html)
 - Provisioning mode: a device without secrets starts a setup-only Bluetooth service, and the companion app uploads `secrets.csv` (see [Load Pokemon Go Plus Secrets](#load-pokemon-go-plus-secrets))
 - Toggle autocatch/autospin
+- Status light patterns on the device LED (waiting, connected phones, no secrets, crash restart) with a stealth switch in the companion app
 - Activity feed in the companion app: caught, fled, items, bag/box full, and Pokémon GO connect/disconnect, pushed by the device as they happen
 - Known devices list in the companion app: see the paired phones, name them, forget one (the device keeps up to 15)
 - Lifetime stats per phone in the companion app: caught, fled, spins, bag full, box full and out-of-balls counts that survive reboots, with a reset
@@ -197,7 +198,7 @@ The app is a single scrolling screen, ordered by risk/frequency:
   first, with **Rename** and **Forget**. The device keeps 15 and drops the one
   used longest ago. Each phone shows its all-time and current-connection counts
   and a **Reset stats** button.
-- **Settings** — advertising on/off switch, max-connections stepper, a
+- **Settings** — advertising on/off switch, status light switch, max-connections stepper, a
   **Cycle log level** button. Changes persist to flash automatically.
 - **Diagnostics** — on-demand dumps (runtime stats, FreeRTOS task list,
   BLE client states), each with its own **Refresh** button, plus
@@ -400,6 +401,7 @@ The PGPemu codebase is organized in distinct layers with clear separation of con
 
 #### 5. Feature Layer
 - `pgp_led_handler.c` - LED pattern recognition
+- `pgp_led_pattern.c` / `led_output.c` - Status LED patterns
 - `pgp_autobutton.c` - Button automation
 
 #### 6. System Layer

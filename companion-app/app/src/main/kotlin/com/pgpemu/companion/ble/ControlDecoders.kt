@@ -12,6 +12,8 @@ data class GlobalSettings(
     val maxConnections: Int,
     /** Radio state (starting or on); null when the firmware is too old to report it. */
     val advertisingActive: Boolean?,
+    /** Status light switch; null when the firmware is too old to report it. */
+    val ledEnabled: Boolean?,
 )
 
 data class ClientSummary(
@@ -93,7 +95,7 @@ private fun ByteArray.require(
         Result.failure(DecodeError("$what: expected $size bytes, got ${this.size}"))
     }
 
-/** Layout: log level, advertising enabled, active connections, max connections, [advertising state]. */
+/** Layout: log level, advertising enabled, active connections, max connections, [advertising state], [status light enabled]. */
 fun decodeGlobalSettings(p: ByteArray): Result<GlobalSettings> =
     p.require(GLOBAL_SETTINGS_MIN_SIZE, "global settings").map {
         GlobalSettings(
@@ -102,6 +104,7 @@ fun decodeGlobalSettings(p: ByteArray): Result<GlobalSettings> =
             activeConnections = p[2].toInt() and 0xFF,
             maxConnections = p[3].toInt() and 0xFF,
             advertisingActive = p.getOrNull(4)?.let { it == 1.toByte() || it == 2.toByte() },
+            ledEnabled = p.getOrNull(5)?.let { it == 1.toByte() },
         )
     }
 

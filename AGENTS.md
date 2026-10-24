@@ -95,6 +95,7 @@ make companion-lint    # when companion-app/ changed
 | `pgp_ota.c` | OTA firmware update over the Control Service: arm window, receive session, image validation, rollback confirm timer |
 | `pgp_gap.c` / `pgp_bluetooth.c` | Advertising, pairing/bonding, BLE stack init |
 | `pgp_adv_state.c` | Pure advertising state machine and retry backoff (PC-tested) |
+| `pgp_led_pattern.c` / `led_output.c` | Status LED (GPIO 8): pure pattern table and priority list (PC-tested), driven by a 50 ms `esp_timer` in `led_output.c` |
 | `pgp_led_handler.c` | Parses LED patterns from the game into events |
 | `forget_pairings.c` | Forget Pairings: RTC flag set by the app opcode or a 10 s button hold, `nvs` erased on the next boot; secrets stay |
 | `pgp_autobutton.c` | Per-profile autospin/autocatch button simulation |

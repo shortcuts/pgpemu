@@ -9,9 +9,9 @@ class ControlDecodersTest {
     fun `global settings reject short payload, accept exact and longer`() {
         assertTrue(decodeGlobalSettings(byteArrayOf(1, 1, 2)).exceptionOrNull() is DecodeError)
         val exact = decodeGlobalSettings(byteArrayOf(3, 1, 2, 4)).getOrThrow()
-        assertEquals(GlobalSettings(3, true, 2, 4, null), exact)
-        val longer = decodeGlobalSettings(byteArrayOf(3, 0, 2, 4, 2, 9)).getOrThrow()
-        assertEquals(GlobalSettings(3, false, 2, 4, true), longer)
+        assertEquals(GlobalSettings(3, true, 2, 4, null, null), exact)
+        val longer = decodeGlobalSettings(byteArrayOf(3, 0, 2, 4, 2, 0)).getOrThrow()
+        assertEquals(GlobalSettings(3, false, 2, 4, true, false), longer)
     }
 
     @Test

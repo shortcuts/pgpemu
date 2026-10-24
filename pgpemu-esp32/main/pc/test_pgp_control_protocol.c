@@ -136,6 +136,12 @@ void forget_pairings_and_restart(void) {
 bool get_led_advertising(void) {
     return true;
 }
+static int led_enabled_calls;
+static bool led_enabled_last;
+void led_output_set_enabled(bool enabled) {
+    led_enabled_calls++;
+    led_enabled_last = enabled;
+}
 void log_levels_debug(void) {
 }
 void log_levels_info(void) {
@@ -167,7 +173,9 @@ static void reset(void) {
     global_settings_ready();
     global_settings.target_active_connections = 1;
     global_settings.advertising_enabled = true;
+    global_settings.led_enabled = true;
     global_settings.log_level = 1;
+    led_enabled_calls = 0;
     sent_count = advertise_calls = global_writes = device_writes = 0;
     sent_len = 0;
     save_ok = reset_secrets_ok = write_secrets_ok = pgp_valid = 1;
@@ -316,7 +324,7 @@ static void test_global_settings_frame(void) {
     reset();
     global_settings.log_level = 2;
     cmd1(CONTROL_OP_GET_GLOBAL_SETTINGS, 0, 0);
-    const uint8_t want[] = { CONTROL_STATUS_OK, CONTROL_OP_GET_GLOBAL_SETTINGS, 2, 1, 0, 1, 2 };
+    const uint8_t want[] = { CONTROL_STATUS_OK, CONTROL_OP_GET_GLOBAL_SETTINGS, 2, 1, 0, 1, 2, 1 };
     assert(sent_len == sizeof(want) && memcmp(sent, want, sizeof(want)) == 0);
 }
 
@@ -641,6 +649,27 @@ static void test_set_log_level(void) {
     }
 }
 
+static void test_set_led_enabled(void) {
+    reset();
+    cmd1(CONTROL_OP_SET_LED_ENABLED, 0, 0);
+    assert(sent[0] == CONTROL_STATUS_ERR_MALFORMED_PAYLOAD && global_settings.led_enabled);
+    pgp_control_on_conf(0);
+    cmd1(CONTROL_OP_SET_LED_ENABLED, 2, 1);
+    assert(sent[0] == CONTROL_STATUS_ERR_MALFORMED_PAYLOAD && global_settings.led_enabled && led_enabled_calls == 0);
+    pgp_control_on_conf(0);
+    for (int i = 0; i < 2; i++) {
+        global_writes = 0;
+        cmd1(CONTROL_OP_SET_LED_ENABLED, 0, 1);
+        assert(sent_len == 3 && sent[0] == CONTROL_STATUS_OK && sent[2] == 0);
+        assert(!global_settings.led_enabled && !led_enabled_last && global_writes == (i == 0 ? 1 : 0));
+        pgp_control_on_conf(0);
+    }
+    save_ok = 0;
+    cmd1(CONTROL_OP_SET_LED_ENABLED, 1, 1);
+    assert(sent_len == 2 && sent[0] == CONTROL_STATUS_ERR_INTERNAL && global_settings.led_enabled && led_enabled_last);
+    pgp_control_on_conf(0);
+}
+
 static void test_set_persists_only_on_change(void) {
     reset();
     client_state_t* e = get_or_create_client_state_entry(1);
@@ -739,6 +768,7 @@ static const named_value_t opcode_table[] = {
     { "GET_CRASH_REPORT", CONTROL_OP_GET_CRASH_REPORT },
     { "CLEAR_CRASH_REPORT", CONTROL_OP_CLEAR_CRASH_REPORT },
     { "SET_CATCH_MODE", CONTROL_OP_SET_CATCH_MODE },
+    { "SET_LED_ENABLED", CONTROL_OP_SET_LED_ENABLED },
 };
 
 static const named_value_t event_table[] = {
@@ -1037,6 +1067,7 @@ int main(void) {
     test_set_device_payload();
     test_set_catch_mode();
     test_set_log_level();
+    test_set_led_enabled();
     test_set_persists_only_on_change();
     test_set_reports_persist_failure();
     printf("test_pgp_control_protocol: all passed\n");

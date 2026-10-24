@@ -27,6 +27,10 @@
           <td>Turns Bluetooth advertising on or off. While on, the device is visible to Pokémon GO and the companion app when they scan. Turn it off once everything you need is already paired, so it stops showing up to new scans. Existing connections aren't affected by turning it off. The choice stays in place when a device connects or disconnects. Any phone in Bluetooth range can pair with the device and control it while Advertising is on, so keep it off when you are not pairing.</td>
         </tr>
         <tr>
+          <td><strong>Status light</strong></td>
+          <td>Turns the device's light on or off. While on, the light shows what the device is doing, see <a href="#status-light">Status light</a>. Turn it off if you do not want the device to be noticed. The light can still flash briefly when the device powers on. The app shows this switch only with the matching firmware version. <strong>Forget all pairings</strong> turns the light back on.</td>
+        </tr>
+        <tr>
           <td><strong>Max connections</strong></td>
           <td>The largest number of simultaneous Bluetooth connections the device accepts, from 1 to 4. Lower it to reserve the device for fewer accounts; raise it back up to 4 to allow the full set. See <a href="connect.html#multiple-devices">Multiple connections</a>.</td>
         </tr>
@@ -38,9 +42,43 @@
     </table>
     </div>
 
+    <h2 id="status-light">Status light</h2>
+    <p>
+      The light on the device blinks in a pattern that tells you its state. When two states apply,
+      the one higher in the table wins. With the Status light switch off, the light stays dark.
+    </p>
+
+    <div class="table-wrap">
+    <table class="option-table">
+      <thead><tr><th>What you see</th><th>What it means</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Three long flashes after power-on</td>
+          <td>The device restarted after a crash. The <a href="diagnostics.html#crash-report">Crash report</a> in the app has the details.</td>
+        </tr>
+        <tr>
+          <td>Fast blinking</td>
+          <td>The device has no secrets. Import your secrets file with the app, see <a href="connect.html#setup-device">Set up a device with no secrets</a>.</td>
+        </tr>
+        <tr>
+          <td>1 to 4 blinks, then a pause</td>
+          <td>That many Pokémon GO phones are connected.</td>
+        </tr>
+        <tr>
+          <td>Slow blinking</td>
+          <td>The device waits for a phone to connect.</td>
+        </tr>
+        <tr>
+          <td>Off</td>
+          <td>The device is not advertising and no phone is connected.</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
     <h2 id="saving">Changes are saved automatically</h2>
     <p>
-      Advertising, Max connections, and Log level are saved the moment you change them. They are
+      Advertising, Status light, Max connections, and Log level are saved the moment you change them. They are
       still set the next time the device powers on. If the device is not advertising after a
       restart, press its button to turn Advertising back on. A press under 3 seconds turns Advertising on or
       off. Holding the button for 3 to 9 seconds allows a

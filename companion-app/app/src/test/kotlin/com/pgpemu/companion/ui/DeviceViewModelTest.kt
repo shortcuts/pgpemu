@@ -602,6 +602,39 @@ class DeviceViewModelTest {
         }
 
     @Test
+    fun `toggleStatusLed sends the flipped value and updates state`() =
+        runTest {
+            val repository = FakeBleControlRepository()
+            repository.stubResponse(
+                Opcode.SET_LED_ENABLED,
+                Result.success(ResponseFrame(StatusCode.OK, Opcode.SET_LED_ENABLED.toByte(), byteArrayOf(1))),
+            )
+            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+
+            viewModel.toggleStatusLed()
+            dispatcher.scheduler.advanceUntilIdle()
+
+            val (opcode, payload) = repository.sentCommands.single()
+            assertEquals(Opcode.SET_LED_ENABLED, opcode)
+            assertEquals(listOf<Byte>(1), payload.toList())
+            assertEquals(true, viewModel.uiState.value.status.ledEnabled)
+        }
+
+    @Test
+    fun `toggleStatusLed failure leaves the state unchanged`() =
+        runTest {
+            val repository = FakeBleControlRepository()
+            repository.stubResponse(Opcode.SET_LED_ENABLED, Result.failure(IOException("boom")))
+            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+
+            viewModel.toggleStatusLed()
+            dispatcher.scheduler.advanceUntilIdle()
+
+            assertEquals(null, viewModel.uiState.value.status.ledEnabled)
+            assertEquals(UiMessage.CommandFailed("boom"), viewModel.uiState.value.message)
+        }
+
+    @Test
     fun `toggleAutospin sends profile index as payload and updates that profile`() =
         runTest {
             val repository = FakeBleControlRepository()

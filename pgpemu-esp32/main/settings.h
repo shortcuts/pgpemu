@@ -21,6 +21,9 @@ typedef struct {
 
     // enable/disable BLE advertising to save power
     bool advertising_enabled;
+
+    // status LED patterns; off is stealth mode
+    bool led_enabled;
 } GlobalSettings;
 
 extern GlobalSettings global_settings;

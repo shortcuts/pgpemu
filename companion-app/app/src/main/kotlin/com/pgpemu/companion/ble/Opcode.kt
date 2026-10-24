@@ -37,4 +37,5 @@ object Opcode {
     const val GET_CRASH_REPORT: Int = 0x22
     const val CLEAR_CRASH_REPORT: Int = 0x23
     const val SET_CATCH_MODE: Int = 0x24
+    const val SET_LED_ENABLED: Int = 0x25
 }
