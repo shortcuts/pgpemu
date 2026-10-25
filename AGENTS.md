@@ -14,7 +14,8 @@ This repository targets **ESP32-C3** firmware built with **ESP-IDF v5.4.1**. The
   * `adb shell input tap`, `swipe` and `keyevent` to move between app tabs.
   * `adb shell monkey` or `am start` to launch `com.pgpemu.companion`.
   * Method: follow `~/Documents/locationjoystick`. Use the light theme. Remove real device addresses and other personal data before saving to `docs/wiki/screenshots/`.
-  * Any other adb command (install, push, shell writes, logcat dumps) needs a new explicit instruction.
+  * `make companion-install` or `adb install` to put the current companion build on the phone when the app is missing.
+  * Any other adb command (push, shell writes, logcat dumps) needs a new explicit instruction.
 * **Formatting**: clang-format with project config. If formatting churn obscures diffs, you did it wrong.
 
 ## Architecture Rules
