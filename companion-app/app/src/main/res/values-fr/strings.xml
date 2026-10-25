@@ -131,6 +131,10 @@
     <string name="tab_about">À propos</string>
     <string name="section_about_links">À propos de l\'app</string>
     <string name="about_app_version">Version de l\'app</string>
+    <string name="about_theme">Thème : %1$s</string>
+    <string name="theme_system">Défaut du système</string>
+    <string name="theme_light">Clair</string>
+    <string name="theme_dark">Sombre</string>
     <string name="about_link_language">Langue</string>
     <string name="about_link_wiki">Aide et guides</string>
     <string name="about_link_troubleshooting">Dépannage</string>

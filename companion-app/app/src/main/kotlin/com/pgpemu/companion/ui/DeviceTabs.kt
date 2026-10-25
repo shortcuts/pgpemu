@@ -14,11 +14,16 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pgpemu.companion.BuildConfig
 import com.pgpemu.companion.R
+import com.pgpemu.companion.ui.theme.ThemeMode
+import com.pgpemu.companion.ui.theme.ThemeViewModel
 
 enum class DeviceTab(
     @StringRes val label: Int,
@@ -149,8 +154,9 @@ internal fun AboutTab(
 }
 
 @Composable
-private fun AboutLinksSection() {
+private fun AboutLinksSection(themeViewModel: ThemeViewModel = hiltViewModel()) {
     val context = LocalContext.current
+    val themeMode by themeViewModel.mode.collectAsStateWithLifecycle()
     val links =
         listOf(
             R.string.about_link_wiki to WIKI,
@@ -161,6 +167,11 @@ private fun AboutLinksSection() {
         )
     SectionCard(title = stringResource(R.string.section_about_links)) {
         LabeledValue(stringResource(R.string.about_app_version), BuildConfig.VERSION_NAME)
+        TextRow(
+            stringResource(R.string.about_theme, stringResource(themeMode.label)),
+            onClick = themeViewModel::cycle,
+            isLast = false,
+        )
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             TextRow(stringResource(R.string.about_link_language), onClick = context::openLanguageSettings, isLast = false)
         }
@@ -169,6 +180,15 @@ private fun AboutLinksSection() {
         }
     }
 }
+
+@get:StringRes
+private val ThemeMode.label
+    get() =
+        when (this) {
+            ThemeMode.System -> R.string.theme_system
+            ThemeMode.Light -> R.string.theme_light
+            ThemeMode.Dark -> R.string.theme_dark
+        }
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
 private fun Context.openLanguageSettings() =
