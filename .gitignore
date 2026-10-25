@@ -9,3 +9,4 @@ pgpemu-esp32/main/pc
 .claude/.radin/
 .opencode*
 docs/wiki/firmware/
+__pycache__/
