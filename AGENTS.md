@@ -9,6 +9,12 @@ This repository targets **ESP32-C3** firmware built with **ESP-IDF v5.4.1**. The
 * **Editor**: neovim. Anything else is rejected.
 * **Build**: use the CLI only, never the VSCode ESP-IDF extension. Run `make build` to compile and `make clean` to fullclean. Verify every change builds before calling it done.
 * **Flash**: default is NEVER run `idf.py flash`, `make monitor`, or touch real hardware. Exception: the user may explicitly instruct a flash/monitor in the current session (e.g. "flash it", "run make flash now") — only then run it, and only the command asked for. Without that explicit instruction, the maintainer flashes and tests on-device.
+* **adb (wiki screenshots)**: the maintainer allows a wiki-screenshot task to drive the attached phone for the screenshots only. Allowed commands:
+  * `adb exec-out screencap -p` to capture a screen.
+  * `adb shell input tap`, `swipe` and `keyevent` to move between app tabs.
+  * `adb shell monkey` or `am start` to launch `com.pgpemu.companion`.
+  * Method: follow `~/Documents/locationjoystick`. Use the light theme. Remove real device addresses and other personal data before saving to `docs/wiki/screenshots/`.
+  * Any other adb command (install, push, shell writes, logcat dumps) needs a new explicit instruction.
 * **Formatting**: clang-format with project config. If formatting churn obscures diffs, you did it wrong.
 
 ## Architecture Rules
