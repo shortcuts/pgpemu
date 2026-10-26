@@ -33,6 +33,12 @@ Every page has one content type. Keep each page to a single type.
 
 Do not mix types on one page. If content fits two types, create two pages and link between them.
 
+### Screenshots
+
+Put a screenshot in the section it illustrates. Wrap the section in `<section class="has-shot">` and place `<aside class="shot"><img class="phone-shot" …></aside>` right after the section heading. On wide screens the screenshot floats in the right margin and scrolls with that section only. On narrow screens it sits under the heading. Use one screenshot per section.
+
+Capture in the light theme with `adb exec-out screencap -p`. Crop the status bar and remove device addresses and other personal data. Save to `screenshots/`.
+
 ### Reference pages
 
 Never use a `<table>`. Tables squash or scroll sideways on phones. Give each entry its own heading instead.

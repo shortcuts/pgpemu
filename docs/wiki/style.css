@@ -213,6 +213,28 @@ code{
   display:block;
 }
 
+.shot img{
+  display:block;
+  width:100%;
+  max-width:240px;
+  margin:0 0 16px;
+  border:1px solid var(--border);
+  border-radius:var(--r);
+}
+
+/* Wide screens: the screenshot hangs in the right margin and stays in view while its section scrolls. */
+@media(min-width:1280px){
+  .has-shot{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) 200px;
+    column-gap:32px;
+    margin-right:-232px;
+  }
+  .has-shot > *{grid-column:1}
+  .has-shot > .shot{grid-column:2;grid-row:1 / span 100;margin-top:8px}
+  .shot img{position:sticky;top:24px;margin:0}
+}
+
 .section-bullets{
   flex:1;
   list-style:none;
