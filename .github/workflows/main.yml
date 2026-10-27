@@ -20,11 +20,12 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - uses: jidicula/clang-format-action@v4.15.0
-      with:
-        clang-format-version: '23'
-        check-path: 'pgpemu-esp32'
-        exclude-regex: 'main/pc/aes\.c$'
+    # The jidicula action ships no clang-format 23 image; pip pins the version `make format` uses.
+    - run: pip install clang-format==23.1.4
+
+    - run: |
+        find pgpemu-esp32 \( -name '*.c' -o -name '*.h' \) -not -path '*/main/pc/aes.c' \
+          | xargs clang-format --dry-run --Werror --style=file
 
   unit-tests:
     runs-on: ubuntu-latest
