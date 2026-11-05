@@ -10,3 +10,4 @@ pgpemu-esp32/main/pc
 .opencode*
 docs/wiki/firmware/
 __pycache__/
+.agents/
