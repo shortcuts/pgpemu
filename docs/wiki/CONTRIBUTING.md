@@ -33,6 +33,10 @@ Every page has one content type. Keep each page to a single type.
 
 Do not mix types on one page. If content fits two types, create two pages and link between them.
 
+### Landing hero
+
+Only `index.html` uses the `.hero` block (title, intro, buttons, phone screenshot). Other pages start with a plain `h1`.
+
 ### Screenshots
 
 Put a screenshot in the section it illustrates. Wrap the section in `<section class="has-shot">` and place `<aside class="shot"><img class="phone-shot" …></aside>` right after the section heading. On wide screens the screenshot floats in the right margin and scrolls with that section only. On narrow screens it sits under the heading. Use one screenshot per section.
@@ -64,7 +68,7 @@ The sidebar has five groups in this fixed order:
 - **Help.** Fixing problems. Pages: Common Tasks & FAQ, Troubleshooting.
 - **About.** Project information. Pages: Changelog, Privacy, Acknowledgements.
 
-All nav items live in `docs/wiki/wiki-init.js`, in the `NAV_ITEMS` array. Each group has a `group` name and an `items` array. Read the live array in that file for the current labels.
+All nav items live in `docs/wiki/wiki-init.js`, in the `NAV_ITEMS` array. Each group has a `group` name and an `items` array. Read the live array in that file for the current labels. Groups are collapsible, and the group that holds the current page starts open. The page outline and the "On this page" list come from the `h2` and `h3` ids of each page.
 
 Shape of one group:
 

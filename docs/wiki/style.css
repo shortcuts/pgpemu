@@ -309,8 +309,6 @@ blockquote p, blockquote em{margin:0}
   .page-toc a{display:block;padding:8px 0;min-height:48px}
 }
 
-.page-title{font-size:0.85rem;font-weight:600;color:var(--muted);margin:0 0 8px}
-
 /* ── Feature sections ── */
 .feature-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin:16px 0 32px}
 

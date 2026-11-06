@@ -24,6 +24,17 @@
     ] },
   ];
 
+  var GROUP_ICONS = {'Start': '<path d=\'M3 8.5 8 3l5 5.5M4.5 7.5V13h7V7.5\'/>',
+    'Use': '<path d=\'M3 3.5h4a1 1 0 0 1 1 1V13a1 1 0 0 0-1-1H3zM13 3.5H9a1 1 0 0 0-1 1V13a1 1 0 0 1 1-1h4z\'/>',
+    'Configure': '<path d=\'M3 5h10M3 11h10\'/><circle cx=\'6\' cy=\'5\' r=\'1.5\'/><circle cx=\'10\' cy=\'11\' r=\'1.5\'/>',
+    'Help': '<circle cx=\'8\' cy=\'8\' r=\'5.5\'/><path d=\'M6.3 6.3a1.8 1.8 0 1 1 2.5 1.7c-.5.3-.8.7-.8 1.2M8 11.3v.2\'/>',
+    'About': '<circle cx=\'8\' cy=\'8\' r=\'5.5\'/><path d=\'M8 7.5v3.5M8 5.2v.1\'/>',
+    'Community': '<circle cx=\'6\' cy=\'6\' r=\'2\'/><path d=\'M2.5 12.5c0-2 1.6-3.2 3.5-3.2s3.5 1.2 3.5 3.2M10.5 4.3a2 2 0 0 1 0 3.4M11.5 9.5c1.2.4 2 1.4 2 3\'/>'};
+  var svg = function (body) {
+    return '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + body + '</svg>';
+  };
+  var EXT_ICON = svg('<path d="M6.5 3.5h-3v9h9v-3M9 3h4v4M13 3 7.5 8.5"/>');
+
   var EXT_ITEMS = [
     { href: 'https://github.com/shortcuts/pgpemu/issues/new?labels=enhancement', label: 'Request a feature' },
     { href: 'https://github.com/shortcuts/pgpemu/issues/new?labels=bug', label: 'Report a bug' },
@@ -33,16 +44,18 @@
 
   var navHtml = NAV_ITEMS.map(function (g) {
     var gid = 'nav-group-' + g.group.toLowerCase();
-    return '<div role="group" aria-labelledby="' + gid + '"><span class="nav-group" id="' + gid + '">' + g.group + '</span>' + g.items.map(function (item) {
+    var hasCurrent = g.items.some(function (item) { return item.href === currentFile; });
+    return '<div role="group" aria-labelledby="' + gid + '"><details' + (hasCurrent ? ' open' : '') + '><summary class="nav-group" id="' + gid + '">' + svg(GROUP_ICONS[g.group]) + g.group + '</summary>' + g.items.map(function (item) {
       var cls = item.href === currentFile ? ' class="active" aria-current="page"' : '';
       return '<a href="' + item.href + '"' + cls + '>' + item.label + '</a>';
-    }).join('') + '</div>';
+    }).join('') + '</details></div>';
   }).join('');
 
   navHtml += '<span class="nav-sep"></span>';
-  navHtml += EXT_ITEMS.map(function (item) {
-    return '<a class="nav-ext" href="' + item.href + '" target="_blank" rel="noopener">' + item.label + '</a>';
-  }).join('');
+  navHtml += '<div role="group" aria-labelledby="nav-group-community"><span class="nav-group" id="nav-group-community">' + svg(GROUP_ICONS.Community) + 'Community</span>'
+    + EXT_ITEMS.map(function (item) {
+      return '<a class="nav-ext" href="' + item.href + '" target="_blank" rel="noopener">' + item.label + EXT_ICON + '</a>';
+    }).join('') + '</div>';
 
   var aside = '<aside class="sidebar">'
     + '<a class="brand" href="index.html">'
@@ -50,13 +63,12 @@
     +   '<span class="brand-name">pgpemu</span>'
     + '</a>'
     + '<div id="docsearch"></div>'
-    + '<button class="nav-toggle-btn" aria-label="Toggle navigation"'
-    +   ' onclick="this.closest(\'.sidebar\').querySelector(\'nav\').classList.toggle(\'open\')">'
+    + '<button class="nav-toggle-btn" aria-label="Toggle navigation" aria-expanded="false" aria-controls="site-nav">'
     +   '<svg width="16" height="16" viewBox="0 0 16 16" fill="none">'
     +     '<path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>'
     +   '</svg>'
     + '</button>'
-    + '<nav>' + navHtml + '</nav>'
+    + '<nav id="site-nav" aria-label="Site">' + navHtml + '</nav>'
     + '<div class="sidebar-foot">'
     +   '<a class="gh-star" href="https://github.com/shortcuts/pgpemu" target="_blank" rel="noopener">'
     +     '<svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">'
@@ -73,14 +85,51 @@
 
   document.querySelector('.layout').insertAdjacentHTML('afterbegin', aside);
 
-  fetch('https://api.github.com/repos/shortcuts/pgpemu')
-    .then(function (r) { return r.json(); })
-    .then(function (d) {
-      var n = d.stargazers_count;
-      var t = n >= 1000 ? (n / 1000).toFixed(1) + 'k' : String(n);
-      document.querySelectorAll('.gh-star-count').forEach(function (el) { el.textContent = t; });
-    })
-    .catch(function () {});
+  var mainEl = document.querySelector('main');
+  if (!mainEl.id) mainEl.id = 'main-content';
+  document.body.insertAdjacentHTML('afterbegin', '<a class="skip-link" href="#' + mainEl.id + '">Skip to content</a>'
+    + '<div class="sr-only" id="live-status" role="status"></div>');
+
+  var toggle = document.querySelector('.nav-toggle-btn');
+  var siteNav = document.getElementById('site-nav');
+  // Fixed panel sits under the sticky header, whose height varies, so measure it on open.
+  var setNavOpen = function (open) {
+    if (open) siteNav.style.top = document.querySelector('.sidebar').getBoundingClientRect().bottom + 'px';
+    siteNav.classList.toggle('open', open);
+    toggle.setAttribute('aria-expanded', String(open));
+  };
+  toggle.addEventListener('click', function () {
+    setNavOpen(!siteNav.classList.contains('open'));
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && siteNav.classList.contains('open')) {
+      setNavOpen(false);
+      toggle.focus();
+    }
+  });
+  siteNav.addEventListener('click', function (e) {
+    if (e.target.closest('a')) setNavOpen(false);
+  });
+
+  // Unauthenticated GitHub API allows 60 requests/hour per IP; cache the count for the tab session.
+  var showStars = function (t) {
+    document.querySelectorAll('.gh-star-count').forEach(function (el) { el.textContent = t; });
+  };
+  var cachedStars = null;
+  try { cachedStars = sessionStorage.getItem('pgpemu-stars'); } catch (e) {}
+  if (cachedStars) {
+    showStars(cachedStars);
+  } else {
+    fetch('https://api.github.com/repos/shortcuts/pgpemu')
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var n = d.stargazers_count;
+        var t = n >= 1000 ? (n / 1000).toFixed(1) + 'k' : String(n);
+        showStars(t);
+        try { sessionStorage.setItem('pgpemu-stars', t); } catch (e) {}
+      })
+      .catch(function () {});
+  }
 
   var ds = document.createElement('script');
   ds.src = 'https://cdn.jsdelivr.net/npm/@docsearch/js@4';
@@ -94,6 +143,82 @@
   };
   document.head.appendChild(ds);
 
+  var pageLink = document.querySelector('nav a.active');
+  var outlineHeads = document.querySelectorAll('main h2[id]:not(.item), main h3[id]:not(.item)');
+  if (pageLink && outlineHeads.length) {
+    var outline = document.createElement('div');
+    outline.className = 'nav-outline';
+    var outlineLinks = [];
+    var outlineParent = [];
+    var parentIdx = -1;
+    outlineHeads.forEach(function (h, i) {
+      if (h.tagName === 'H2') parentIdx = i;
+      outlineParent.push(parentIdx);
+      var a = document.createElement('a');
+      a.className = 'nav-' + h.tagName.toLowerCase();
+      a.href = '#' + h.id;
+      a.textContent = h.textContent.trim();
+      outline.appendChild(a);
+      outlineLinks.push(a);
+    });
+    pageLink.after(outline);
+
+    var activeLink = null;
+    // Near page end the target heading cannot reach the top, so later headings also pass the line; pin the hash target until the user scrolls.
+    var pinned = -1;
+    var pinHash = function () {
+      var id = decodeURIComponent(location.hash.slice(1));
+      pinned = Array.prototype.findIndex.call(outlineHeads, function (h) { return h.id === id; });
+    };
+    var spy = function () {
+      var idx = 0;
+      outlineHeads.forEach(function (h, i) {
+        if (h.getBoundingClientRect().top <= window.innerHeight * 0.3) idx = i;
+      });
+      if (pinned >= 0) idx = pinned;
+      var next = outlineLinks[idx];
+      if (next === activeLink) return;
+      if (activeLink) {
+        activeLink.classList.remove('active');
+        activeLink.removeAttribute('aria-current');
+      }
+      next.classList.add('active');
+      next.setAttribute('aria-current', 'true');
+      activeLink = next;
+      outlineLinks.forEach(function (l, i) {
+        if (l.classList.contains('nav-h3')) l.classList.toggle('open', outlineParent[i] === outlineParent[idx]);
+      });
+      if (window.innerWidth > 680) next.scrollIntoView({ block: 'nearest' });
+    };
+    var io = new IntersectionObserver(spy, { rootMargin: '0px 0px -70% 0px' });
+    outlineHeads.forEach(function (h) { io.observe(h); });
+    window.addEventListener('hashchange', function () { pinHash(); spy(); });
+    ['wheel', 'touchmove', 'keydown'].forEach(function (e) {
+      window.addEventListener(e, function () { pinned = -1; }, { passive: true });
+    });
+    pinHash();
+    spy();
+  }
+
+  // "On this page" list: the sidebar outline is hidden behind the menu button on phones, so CSS shows this one only there.
+  var tocHeads = document.querySelectorAll('main h2[id]:not(.item)');
+  var lead = mainEl.querySelector('h1 + p') || mainEl.querySelector('h1');
+  if (lead && tocHeads.length >= 2) {
+    var toc = document.createElement('nav');
+    toc.className = 'page-toc';
+    toc.setAttribute('aria-label', 'On this page');
+    var details = document.createElement('details');
+    details.innerHTML = '<summary>On this page</summary>';
+    tocHeads.forEach(function (h) {
+      var a = document.createElement('a');
+      a.href = '#' + h.id;
+      a.textContent = h.textContent.trim();
+      details.appendChild(a);
+    });
+    toc.appendChild(details);
+    lead.after(toc);
+  }
+
   document.querySelectorAll('main h1[id], main h2[id], main h3[id]').forEach(function (heading) {
     var btn = document.createElement('button');
     btn.className = 'heading-link';
@@ -105,9 +230,17 @@
       + '</svg>';
     btn.addEventListener('click', function () {
       var url = location.origin + location.pathname + '#' + heading.id;
-      navigator.clipboard.writeText(url).catch(function () {});
-      btn.classList.add('copied');
-      setTimeout(function () { btn.classList.remove('copied'); }, 1200);
+      var done = function () {
+        btn.classList.add('copied');
+        document.getElementById('live-status').textContent = 'Link copied';
+        setTimeout(function () {
+          btn.classList.remove('copied');
+          document.getElementById('live-status').textContent = '';
+        }, 1200);
+      };
+      // clipboard is undefined on non-secure origins; fall back to putting the link in the address bar.
+      if (navigator.clipboard) navigator.clipboard.writeText(url).then(done, function () {});
+      else location.hash = heading.id;
     });
     heading.appendChild(btn);
   });
