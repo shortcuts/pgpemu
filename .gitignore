@@ -11,3 +11,4 @@ pgpemu-esp32/main/pc
 docs/wiki/firmware/
 __pycache__/
 .agents/
+.radin/
