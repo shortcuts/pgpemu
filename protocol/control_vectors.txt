@@ -58,6 +58,7 @@ opcode GET_CRASH_REPORT 22
 opcode CLEAR_CRASH_REPORT 23
 opcode SET_CATCH_MODE 24
 opcode SET_LED_ENABLED 25
+opcode GET_BATTERY 26
 
 event GAME_CONNECTED 01
 event GAME_DISCONNECTED 02
@@ -99,10 +100,12 @@ vector set_led_enabled_off default 2500 002500
 vector set_led_enabled_on default 2501 002501
 vector set_led_enabled_bad_value default 2502 0225
 vector set_led_enabled_short default 25 0225
+vector battery_disabled default 26 002600000000
+vector battery_with_payload default 2600 0226
 vector bad_max_connections default 0f05 020f
 vector client_summary summary 12 00120700170100020001000300ffff000000000000000000ffff000000000000000000ffff000000000000000000
-vector device_info default 13 00130b040305000000000000000000000000 prefix
-vector device_info_provisioning provisioning 13 00130b040305000000000000000000000001 prefix
+vector device_info default 13 00130c040305000000000000000000000000 prefix
+vector device_info_provisioning provisioning 13 00130c040305000000000000000000000001 prefix
 
 vector_event game_connected GAME_CONNECTED 000101
 vector_event caught CAUGHT 000601

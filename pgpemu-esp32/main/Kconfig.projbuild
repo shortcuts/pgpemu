@@ -1,0 +1,36 @@
+menu "PGPemu Battery Monitor"
+
+    config PGPEMU_BATTERY_ENABLED
+        bool "Enable battery monitoring"
+        default n
+        help
+            Enable ADC-based battery voltage monitoring.
+            Requires a voltage divider on the configured GPIO pin.
+
+    config PGPEMU_BATTERY_ADC_CHANNEL
+        int "ADC channel number (0-4)"
+        depends on PGPEMU_BATTERY_ENABLED
+        default 2
+        range 0 4
+        help
+            ADC1 channel to read battery voltage from.
+            On XIAO ESP32-C3: channel 0=GPIO0, 1=GPIO1, 2=GPIO2(D0), 3=GPIO3(D1), 4=GPIO4(D2).
+
+    config PGPEMU_BATTERY_FULL_MV
+        int "Full battery voltage (mV)"
+        depends on PGPEMU_BATTERY_ENABLED
+        default 4200
+
+    config PGPEMU_BATTERY_EMPTY_MV
+        int "Empty battery voltage (mV)"
+        depends on PGPEMU_BATTERY_ENABLED
+        default 3300
+
+    config PGPEMU_BATTERY_DIVIDER_RATIO
+        int "Voltage divider ratio"
+        depends on PGPEMU_BATTERY_ENABLED
+        default 2
+        help
+            Ratio of the resistor voltage divider. 2 for equal resistors (e.g. 2x 100k).
+
+endmenu

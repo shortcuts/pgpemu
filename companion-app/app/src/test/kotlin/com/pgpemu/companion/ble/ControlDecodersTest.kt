@@ -121,4 +121,11 @@ class ControlDecodersTest {
         assertEquals("AABBCCDDEE01" + "41", encodeRename("AA:BB:CC:DD:EE:01", "A").joinToString("") { "%02X".format(it) })
         assertEquals(6, encodeRename("AA:BB:CC:DD:EE:01", "").size)
     }
+
+    @Test
+    fun `battery rejects short payload and decodes percent and little-endian millivolts`() {
+        assertTrue(decodeBattery(byteArrayOf(1, 80, 0)).exceptionOrNull() is DecodeError)
+        assertEquals(BatteryInfo(true, 80, 4000), decodeBattery(byteArrayOf(1, 80, 0xA0.toByte(), 0x0F)).getOrThrow())
+        assertEquals(BatteryInfo(false, 0, 0), decodeBattery(byteArrayOf(0, 0, 0, 0)).getOrThrow())
+    }
 }

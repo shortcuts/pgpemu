@@ -16,15 +16,16 @@ Autocatcher/Gotcha/Pokemon Go Plus device emulator for Pokemon Go, with autospin
 2. [Hardware](#hardware)
 3. [Installation & Setup](#installation--setup)
 4. [Configuration](#configuration)
-5. [Usage Guide](#usage-guide)
-6. [Architecture](#architecture)
-7. [Project Structure](#project-structure)
-8. [Code Organization](#code-organization)
-9. [Testing Guide](#testing-guide)
-10. [Manual Testing Guide](#manual-testing-guide)
-11. [Troubleshooting](#troubleshooting)
-12. [Contributing](#contributing)
-13. [References](#references)
+5. [Battery Monitoring](#battery-monitoring)
+6. [Usage Guide](#usage-guide)
+7. [Architecture](#architecture)
+8. [Project Structure](#project-structure)
+9. [Code Organization](#code-organization)
+10. [Testing Guide](#testing-guide)
+11. [Manual Testing Guide](#manual-testing-guide)
+12. [Troubleshooting](#troubleshooting)
+13. [Contributing](#contributing)
+14. [References](#references)
 
 ---
 
@@ -47,6 +48,7 @@ Autocatcher/Gotcha/Pokemon Go Plus device emulator for Pokemon Go, with autospin
 - Game monitor in the companion app (opt-in): alerts when Pokémon GO drops the device, the bag or box is full, or the balls run out, read from the game's notification on the phone
 - Update-available notice in the companion app (checks GitHub once a day)
 - Companion app in English and French, with a per-app language picker on Android 13+
+- Optional battery monitor: the real battery level reaches the phone and the companion app (see [Battery Monitoring](#battery-monitoring))
 - Android 15+ support
 - iOS support
 
@@ -160,6 +162,67 @@ After updating `secrets.csv`, rebuild and flash your device. The secrets live in
 Alternative without rebuilding: flash a device with no secrets (or run **Reset secrets** in the app). It boots into provisioning mode and advertises as "PGPemu Setup". Connect with the companion app and tap **Import secrets.csv**. The device stores the values and restarts. Anyone in Bluetooth range can do this to a device that has no secrets.
 
  Companion app settings (log level, max connections, advertising) start at their defaults.
+
+---
+
+## Battery Monitoring
+
+Optional battery voltage monitoring via ADC. When enabled, the real battery level is reported over Bluetooth (standard Battery Service) and shown in the companion app's Status card. When disabled, the device reports a static 96% battery level.
+
+### Wiring
+
+Connect a voltage divider between your battery's positive terminal and GND, with the midpoint going to an ADC-capable GPIO pin.
+
+```
+Battery +  ── [100kΩ] ── ADC Pin ── [100kΩ] ── GND
+```
+
+Two equal 100kΩ resistors (1/4W or smaller) divide the voltage by 2, keeping the 3.3–4.2V LiPo range within the ADC's safe input range.
+
+> [!WARNING]
+> Do not connect the battery positive directly to the GPIO pin. Always use a voltage divider.
+
+#### XIAO ESP32-C3 Pin Mapping
+
+| Board Label | GPIO | ADC Channel |
+|---|---|---|
+| D0 | GPIO2 | 2 (default) |
+| D1 | GPIO3 | 3 |
+| D2 | GPIO4 | 4 |
+
+### Setup
+
+Enable and configure battery monitoring via `menuconfig`:
+
+```bash
+cd pgpemu-esp32
+idf.py menuconfig  # after `. ~/esp/v5.4.1/esp-idf/export.sh`
+```
+
+Navigate to **PGPemu Battery Monitor** and configure:
+
+| Setting | Default | Description |
+|---|---|---|
+| Enable battery monitoring | off | Enable/disable the feature |
+| ADC channel number | 2 | ADC1 channel matching your wired pin (see table above) |
+| Full battery voltage (mV) | 4200 | Voltage at 100% charge |
+| Empty battery voltage (mV) | 3300 | Voltage at 0% charge |
+| Voltage divider ratio | 2 | Divider ratio (2 for equal resistors) |
+
+After configuring, build and flash:
+
+```bash
+make flash
+```
+
+### Usage
+
+- The companion app shows a **Battery** row on the Status card
+- The device logs the voltage and percentage once at boot
+- Connected phones will see the real battery level in Bluetooth settings
+
+> [!NOTE]
+> The ESP32-C3 ADC has approximately ±5% accuracy. Battery percentage readings may vary slightly from actual voltage measured with a multimeter.
 
 ---
 
@@ -326,6 +389,7 @@ pgpemu/
 │   │   │   ├── known_devices.c(.h)          # Known Device index
 │   │   │   ├── lifetime_stats.c(.h)         # Lifetime Stats per Known Device
 │   │   │   ├── crash_report.c(.h)           # Crash Report from the last panic's core dump
+│   │   │   ├── battery.c(.h)                # Optional ADC battery monitor
 │   │   │   ├── settings.c(.h)               # Settings logic
 │   │   │   └── nvs_helper.c(.h)             # NVS utilities
 │   │   │

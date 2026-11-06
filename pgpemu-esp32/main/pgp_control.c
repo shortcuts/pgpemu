@@ -1,5 +1,6 @@
 #include "pgp_control.h"
 
+#include "battery.h"
 #include "config_secrets.h"  // reset_secrets(), write_secrets()
 #include "config_storage.h"  // write_global_settings_to_nvs, write_device(s)_settings_to_nvs
 #include "crash_report.h"
@@ -582,6 +583,23 @@ static void pgp_control_handle_command_write(esp_gatt_if_t gatts_if,
     case CONTROL_OP_GET_LED_STATE: {
         resp[0] = get_led_advertising() ? 1 : 0;
         resp_len = 1;
+        break;
+    }
+    case CONTROL_OP_GET_BATTERY: {
+        if (payload_len != 0) {
+            status = CONTROL_STATUS_ERR_MALFORMED_PAYLOAD;
+            break;
+        }
+#ifdef CONFIG_PGPEMU_BATTERY_ENABLED
+        uint32_t mv = battery_get_mv();
+        resp[0] = 1;
+        resp[1] = battery_get_percent();
+        resp[2] = (uint8_t)(mv & 0xFF);
+        resp[3] = (uint8_t)((mv >> 8) & 0xFF);
+#else
+        memset(resp, 0, 4);
+#endif
+        resp_len = 4;
         break;
     }
     case CONTROL_OP_CYCLE_LOG_LEVEL: {

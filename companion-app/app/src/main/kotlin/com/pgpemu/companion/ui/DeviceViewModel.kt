@@ -20,6 +20,7 @@ import com.pgpemu.companion.ble.OtaTransfer
 import com.pgpemu.companion.ble.ResponseFrame
 import com.pgpemu.companion.ble.ScannedDevice
 import com.pgpemu.companion.ble.StatusCode
+import com.pgpemu.companion.ble.decodeBattery
 import com.pgpemu.companion.ble.decodeCatchMode
 import com.pgpemu.companion.ble.decodeClientSummary
 import com.pgpemu.companion.ble.decodeCrashReport
@@ -74,6 +75,9 @@ const val CATCH_MODE_MIN_PROTOCOL_VERSION = 10
 
 // First GET_DEVICE_INFO layout version whose known device list reports the Device Profile of a connected phone.
 const val PROFILE_PHONE_MIN_PROTOCOL_VERSION = 11
+
+// First GET_DEVICE_INFO layout version with the GET_BATTERY opcode.
+const val BATTERY_MIN_PROTOCOL_VERSION = 12
 
 // Event-capable firmware pushes changes; the poll only covers what raises no event (other phones' toggles).
 const val EVENT_POLL_INTERVAL_MS = 30_000L
@@ -146,6 +150,7 @@ data class DeviceUiState(
     val knownDevicesSupported: Boolean get() = (deviceInfo?.protocolVersion ?: 0) >= KNOWN_DEVICES_MIN_PROTOCOL_VERSION
     val crashSupported: Boolean get() = (deviceInfo?.protocolVersion ?: 0) >= CRASH_MIN_PROTOCOL_VERSION
     val catchModeSupported: Boolean get() = (deviceInfo?.protocolVersion ?: 0) >= CATCH_MODE_MIN_PROTOCOL_VERSION
+    val batterySupported: Boolean get() = (deviceInfo?.protocolVersion ?: 0) >= BATTERY_MIN_PROTOCOL_VERSION
     val profilePhoneSupported: Boolean
         get() = knownDevicesSupported && (deviceInfo?.protocolVersion ?: 0) >= PROFILE_PHONE_MIN_PROTOCOL_VERSION
     val lifetimeSupported: Boolean get() = knownDevicesSupported && (deviceInfo?.protocolVersion ?: 0) >= LIFETIME_MIN_PROTOCOL_VERSION
@@ -201,6 +206,8 @@ data class StatusState(
     val advertisingActive: Boolean? = null,
     val activeConnections: Int? = null,
     val logLevel: Int? = null,
+    /** Battery percent; null when the device has no battery monitor or the firmware is too old. */
+    val batteryPercent: Int? = null,
 )
 
 data class ProfileState(
@@ -515,6 +522,15 @@ class DeviceViewModel
                     runStep(Opcode.GET_LED_STATE) { frame ->
                         decoded(decodeFlag(frame.payload)) { on ->
                             _uiState.update { it.copy(status = it.status.copy(ledOn = on)) }
+                        }
+                    }
+                    if (_uiState.value.batterySupported) {
+                        runStep(Opcode.GET_BATTERY) { frame ->
+                            decoded(decodeBattery(frame.payload)) { b ->
+                                _uiState.update {
+                                    it.copy(status = it.status.copy(batteryPercent = b.percent.takeIf { b.enabled }))
+                                }
+                            }
                         }
                     }
                     val connectedBefore =

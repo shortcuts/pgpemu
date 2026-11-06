@@ -1,5 +1,6 @@
 #include "pgp_gatts.h"
 
+#include "battery.h"
 #include "config_storage.h"
 #include "esp_bt.h"
 #include "esp_bt_main.h"
@@ -572,6 +573,12 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
             "[%d] ESP_GATTS_READ_EVT: %s",
             param->read.conn_id,
             char_name_from_handle(param->read.handle));
+        if (param->read.handle == battery_handle_table[IDX_CHAR_BATTERY_LEVEL_VAL]) {
+#ifdef CONFIG_PGPEMU_BATTERY_ENABLED
+            uint8_t level = battery_get_percent();
+            esp_ble_gatts_set_attr_value(battery_handle_table[IDX_CHAR_BATTERY_LEVEL_VAL], 1, &level);
+#endif
+        }
         if (param->read.handle == certificate_handle_table[IDX_CHAR_SFIDA_TO_CENTRAL_VAL]) {
             esp_gatt_rsp_t rsp;
             memset(&rsp, 0, sizeof(rsp));

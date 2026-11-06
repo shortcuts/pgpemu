@@ -17,6 +17,8 @@
     <string name="status_radio_active">Active</string>
     <string name="status_radio_idle">Idle</string>
     <string name="status_connections">Connections</string>
+    <string name="status_battery">Battery</string>
+    <string name="status_battery_value">%1$d%%</string>
     <string name="status_log_level">Log level</string>
     <string name="device_no_devices_connected">No devices connected</string>
     <string name="profile_title">Profile %1$d</string>

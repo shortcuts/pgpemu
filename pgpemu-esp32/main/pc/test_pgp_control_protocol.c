@@ -149,6 +149,7 @@ void log_levels_info(void) {
 void log_levels_verbose(void) {
 }
 
+#include "../battery.c"
 #include "../buf_writer.c"
 #include "../crash_report.c"
 #include "../known_devices.c"
@@ -752,6 +753,7 @@ static const named_value_t opcode_table[] = {
     { "TOGGLE_AUTOCATCH", CONTROL_OP_TOGGLE_AUTOCATCH },
     { "GET_CLIENT_SUMMARY", CONTROL_OP_GET_CLIENT_SUMMARY },
     { "GET_DEVICE_INFO", CONTROL_OP_GET_DEVICE_INFO },
+    { "GET_BATTERY", CONTROL_OP_GET_BATTERY },
     { "SET_AUTOSPIN", CONTROL_OP_SET_AUTOSPIN },
     { "SET_AUTOCATCH", CONTROL_OP_SET_AUTOCATCH },
     { "SET_LOG_LEVEL", CONTROL_OP_SET_LOG_LEVEL },

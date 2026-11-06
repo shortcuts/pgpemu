@@ -8,7 +8,7 @@ BASE = {"version": 11, "reset": 3, "uptime": 100, "free": 100000}
 
 class SmokeTestLogic(unittest.TestCase):
     def test_fixture_parses(self):
-        self.assertEqual(len(VECTORS["opcode"]), 37)
+        self.assertEqual(len(VECTORS["opcode"]), 38)
         self.assertEqual(len(VECTORS["uuid"]), 4)
         self.assertEqual(VECTORS["opcode"]["GET_DEVICE_INFO"], 0x13)
 
@@ -26,7 +26,7 @@ class SmokeTestLogic(unittest.TestCase):
         v = next(v for v in VECTORS["vector"] if v["name"] == "device_info")
         _, _, payload = st.split_frame(v["response"])
         info = st.parse_device_info(payload)
-        self.assertEqual((info["version"], info["conns"], info["reset"], info["uptime"]), (11, 4, 3, 5))
+        self.assertEqual((info["version"], info["conns"], info["reset"], info["uptime"]), (12, 4, 3, 5))
         self.assertEqual(len(payload), 16)
 
     def test_check_cycle(self):

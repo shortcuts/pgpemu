@@ -29,6 +29,7 @@ class ControlWireVectorsTest {
             "reset_lifetime_stats_missing" to StatusCode.ERR_NOT_FOUND,
             "reset_lifetime_stats_short" to StatusCode.ERR_MALFORMED_PAYLOAD,
             "crash_report_with_payload" to StatusCode.ERR_MALFORMED_PAYLOAD,
+            "battery_with_payload" to StatusCode.ERR_MALFORMED_PAYLOAD,
             "clear_crash_report_busy" to StatusCode.ERR_BUSY,
             "set_catch_mode_bad_value" to StatusCode.ERR_MALFORMED_PAYLOAD,
             "set_catch_mode_short" to StatusCode.ERR_MALFORMED_PAYLOAD,
@@ -87,6 +88,7 @@ class ControlWireVectorsTest {
                 "reset_lifetime_stats",
                 "reset_lifetime_stats_missing",
                 "reset_lifetime_stats_short",
+                "battery_with_payload",
                 "crash_report_with_payload",
                 "clear_crash_report",
                 "clear_crash_report_busy",
@@ -133,14 +135,15 @@ class ControlWireVectorsTest {
                     )
                 "device_info" ->
                     assertEquals(
-                        DeviceInfo(11, 4, 3, 5L, 0L, 0L, "", false),
+                        DeviceInfo(12, 4, 3, 5L, 0L, 0L, "", false),
                         decodeDeviceInfo(frame.payload).getOrThrow(),
                     )
                 "device_info_provisioning" ->
                     assertEquals(
-                        DeviceInfo(11, 4, 3, 5L, 0L, 0L, "", true),
+                        DeviceInfo(12, 4, 3, 5L, 0L, 0L, "", true),
                         decodeDeviceInfo(frame.payload).getOrThrow(),
                     )
+                "battery_disabled" -> assertEquals(BatteryInfo(false, 0, 0), decodeBattery(frame.payload).getOrThrow())
                 "crash_report_none" -> assertEquals(null, decodeCrashReport(frame.payload).getOrThrow())
                 "crash_report" ->
                     assertEquals(

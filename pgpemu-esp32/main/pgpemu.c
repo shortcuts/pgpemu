@@ -1,3 +1,4 @@
+#include "battery.h"
 #include "button_input.h"
 #include "config_secrets.h"
 #include "config_storage.h"
@@ -101,6 +102,11 @@ void app_main() {
         PGP_MAC[4],
         PGP_MAC[5]);
     ESP_LOGI(PGPEMU_TAG, "Ready.");
+
+    init_battery();
+#ifdef CONFIG_PGPEMU_BATTERY_ENABLED
+    ESP_LOGI(PGPEMU_TAG, "Battery: %lu mV (%u%%)", (unsigned long)battery_get_mv(), battery_get_percent());
+#endif
 
     // Release settings mutex FIRST, before advertise_if_needed() calls get_setting().
     // This prevents deadlock during boot window when advertising needs to query settings.

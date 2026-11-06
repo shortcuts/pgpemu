@@ -1546,4 +1546,46 @@ class DeviceViewModelTest {
             older.setConnectionState(ConnectionState.Disconnected())
             dispatcher.scheduler.runCurrent()
         }
+
+    private fun batteryReply(
+        repository: FakeBleControlRepository,
+        vararg payload: Int,
+    ) = repository.stubResponse(
+        Opcode.GET_BATTERY,
+        Result.success(ResponseFrame(StatusCode.OK, Opcode.GET_BATTERY.toByte(), ByteArray(payload.size) { payload[it].toByte() })),
+    )
+
+    @Test
+    fun `an enabled battery monitor shows its percent on the status card`() =
+        runTest {
+            val repository = FakeBleControlRepository()
+            batteryReply(repository, 1, 80, 0xA0, 0x0F)
+            val viewModel = connectedWithProtocol(repository, BATTERY_MIN_PROTOCOL_VERSION)
+            assertEquals(80, viewModel.uiState.value.status.batteryPercent)
+            repository.setConnectionState(ConnectionState.Disconnected())
+            dispatcher.scheduler.runCurrent()
+        }
+
+    @Test
+    fun `a disabled battery monitor shows no battery row`() =
+        runTest {
+            val repository = FakeBleControlRepository()
+            batteryReply(repository, 0, 0, 0, 0)
+            val viewModel = connectedWithProtocol(repository, BATTERY_MIN_PROTOCOL_VERSION)
+            assertEquals(null, viewModel.uiState.value.status.batteryPercent)
+            repository.setConnectionState(ConnectionState.Disconnected())
+            dispatcher.scheduler.runCurrent()
+        }
+
+    @Test
+    fun `firmware older than protocol 12 is never asked for the battery`() =
+        runTest {
+            val repository = FakeBleControlRepository()
+            batteryReply(repository, 1, 80, 0, 0)
+            val viewModel = connectedWithProtocol(repository, BATTERY_MIN_PROTOCOL_VERSION - 1)
+            assertTrue(repository.sentCommands.none { it.first == Opcode.GET_BATTERY })
+            assertEquals(null, viewModel.uiState.value.status.batteryPercent)
+            repository.setConnectionState(ConnectionState.Disconnected())
+            dispatcher.scheduler.runCurrent()
+        }
 }

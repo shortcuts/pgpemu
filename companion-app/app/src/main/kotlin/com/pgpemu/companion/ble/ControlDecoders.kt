@@ -210,6 +210,18 @@ fun decodeLifetimeStats(p: ByteArray): Result<LifetimeStats> =
         )
     }
 
+data class BatteryInfo(
+    val enabled: Boolean,
+    val percent: Int,
+    val millivolts: Int,
+)
+
+/** Layout: [enabled][percent][mv u16 LE]; see protocol/control_vectors.txt. */
+fun decodeBattery(p: ByteArray): Result<BatteryInfo> =
+    p.require(4, "battery").map {
+        BatteryInfo(p[0] == 1.toByte(), p[1].toInt() and 0xFF, (p[2].toInt() and 0xFF) or ((p[3].toInt() and 0xFF) shl 8))
+    }
+
 /** Layout: see crash_report.h and protocol/control_vectors.txt. Null when the device holds no report. */
 fun decodeCrashReport(p: ByteArray): Result<CrashReport?> =
     p.require(1, "crash report").mapCatching {

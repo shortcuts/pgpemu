@@ -575,6 +575,9 @@ internal fun StatusSection(status: StatusState) {
             } ?: dash,
         )
         LabeledValue(stringResource(R.string.status_connections), status.activeConnections?.toString() ?: dash)
+        status.batteryPercent?.let {
+            LabeledValue(stringResource(R.string.status_battery), stringResource(R.string.status_battery_value, it))
+        }
         LabeledValue(
             stringResource(R.string.status_log_level),
             status.logLevel?.let { stringResource(logLevelName(it)) } ?: dash,
