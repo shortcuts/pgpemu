@@ -148,7 +148,7 @@ Rules:
 
 ## External resources
 
-Pages load nothing from outside the site except DocSearch. The one exception is the pinned ESP Web Tools script on `install.html`, which flashes the device through the browser.
+Pages load nothing from outside the site except DocSearch. The Inter font loads from `docs/wiki/fonts/` on the site itself. The one exception is the pinned ESP Web Tools script on `install.html`, which flashes the device through the browser.
 
 ---
 
