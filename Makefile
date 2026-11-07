@@ -1,4 +1,4 @@
-.PHONY: build clean menuconfig flash monitor run install format test smoke-test smoke-test-selftest companion-build companion-build-release companion-install companion-reinstall companion-start companion-log companion-test companion-coverage companion-coverage-open companion-lint companion-format companion-clean wiki-serve
+.PHONY: build clean menuconfig flash monitor run install format test smoke-test smoke-test-selftest companion-build companion-build-release companion-install companion-reinstall companion-start companion-log companion-test companion-coverage companion-coverage-open companion-lint companion-format companion-clean wiki-serve screenshot
 .DEFAULT_GOAL := install-deps
 
 IDF_EXPORT := . $(HOME)/esp/v5.4.1/esp-idf/export.sh >/dev/null
@@ -101,3 +101,6 @@ companion-clean: ## Removes the companion app's Gradle build output
 
 wiki-serve: ## Serves the docs wiki locally at http://localhost:8080
 	cd ./docs/wiki && python3 -m http.server 8080
+
+screenshot: ## Captures the companion app tabs from the attached phone for the wiki
+	python3 scripts/screenshot_wiki.py

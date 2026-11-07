@@ -13,7 +13,7 @@ This repository targets **ESP32-C3** firmware built with **ESP-IDF v5.4.1**. The
   * `adb exec-out screencap -p` to capture a screen.
   * `adb shell input tap`, `swipe` and `keyevent` to move between app tabs.
   * `adb shell monkey` or `am start` to launch `com.pgpemu.companion`.
-  * Method: follow `~/Documents/locationjoystick`. Use the light theme. Remove real device addresses and other personal data before saving to `docs/wiki/screenshots/`.
+  * Method: run `make screenshot` (`scripts/screenshot_wiki.py`). It needs Pillow, the app installed and connected to a device, and the phone in the light theme with the app theme on "System default". It crops the status bar and tab bar and writes 540x955 files. Use the light theme. Remove real device addresses and other personal data before saving to `docs/wiki/screenshots/`.
   * `make companion-install` or `adb install` to put the current companion build on the phone when the app is missing.
   * Any other adb command (push, shell writes, logcat dumps) needs a new explicit instruction.
 * **Formatting**: clang-format with project config. If formatting churn obscures diffs, you did it wrong.

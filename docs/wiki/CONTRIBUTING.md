@@ -41,7 +41,7 @@ Only `index.html` uses the `.hero` block (title, intro, buttons, phone screensho
 
 Put a screenshot in the section it illustrates. Wrap the section in `<section class="has-shot">` and place `<aside class="shot"><img class="phone-shot" …></aside>` right after the section heading. On wide screens the screenshot floats in the right margin and scrolls with that section only. On narrow screens it sits under the heading. Use one screenshot per section.
 
-Capture in the light theme with `adb exec-out screencap -p`. Crop the status bar and remove device addresses and other personal data. Save to `screenshots/`.
+Capture with `make screenshot` in the light theme. It crops the status bar and tab bar and writes 540x955 files to `screenshots/`. Review each image and remove device addresses and other personal data.
 
 ### Reference pages
 
