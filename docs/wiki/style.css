@@ -316,6 +316,7 @@ blockquote p, blockquote em{margin:0}
   display:block;
   width:100%;
   max-width:240px;
+  height:auto;
   margin:0 0 16px;
   border:1px solid var(--border);
   border-radius:var(--r);
