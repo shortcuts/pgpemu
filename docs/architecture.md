@@ -9,7 +9,7 @@ Single-responsibility firmware modules under `pgpemu-esp32/main/`. BLE, storage,
 3. **Connection and protocol**: `pgp_handshake_multi.c`, `pgp_handshake.c`, `pgp_cert.c`, `pgp_control.c`.
 4. **Storage**: `config_storage.c`, `config_secrets.c`, `known_devices.c`, `lifetime_stats.c`, `crash_report.c`, `nvs_helper.c`, `settings.c`.
 5. **Features**: `pgp_led_handler.c`, `pgp_autobutton.c`, `battery.c`.
-6. **System**: `pgpemu.c`, `stats.c`, `log_tags.c`.
+6. **System**: `pgpemu.c`, `stats.c`, `log_tags.c`, `buf_writer.c`.
 
 ## Connection flow
 

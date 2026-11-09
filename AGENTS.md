@@ -96,6 +96,7 @@ make companion-lint    # when companion-app/ changed
 | Module | Responsibility |
 |--------|----------------|
 | `pgp_gatts.c` | BLE GATT server: Pokémon GO Plus services, handshake exchange, notifications |
+| `pgp_gatts_debug.c` | Maps a GATT handle to its characteristic name for logs |
 | `pgp_handshake_multi.c` | Up to 4 simultaneous connections: conn_id → profile map, cert/recon state, session-key cache |
 | `pgp_handshake.c` / `pgp_cert.c` | Handshake crypto and certificate handling |
 | `pgp_control.c` | Custom Control Service (Command/Response/Event characteristics) for the Companion App, bonded link only |
@@ -105,6 +106,8 @@ make companion-lint    # when companion-app/ changed
 | `pgp_led_pattern.c` / `led_output.c` | Status LED (GPIO 8): pure pattern table and priority list (PC-tested), driven by a 50 ms `esp_timer` in `led_output.c` |
 | `pgp_led_handler.c` | Parses LED patterns from the game into events |
 | `forget_pairings.c` | Forget Pairings: RTC flag set by the app opcode or a 10 s button hold, `nvs` erased on the next boot; secrets stay |
+| `button_input.c` | BOOT button (GPIO 9) at run time: short press toggles advertising, 3 s hold arms the OTA window, 10 s hold forgets pairings |
+| `setup_button.c` | Reads the BOOT button (GPIO 9) once at boot and reports whether it is held; `pgpemu.c` uses it to continue startup |
 | `pgp_autobutton.c` | Per-profile autospin/autocatch button simulation |
 | `known_devices.c` | Known Device index in NVS (`known_devs`, up to 15 records): touch at handshake done, least-recently-seen eviction with keys, settings and bond, rename, forget (PC-tested) |
 | `config_storage.c` / `config_secrets.c` / `nvs_helper.c` / `settings.c` | NVS persistence for Global/Device Settings and Session Secrets (`config_secrets.c` also writes them for the Control Service's PROVISION_SECRETS) |
@@ -112,6 +115,7 @@ make companion-lint    # when companion-app/ changed
 | `battery.c` | Optional ADC battery monitor (`CONFIG_PGPEMU_BATTERY_ENABLED`, default off): percent/mV for the Battery Service and GET_BATTERY; `battery_mv_to_percent` is PC-tested |
 | `lifetime_stats.c` | Lifetime Stats: per Known Device event counters in NVS, flushed in batches (every 16 events, on disconnect, before restart) |
 | `stats.c` / `log_tags.c` | Runtime (session) stats and log tags |
+| `buf_writer.c` | Bounds-checked string builder for debug dumps into fixed buffers; appends no-op past the end |
 
 Architecture details: docs/architecture.md. Domain vocabulary: CONTEXT.md.
 

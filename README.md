@@ -407,6 +407,7 @@ pgpemu/
 │   │   ├── System:
 │   │   │   ├── pgpemu.c                     # Main entry point
 │   │   │   ├── stats.c(.h)                  # Statistics tracking
+│   │   │   ├── buf_writer.c(.h)             # Bounded string builder for debug dumps
 │   │   │   └── log_tags.c(.h)               # Log definitions
 │   │   │
 │   │   └── pc/                              # PC Unit Tests (all tests pass)
