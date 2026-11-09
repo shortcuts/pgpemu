@@ -8,14 +8,18 @@ This repository targets **ESP32-C3** firmware built with **ESP-IDF v5.4.1**. The
 
 * **Editor**: neovim. Anything else is rejected.
 * **Build**: use the CLI only, never the VSCode ESP-IDF extension. Run `make build` to compile and `make clean` to fullclean. Verify every change builds before calling it done.
-* **Flash**: default is NEVER run `idf.py flash`, `make monitor`, or touch real hardware. Exception: the user may explicitly instruct a flash/monitor in the current session (e.g. "flash it", "run make flash now") — only then run it, and only the command asked for. Without that explicit instruction, the maintainer flashes and tests on-device.
+* **Device access**: ask the maintainer once per session before you use the ESP or the phone. Without a yes, the maintainer flashes and tests on-device.
+  * The maintainer performs every Pokémon GO step.
+  * The serial port changes after `make flash`.
+  * Never run `make smoke-test`.
 * **adb (wiki screenshots)**: the maintainer allows a wiki-screenshot task to drive the attached phone for the screenshots only. Allowed commands:
   * `adb exec-out screencap -p` to capture a screen.
   * `adb shell input tap`, `swipe` and `keyevent` to move between app tabs.
   * `adb shell monkey` or `am start` to launch `com.pgpemu.companion`.
   * Method: run `make screenshot` (`scripts/screenshot_wiki.py`). It needs Pillow, the app installed and connected to a device, and the phone in the light theme with the app theme on "System default". It crops the status bar and tab bar and writes 540x955 files. Use the light theme. Remove real device addresses and other personal data before saving to `docs/wiki/screenshots/`.
   * `make companion-install` or `adb install` to put the current companion build on the phone when the app is missing.
-  * Any other adb command (push, shell writes, logcat dumps) needs a new explicit instruction.
+  * After the same yes, an agent may also run `adb logcat`, `adb shell dumpsys bluetooth_manager`, `make companion-start`, `make flash` and `make monitor`.
+  * Any other adb command (push, shell writes) needs a new explicit instruction.
 * **Formatting**: clang-format with project config. If formatting churn obscures diffs, you did it wrong.
 
 ## Architecture Rules
