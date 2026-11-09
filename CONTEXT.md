@@ -23,6 +23,10 @@ _Avoid_: notification, log line
 The standalone Android (Kotlin, Jetpack Compose) app that replaces the UART/USB-console as the only way to read or change device state. Scans for nearby devices and lists them; the user picks one to connect to. Connects to one device at a time. Disconnects when it leaves the foreground and never reconnects on its own after that; no saved device list.
 _Avoid_: config app, control app, mobile app
 
+**Pairing Assistant**:
+The Companion App feature that accepts the phone's Bluetooth pairing prompt for the device. An accessibility service taps Pair on the dialog or notification; an optional receiver confirms the pairing through root and hides the dialog. Falls back to the normal dialog on any failure.
+_Avoid_: auto-clicker
+
 **Game Monitor**:
 The opt-in Companion App feature that listens to the Pokémon GO notification on the phone and raises its own alerts (device lost, bag full, box full, out of balls, spin failed). Phone-only. Distinct from the activity feed, which shows Device Events.
 _Avoid_: notification service

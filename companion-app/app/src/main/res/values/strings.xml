@@ -214,4 +214,16 @@
         <item>Autocatch modes: off, new, all.</item>
         <item>Update the device firmware over Bluetooth.</item>
     </string-array>
+    <string name="pairing_service_label">PGP Companion pairing assistant</string>
+    <string name="pairing_service_description">Taps Pair for you when your phone asks to pair with a Pokémon GO Plus device.</string>
+    <string name="section_pairing">Pairing assistant</string>
+    <string name="pairing_switch">Skip the pairing prompt</string>
+    <string name="pairing_disclosure_title">Turn on the pairing assistant?</string>
+    <string name="pairing_disclosure_body">The app only watches your phone\'s Bluetooth pairing screen and taps Pair for Pokémon GO Plus devices. It does nothing for other devices. Nothing it sees is stored or sent. Next, turn it on in your phone\'s Accessibility settings. If your phone says the setting is restricted, open the app info, tap the three dots, and choose Allow restricted settings.</string>
+    <string name="pairing_disclosure_continue">Continue</string>
+    <string name="pairing_privileged_switch">Pair silently with root</string>
+    <string name="pairing_privileged_needs_root">Needs root access, which the app asks for when you turn this on. If it fails, the normal pairing prompt shows.</string>
+    <string name="pairing_failed_title">Pairing prompt not skipped</string>
+    <string name="pairing_failed_text">Tap Pair on the prompt yourself.</string>
+    <string name="pairing_channel_name">Pairing assistant</string>
 </resources>

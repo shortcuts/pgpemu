@@ -13,3 +13,8 @@
 # Readable crash stack traces via mapping.txt
 -keepattributes SourceFile,LineNumberTable
 -renamesourcefileattribute SourceFile
+
+# Pairing helper: su starts this class by name under app_process
+-keep class com.pgpemu.companion.pairing.RootConfirmMain {
+    public static void main(java.lang.String[]);
+}

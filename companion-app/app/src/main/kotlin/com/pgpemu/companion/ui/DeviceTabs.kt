@@ -115,6 +115,7 @@ internal fun SettingsTab(
         }
     }
     item { GameMonitorSection() }
+    item { PairingAssistantSection() }
 }
 
 @Composable

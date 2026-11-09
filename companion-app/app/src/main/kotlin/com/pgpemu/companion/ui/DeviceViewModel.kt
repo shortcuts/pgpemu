@@ -379,7 +379,7 @@ class DeviceViewModel
                         it is ConnectionState.DiscoveringServices ||
                         it is ConnectionState.Ready
                 }
-            // Pokémon GO calls removeBond() on connect, which kills the link the app shares.
+            // Pokémon GO calls removeBond() on connect, which kills a link the app still holds.
             if (!visible && live && _uiState.value.otaProgress == null) disconnect()
         }
 

@@ -429,6 +429,9 @@ private fun ConnectPanel(
             ) { Text(if (hasScanned) stringResource(R.string.device_scan_again) else stringResource(R.string.device_scan)) }
         }
 
+        Spacer(modifier = Modifier.height(16.dp))
+        PairingAssistantSection()
+
         blocker?.let {
             Spacer(modifier = Modifier.height(16.dp))
             Text(

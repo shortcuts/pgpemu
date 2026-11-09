@@ -8,5 +8,11 @@ by Mygod, licensed under the Apache License 2.0 (see third_party/pogoplusle/LICE
 - companion-app/app/src/main/kotlin/com/pgpemu/companion/monitor/GameMonitor.kt
 - companion-app/app/src/main/kotlin/com/pgpemu/companion/monitor/GameNotificationService.kt
 - companion-app/app/src/test/kotlin/com/pgpemu/companion/monitor/GameStringsTest.kt
+- companion-app/app/src/main/kotlin/com/pgpemu/companion/pairing/PairingMatcher.kt
+- companion-app/app/src/main/kotlin/com/pgpemu/companion/pairing/PairingAssistantService.kt
+- companion-app/app/src/main/kotlin/com/pgpemu/companion/pairing/PrivilegedPairing.kt
+- companion-app/app/src/main/kotlin/com/pgpemu/companion/pairing/PrivilegedPairingReceiver.kt
+- companion-app/app/src/main/kotlin/com/pgpemu/companion/pairing/RootBluetooth.kt
+- companion-app/app/src/main/res/xml/pairing_service_config.xml
 
 Each file carries a header that states what changed.

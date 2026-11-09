@@ -211,4 +211,16 @@
         <item>Modes d\'autocapture : off, nouveaux, tous.</item>
         <item>Mise à jour du firmware de l\'appareil par Bluetooth.</item>
     </string-array>
+    <string name="pairing_service_label">Assistant d\'appairage PGP Companion</string>
+    <string name="pairing_service_description">Appuie sur Associer à votre place quand votre téléphone demande à s\'associer à un appareil Pokémon GO Plus.</string>
+    <string name="section_pairing">Assistant d\'appairage</string>
+    <string name="pairing_switch">Ignorer la demande d\'appairage</string>
+    <string name="pairing_disclosure_title">Activer l\'assistant d\'appairage ?</string>
+    <string name="pairing_disclosure_body">L\'app ne surveille que l\'écran d\'appairage Bluetooth de votre téléphone et appuie sur Associer pour les appareils Pokémon GO Plus. Elle ne fait rien pour les autres appareils. Rien de ce qu\'elle voit n\'est enregistré ni envoyé. Activez-le ensuite dans les réglages d\'accessibilité de votre téléphone. Si votre téléphone indique que le réglage est restreint, ouvrez les infos de l\'app, touchez les trois points et choisissez Autoriser les paramètres restreints.</string>
+    <string name="pairing_disclosure_continue">Continuer</string>
+    <string name="pairing_privileged_switch">Associer en silence avec root</string>
+    <string name="pairing_privileged_needs_root">Nécessite l\'accès root, que l\'app demande à l\'activation. En cas d\'échec, la demande d\'appairage normale s\'affiche.</string>
+    <string name="pairing_failed_title">Demande d\'appairage non ignorée</string>
+    <string name="pairing_failed_text">Appuyez vous-même sur Associer.</string>
+    <string name="pairing_channel_name">Assistant d\'appairage</string>
 </resources>

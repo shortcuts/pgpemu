@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Derived from PoGo+LE (https://github.com/Mygod/pogoplusle) by Mygod, Apache License 2.0. Modified for pgpemu: strings and activity renamed. -->
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:accessibilityEventTypes="typeNotificationStateChanged|typeWindowStateChanged"
+    android:accessibilityFlags="flagReportViewIds|flagRetrieveInteractiveWindows"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:description="@string/pairing_service_description"
+    android:canRetrieveWindowContent="true"
+    android:packageNames="com.android.settings,com.coloros.wirelesssettings,com.oplus.wirelesssettings"
+    android:settingsActivity="com.pgpemu.companion.MainActivity" />

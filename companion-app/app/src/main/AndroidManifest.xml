@@ -1,4 +1,5 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Pre-Android 12 (API 30-) permission model: BLE scan needs location. -->
     <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
@@ -15,6 +16,9 @@
     <!-- Game Monitor alerts (Android 13+). -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- Only privileged installs get this; a normal install ignores it and the Shizuku path runs instead. -->
+    <uses-permission android:name="android.permission.BLUETOOTH_PRIVILEGED" tools:ignore="ProtectedPermissions" />
+
     <uses-feature android:name="android.hardware.bluetooth_le" android:required="true" />
 
     <queries>
@@ -28,7 +32,6 @@
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:theme="@style/Theme.PgpEmu.Startup">
-
         <activity
             android:name=".MainActivity"
             android:exported="true">
@@ -47,6 +50,29 @@
                 <action android:name="android.service.notification.NotificationListenerService" />
             </intent-filter>
         </service>
+
+        <service
+            android:name=".pairing.PairingAssistantService"
+            android:exported="true"
+            android:label="@string/pairing_service_label"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/pairing_service_config" />
+        </service>
+
+        <!-- Enabled at run time, only while privileged pairing is on. -->
+        <receiver
+            android:name=".pairing.PrivilegedPairingReceiver"
+            android:enabled="false"
+            android:exported="true">
+            <intent-filter android:priority="1000">
+                <action android:name="android.bluetooth.device.action.PAIRING_REQUEST" />
+            </intent-filter>
+        </receiver>
 
     </application>
 

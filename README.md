@@ -45,6 +45,7 @@ Autocatcher/Gotcha/Pokemon Go Plus device emulator for Pokemon Go, with autospin
 - Lifetime stats per phone in the companion app: caught, fled, spins, bag full, box full and out-of-balls counts that survive reboots, with a reset
 - Crash report in the companion app: after a panic, the app shows the crashed task and address, and shares the report for a bug report
 - Firmware update from the companion app over Bluetooth, with automatic rollback if the new firmware does not start
+- Pairing assistant in the companion app: taps Pair on the phone's pairing prompt for the device (accessibility switch; optional silent pairing with root), based on [PoGo+LE](https://github.com/Mygod/pogoplusle)
 - Game monitor in the companion app (opt-in): alerts when Pokémon GO drops the device, the bag or box is full, or the balls run out, read from the game's notification on the phone
 - Update-available notice in the companion app (checks GitHub once a day)
 - Companion app in English and French, with a per-app language picker on Android 13+
