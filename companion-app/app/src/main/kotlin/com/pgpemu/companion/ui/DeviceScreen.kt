@@ -136,10 +136,14 @@ fun DeviceScreen(
     fun adapterOn() = (context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager).adapter?.isEnabled == true
 
     // Rationale is false both before the first ask and after "don't ask again"; callers only use it after a denial.
-    fun canAskAgain(): Boolean {
+    fun hostActivity(): Activity? {
         var c = context
         while (c is ContextWrapper && c !is Activity) c = c.baseContext
-        val activity = c as? Activity ?: return true
+        return c as? Activity
+    }
+
+    fun canAskAgain(): Boolean {
+        val activity = hostActivity() ?: return true
         return BLE_PERMISSIONS.any { ActivityCompat.shouldShowRequestPermissionRationale(activity, it) }
     }
 
@@ -161,10 +165,8 @@ fun DeviceScreen(
 
     LifecycleStartEffect(viewModel) {
         viewModel.setForeground(true)
-        onStopOrDispose { viewModel.setForeground(false) }
+        onStopOrDispose { if (hostActivity()?.isChangingConfigurations != true) viewModel.setForeground(false) }
     }
-
-    LaunchedEffect(Unit) { if (granted() && adapterOn()) viewModel.resumeLastDevice() }
 
     // Result ignored: the repository re-reads its associations when it needs one.
     val associationLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) {}

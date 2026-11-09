@@ -2,8 +2,6 @@ package com.pgpemu.companion.ui
 
 import com.pgpemu.companion.ble.ConnectionState
 import com.pgpemu.companion.ble.CrashReport
-import com.pgpemu.companion.ble.DeviceEvent
-import com.pgpemu.companion.ble.EventType
 import com.pgpemu.companion.ble.KnownDevice
 import com.pgpemu.companion.ble.LifetimeStats
 import com.pgpemu.companion.ble.Opcode
@@ -12,7 +10,6 @@ import com.pgpemu.companion.ble.ScannedDevice
 import com.pgpemu.companion.ble.StatusCode
 import com.pgpemu.companion.ble.otaImageBytes
 import com.pgpemu.companion.core.testing.FakeBleControlRepository
-import com.pgpemu.companion.core.testing.FakeLastDeviceStore
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -84,7 +81,7 @@ class DeviceViewModelTest {
     fun `uiState reflects discovered devices and hasScanned is false before any scan`() =
         runTest {
             val repository = FakeBleControlRepository()
-            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+            val viewModel = DeviceViewModel(repository)
             val devices = listOf(ScannedDevice("AA:BB:CC:DD:EE:01", "Pokemon GO Plus", -50))
 
             repository.setDiscoveredDevices(devices)
@@ -98,7 +95,7 @@ class DeviceViewModelTest {
     fun `startScan sets hasScanned and starts repository scan once`() =
         runTest {
             val repository = FakeBleControlRepository()
-            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+            val viewModel = DeviceViewModel(repository)
 
             viewModel.startScan()
             dispatcher.scheduler.runCurrent()
@@ -111,7 +108,7 @@ class DeviceViewModelTest {
     fun `connectTo stops scan then connects to the tapped address`() =
         runTest {
             val repository = FakeBleControlRepository()
-            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+            val viewModel = DeviceViewModel(repository)
 
             viewModel.connectTo("AA:BB:CC:DD:EE:02")
             dispatcher.scheduler.runCurrent()
@@ -124,7 +121,7 @@ class DeviceViewModelTest {
     fun `uiState reflects repository connection state`() =
         runTest {
             val repository = FakeBleControlRepository()
-            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+            val viewModel = DeviceViewModel(repository)
 
             repository.setConnectionState(ConnectionState.Ready)
             // Not advanceUntilIdle(): once Ready, the status-poll loop reschedules itself
@@ -160,7 +157,7 @@ class DeviceViewModelTest {
                     ),
                 ),
             )
-            DeviceViewModel(repository, FakeLastDeviceStore())
+            DeviceViewModel(repository)
 
             repository.setConnectionState(ConnectionState.Ready)
             dispatcher.scheduler.runCurrent() // initial refreshStatus() on connect
@@ -209,7 +206,7 @@ class DeviceViewModelTest {
                     ),
                 ),
             )
-            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+            val viewModel = DeviceViewModel(repository)
             repository.setConnectionState(ConnectionState.Ready)
             dispatcher.scheduler.runCurrent()
 
@@ -262,7 +259,7 @@ class DeviceViewModelTest {
             )
             val gate = CompletableDeferred<Unit>()
             repository.gates[Opcode.GET_GLOBAL_SETTINGS] = gate
-            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+            val viewModel = DeviceViewModel(repository)
             repository.setConnectionState(ConnectionState.Ready)
             dispatcher.scheduler.runCurrent() // refreshStatus() parks on the gate
 
@@ -303,7 +300,7 @@ class DeviceViewModelTest {
                     ),
                 ),
             )
-            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+            val viewModel = DeviceViewModel(repository)
             repository.setConnectionState(ConnectionState.Ready)
             dispatcher.scheduler.runCurrent()
 
@@ -347,7 +344,7 @@ class DeviceViewModelTest {
                     ),
                 ),
             )
-            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+            val viewModel = DeviceViewModel(repository)
 
             viewModel.refreshStatus()
             dispatcher.scheduler.advanceUntilIdle()
@@ -406,7 +403,7 @@ class DeviceViewModelTest {
                 Opcode.SET_MAX_CONNECTIONS,
                 Result.success(ResponseFrame(StatusCode.OK, Opcode.SET_MAX_CONNECTIONS.toByte(), byteArrayOf())),
             )
-            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+            val viewModel = DeviceViewModel(repository)
 
             viewModel.refreshStatus()
             dispatcher.scheduler.advanceUntilIdle()
@@ -438,7 +435,7 @@ class DeviceViewModelTest {
                 Opcode.GET_DEVICE_INFO,
                 Result.success(ResponseFrame(StatusCode.ERR_UNKNOWN_OPCODE, Opcode.GET_DEVICE_INFO.toByte(), byteArrayOf())),
             )
-            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+            val viewModel = DeviceViewModel(repository)
 
             viewModel.refreshStatus()
             dispatcher.scheduler.advanceUntilIdle()
@@ -471,7 +468,7 @@ class DeviceViewModelTest {
             for (op in listOf(Opcode.PROVISION_SECRETS, Opcode.RESTART)) {
                 repository.stubResponse(op, Result.success(ResponseFrame(StatusCode.OK, op.toByte(), byteArrayOf())))
             }
-            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+            val viewModel = DeviceViewModel(repository)
 
             viewModel.refreshStatus()
             dispatcher.scheduler.advanceUntilIdle()
@@ -504,7 +501,7 @@ class DeviceViewModelTest {
                 Opcode.FORGET_PAIRINGS,
                 Result.success(ResponseFrame(StatusCode.OK, Opcode.FORGET_PAIRINGS.toByte(), byteArrayOf())),
             )
-            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+            val viewModel = DeviceViewModel(repository)
 
             viewModel.requestForgetPairings()
             assertEquals(ConfirmAction.ForgetPairings, viewModel.uiState.value.pendingConfirmation)
@@ -524,7 +521,7 @@ class DeviceViewModelTest {
                 Opcode.PROVISION_SECRETS,
                 Result.success(ResponseFrame(StatusCode.ERR_INTERNAL, Opcode.PROVISION_SECRETS.toByte(), byteArrayOf())),
             )
-            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+            val viewModel = DeviceViewModel(repository)
 
             viewModel.importSecrets(validSecretsCsv())
             dispatcher.scheduler.advanceUntilIdle()
@@ -550,7 +547,7 @@ class DeviceViewModelTest {
                     ),
                 ),
             )
-            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+            val viewModel = DeviceViewModel(repository)
 
             viewModel.refreshStatus()
             dispatcher.scheduler.advanceUntilIdle()
@@ -575,7 +572,7 @@ class DeviceViewModelTest {
                 Opcode.GET_GLOBAL_SETTINGS,
                 Result.success(ResponseFrame(StatusCode.OK, Opcode.GET_GLOBAL_SETTINGS.toByte(), byteArrayOf(2, 0, 1, 4, 0))),
             )
-            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+            val viewModel = DeviceViewModel(repository)
 
             viewModel.refreshStatus()
             dispatcher.scheduler.advanceUntilIdle()
@@ -592,7 +589,7 @@ class DeviceViewModelTest {
                 Opcode.ADVERTISE_START,
                 Result.success(ResponseFrame(StatusCode.OK, Opcode.ADVERTISE_START.toByte(), ByteArray(0))),
             )
-            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+            val viewModel = DeviceViewModel(repository)
 
             viewModel.toggleAdvertising()
             dispatcher.scheduler.advanceUntilIdle()
@@ -609,7 +606,7 @@ class DeviceViewModelTest {
                 Opcode.SET_LED_ENABLED,
                 Result.success(ResponseFrame(StatusCode.OK, Opcode.SET_LED_ENABLED.toByte(), byteArrayOf(1))),
             )
-            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+            val viewModel = DeviceViewModel(repository)
 
             viewModel.toggleStatusLed()
             dispatcher.scheduler.advanceUntilIdle()
@@ -625,7 +622,7 @@ class DeviceViewModelTest {
         runTest {
             val repository = FakeBleControlRepository()
             repository.stubResponse(Opcode.SET_LED_ENABLED, Result.failure(IOException("boom")))
-            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+            val viewModel = DeviceViewModel(repository)
 
             viewModel.toggleStatusLed()
             dispatcher.scheduler.advanceUntilIdle()
@@ -642,7 +639,7 @@ class DeviceViewModelTest {
                 Opcode.SET_AUTOSPIN,
                 Result.success(ResponseFrame(StatusCode.OK, Opcode.SET_AUTOSPIN.toByte(), byteArrayOf(1))),
             )
-            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+            val viewModel = DeviceViewModel(repository)
 
             viewModel.toggleAutospin(2)
             dispatcher.scheduler.advanceUntilIdle()
@@ -678,7 +675,7 @@ class DeviceViewModelTest {
     fun `cycleCatchMode sends the target mode and walks off, new only, all`() =
         runTest {
             val repository = catchModeDevice(10)
-            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+            val viewModel = DeviceViewModel(repository)
             viewModel.refreshStatus()
             dispatcher.scheduler.advanceUntilIdle()
 
@@ -701,7 +698,7 @@ class DeviceViewModelTest {
     fun `cycleCatchMode on protocol 9 flips with SET_AUTOCATCH`() =
         runTest {
             val repository = catchModeDevice(9)
-            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+            val viewModel = DeviceViewModel(repository)
             viewModel.refreshStatus()
             dispatcher.scheduler.advanceUntilIdle()
 
@@ -724,7 +721,7 @@ class DeviceViewModelTest {
         runTest {
             val repository = FakeBleControlRepository()
             repository.stubResponse(Opcode.SET_AUTOSPIN, Result.failure(IOException("lost")))
-            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+            val viewModel = DeviceViewModel(repository)
 
             viewModel.toggleAutospin(0)
             dispatcher.scheduler.advanceUntilIdle()
@@ -742,7 +739,7 @@ class DeviceViewModelTest {
                 Opcode.SET_LOG_LEVEL,
                 Result.success(ResponseFrame(StatusCode.OK, Opcode.SET_LOG_LEVEL.toByte(), byteArrayOf(3))),
             )
-            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+            val viewModel = DeviceViewModel(repository)
 
             viewModel.cycleLogLevel()
             dispatcher.scheduler.advanceUntilIdle()
@@ -758,7 +755,7 @@ class DeviceViewModelTest {
         runTest {
             val repository = FakeBleControlRepository()
             repository.stubResponse(Opcode.SET_LOG_LEVEL, Result.failure(IOException("disconnected")))
-            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+            val viewModel = DeviceViewModel(repository)
 
             viewModel.cycleLogLevel()
             dispatcher.scheduler.advanceUntilIdle()
@@ -774,7 +771,7 @@ class DeviceViewModelTest {
                 Opcode.SET_LOG_LEVEL,
                 Result.success(ResponseFrame(StatusCode.OK, Opcode.SET_LOG_LEVEL.toByte(), ByteArray(0))),
             )
-            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+            val viewModel = DeviceViewModel(repository)
 
             viewModel.cycleLogLevel()
             dispatcher.scheduler.advanceUntilIdle()
@@ -791,7 +788,7 @@ class DeviceViewModelTest {
                 Opcode.SET_LOG_LEVEL,
                 Result.success(ResponseFrame(StatusCode.ERR_BUSY, Opcode.SET_LOG_LEVEL.toByte(), ByteArray(0))),
             )
-            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+            val viewModel = DeviceViewModel(repository)
 
             viewModel.cycleLogLevel()
             dispatcher.scheduler.advanceUntilIdle()
@@ -829,7 +826,7 @@ class DeviceViewModelTest {
                     ),
                 ),
             )
-            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+            val viewModel = DeviceViewModel(repository)
 
             viewModel.refreshRuntimeStats()
             dispatcher.scheduler.advanceUntilIdle()
@@ -875,7 +872,7 @@ class DeviceViewModelTest {
     fun `firmware update sends the image after confirmation, then restarts`() =
         runTest {
             val repository = otaDevice(5)
-            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+            val viewModel = DeviceViewModel(repository)
             viewModel.refreshStatus()
             dispatcher.scheduler.advanceUntilIdle()
             assertTrue(viewModel.uiState.value.otaSupported)
@@ -906,7 +903,7 @@ class DeviceViewModelTest {
                     null
                 }
             }
-            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+            val viewModel = DeviceViewModel(repository)
             viewModel.refreshStatus()
             dispatcher.scheduler.advanceUntilIdle()
 
@@ -922,14 +919,14 @@ class DeviceViewModelTest {
     fun `firmware update is refused on protocol 4 and for a bad image`() =
         runTest {
             val old = otaDevice(4)
-            val oldVm = DeviceViewModel(old, FakeLastDeviceStore())
+            val oldVm = DeviceViewModel(old)
             oldVm.refreshStatus()
             dispatcher.scheduler.advanceUntilIdle()
             assertFalse(oldVm.uiState.value.otaSupported)
             oldVm.requestFirmwareUpdate(otaImageBytes())
             assertNull(oldVm.uiState.value.pendingConfirmation)
 
-            val vm = DeviceViewModel(otaDevice(5), FakeLastDeviceStore())
+            val vm = DeviceViewModel(otaDevice(5))
             vm.refreshStatus()
             dispatcher.scheduler.advanceUntilIdle()
             vm.requestFirmwareUpdate(otaImageBytes(project = "other"))
@@ -973,7 +970,7 @@ class DeviceViewModelTest {
     fun `known devices are fetched on refresh when the firmware supports them`() =
         runTest {
             val repository = knownDevicesDevice(6) { knownDevicesList(2 to "", 1 to "Pixel") }
-            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+            val viewModel = DeviceViewModel(repository)
 
             viewModel.refreshStatus()
             dispatcher.scheduler.advanceUntilIdle()
@@ -993,7 +990,7 @@ class DeviceViewModelTest {
     fun `a phone on profile 1 is matched to its card from protocol 11`() =
         runTest {
             val repository = knownDevicesDevice(11) { knownDevicesList(1 to "Pixel", flags = 0x03) }
-            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+            val viewModel = DeviceViewModel(repository)
 
             viewModel.refreshStatus()
             dispatcher.scheduler.advanceUntilIdle()
@@ -1011,7 +1008,7 @@ class DeviceViewModelTest {
     fun `protocol 10 does not offer profile phones`() =
         runTest {
             val repository = knownDevicesDevice(10) { knownDevicesList(1 to "Pixel", flags = 0x01) }
-            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+            val viewModel = DeviceViewModel(repository)
 
             viewModel.refreshStatus()
             dispatcher.scheduler.advanceUntilIdle()
@@ -1023,7 +1020,7 @@ class DeviceViewModelTest {
     fun `a profile that connects mid-session refetches the known devices`() =
         runTest {
             val repository = knownDevicesDevice(11) { knownDevicesList(1 to "Pixel", flags = 0x03) }
-            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+            val viewModel = DeviceViewModel(repository)
             viewModel.refreshStatus()
             dispatcher.scheduler.advanceUntilIdle()
             assertEquals(1, repository.sentCommands.count { it.first == Opcode.LIST_KNOWN_DEVICES })
@@ -1052,7 +1049,7 @@ class DeviceViewModelTest {
     fun `known devices are neither offered nor fetched on protocol 5`() =
         runTest {
             val repository = knownDevicesDevice(5) { knownDevicesList(1 to "") }
-            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+            val viewModel = DeviceViewModel(repository)
 
             viewModel.refreshStatus()
             dispatcher.scheduler.advanceUntilIdle()
@@ -1066,7 +1063,7 @@ class DeviceViewModelTest {
         runTest {
             var list = knownDevicesList(1 to "")
             val repository = knownDevicesDevice(6) { list }
-            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+            val viewModel = DeviceViewModel(repository)
             viewModel.refreshStatus()
             dispatcher.scheduler.advanceUntilIdle()
 
@@ -1092,7 +1089,7 @@ class DeviceViewModelTest {
         runTest {
             var list = knownDevicesList(1 to "")
             val repository = knownDevicesDevice(6) { list }
-            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+            val viewModel = DeviceViewModel(repository)
             viewModel.refreshStatus()
             dispatcher.scheduler.advanceUntilIdle()
 
@@ -1136,7 +1133,7 @@ class DeviceViewModelTest {
     fun `crash report is fetched once per connect and dismissing clears it`() =
         runTest {
             val repository = crashDevice(9)
-            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+            val viewModel = DeviceViewModel(repository)
 
             viewModel.refreshStatus()
             dispatcher.scheduler.advanceUntilIdle()
@@ -1156,7 +1153,7 @@ class DeviceViewModelTest {
     @Test
     fun `a busy device keeps the crash report and reports the status`() =
         runTest {
-            val viewModel = DeviceViewModel(crashDevice(9, StatusCode.ERR_BUSY), FakeLastDeviceStore())
+            val viewModel = DeviceViewModel(crashDevice(9, StatusCode.ERR_BUSY))
             viewModel.refreshStatus()
             dispatcher.scheduler.advanceUntilIdle()
 
@@ -1171,7 +1168,7 @@ class DeviceViewModelTest {
     fun `crash report is neither offered nor fetched on protocol 8`() =
         runTest {
             val repository = crashDevice(8)
-            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+            val viewModel = DeviceViewModel(repository)
 
             viewModel.refreshStatus()
             dispatcher.scheduler.advanceUntilIdle()
@@ -1203,7 +1200,7 @@ class DeviceViewModelTest {
                     else -> listResponder(opcode, payload)
                 }
             }
-            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+            val viewModel = DeviceViewModel(repository)
 
             viewModel.refreshStatus()
             dispatcher.scheduler.advanceUntilIdle()
@@ -1240,7 +1237,7 @@ class DeviceViewModelTest {
     fun `lifetime stats are not requested on protocol 7`() =
         runTest {
             val repository = knownDevicesDevice(7) { knownDevicesList(1 to "") }
-            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+            val viewModel = DeviceViewModel(repository)
 
             viewModel.refreshStatus()
             dispatcher.scheduler.advanceUntilIdle()
@@ -1250,11 +1247,8 @@ class DeviceViewModelTest {
             assertEquals(emptyMap<String, LifetimeStats>(), viewModel.uiState.value.knownLifetime)
         }
 
-    private fun TestScope.dropAfterReady(
-        repository: FakeBleControlRepository,
-        store: FakeLastDeviceStore = FakeLastDeviceStore(),
-    ): DeviceViewModel {
-        val viewModel = DeviceViewModel(repository, store)
+    private fun TestScope.dropAfterReady(repository: FakeBleControlRepository): DeviceViewModel {
+        val viewModel = DeviceViewModel(repository)
         viewModel.connectTo("AA:BB:CC:DD:EE:02")
         dispatcher.scheduler.runCurrent()
         repository.setConnectionState(ConnectionState.Ready)
@@ -1263,16 +1257,6 @@ class DeviceViewModelTest {
         dispatcher.scheduler.runCurrent()
         return viewModel
     }
-
-    @Test
-    fun `Ready after connectTo stores that address`() =
-        runTest {
-            val repository = FakeBleControlRepository()
-            val store = FakeLastDeviceStore()
-            dropAfterReady(repository, store)
-
-            assertEquals("AA:BB:CC:DD:EE:02", store.address)
-        }
 
     @Test
     fun `unexpected drop reconnects with growing delays and then gives up`() =
@@ -1301,7 +1285,7 @@ class DeviceViewModelTest {
     fun `user disconnect does not reconnect`() =
         runTest {
             val repository = FakeBleControlRepository()
-            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+            val viewModel = DeviceViewModel(repository)
             viewModel.connectTo("AA:BB:CC:DD:EE:02")
             repository.setConnectionState(ConnectionState.Ready)
             dispatcher.scheduler.runCurrent()
@@ -1320,7 +1304,7 @@ class DeviceViewModelTest {
     fun `connect error without a prior Ready does not reconnect`() =
         runTest {
             val repository = FakeBleControlRepository()
-            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+            val viewModel = DeviceViewModel(repository)
             viewModel.connectTo("AA:BB:CC:DD:EE:02")
             repository.setConnectionState(ConnectionState.Error("connect failed"))
             dispatcher.scheduler.runCurrent()
@@ -1351,241 +1335,58 @@ class DeviceViewModelTest {
         }
 
     @Test
-    fun `resumeLastDevice connects once to the stored address when idle`() =
+    fun `leaving the screen after Ready disconnects and never reconnects`() =
         runTest {
             val repository = FakeBleControlRepository()
-            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore("AA:BB:CC:DD:EE:09"))
-
-            viewModel.resumeLastDevice()
-            viewModel.resumeLastDevice()
-            dispatcher.scheduler.runCurrent()
-
-            assertEquals(listOf("AA:BB:CC:DD:EE:09"), repository.connectedAddresses)
-        }
-
-    @Test
-    fun `resumeLastDevice does nothing without an address or when not idle`() =
-        runTest {
-            val empty = FakeBleControlRepository()
-            DeviceViewModel(empty, FakeLastDeviceStore()).resumeLastDevice()
-            val busy = FakeBleControlRepository()
-            val busyVm = DeviceViewModel(busy, FakeLastDeviceStore("AA:BB:CC:DD:EE:09"))
-            busy.setConnectionState(ConnectionState.Scanning)
-            dispatcher.scheduler.runCurrent()
-            busyVm.resumeLastDevice()
-            dispatcher.scheduler.runCurrent()
-
-            assertTrue(empty.connectedAddresses.isEmpty())
-            assertTrue(busy.connectedAddresses.isEmpty())
-        }
-
-    private fun connectedWithProtocol(
-        repository: FakeBleControlRepository,
-        protocol: Int,
-    ): DeviceViewModel {
-        stubStatusReplies(repository)
-        repository.stubResponse(
-            Opcode.GET_DEVICE_INFO,
-            Result.success(ResponseFrame(StatusCode.OK, Opcode.GET_DEVICE_INFO.toByte(), deviceInfoBytes(protocol, 4))),
-        )
-        val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
-        repository.setConnectionState(ConnectionState.Ready)
-        dispatcher.scheduler.runCurrent()
-        return viewModel
-    }
-
-    private fun refreshes(repository: FakeBleControlRepository) = repository.sentCommands.count { it.first == Opcode.GET_GLOBAL_SETTINGS }
-
-    @Test
-    fun `events fill the activity feed newest first, capped, and unknown types stay`() =
-        runTest {
-            val repository = FakeBleControlRepository()
-            val viewModel = connectedWithProtocol(repository, EVENTS_MIN_PROTOCOL_VERSION)
-            assertTrue(viewModel.uiState.value.eventsSupported)
-
-            repository.emitEvent(DeviceEvent(0, EventType.CAUGHT, 1))
-            repository.emitEvent(DeviceEvent(1, 99, 2))
-            dispatcher.scheduler.runCurrent()
-            assertEquals(
-                listOf(99 to 2, EventType.CAUGHT to 1),
-                viewModel.uiState.value.activity
-                    .map { it.type to it.slot },
-            )
-
-            for (seq in 2 until ACTIVITY_LIMIT + 10) {
-                repository.emitEvent(DeviceEvent(seq and 0xFF, EventType.POKEMON_IN_RANGE, 0))
-                dispatcher.scheduler.runCurrent()
-            }
-            assertEquals(ACTIVITY_LIMIT, viewModel.uiState.value.activity.size)
-
-            viewModel.clearActivity()
-            assertTrue(
-                viewModel.uiState.value.activity
-                    .isEmpty(),
-            )
-            repository.setConnectionState(ConnectionState.Disconnected())
-            dispatcher.scheduler.runCurrent()
-        }
-
-    @Test
-    fun `a warning from the summary shows on its profile until a normal pattern event clears it`() =
-        runTest {
-            val repository = FakeBleControlRepository()
-            stubStatusReplies(repository)
-            repository.stubResponse(
-                Opcode.GET_CLIENT_SUMMARY,
-                Result.success(
-                    ResponseFrame(
-                        StatusCode.OK,
-                        Opcode.GET_CLIENT_SUMMARY.toByte(),
-                        clientSummarySlotBytes(connId = 7, warning = 2) + emptyClientSummarySlot(),
-                    ),
-                ),
-            )
-            repository.stubResponse(
-                Opcode.GET_DEVICE_INFO,
-                Result.success(
-                    ResponseFrame(StatusCode.OK, Opcode.GET_DEVICE_INFO.toByte(), deviceInfoBytes(EVENTS_MIN_PROTOCOL_VERSION, 4)),
-                ),
-            )
-            val viewModel = DeviceViewModel(repository, FakeLastDeviceStore())
+            val viewModel = DeviceViewModel(repository)
+            viewModel.connectTo("AA:BB:CC:DD:EE:02")
             repository.setConnectionState(ConnectionState.Ready)
             dispatcher.scheduler.runCurrent()
-            assertEquals(
-                EventType.BOX_FULL,
-                viewModel.uiState.value.profiles[0]
-                    .warning,
-            )
-            assertEquals(
-                NO_WARNING,
-                viewModel.uiState.value.profiles[1]
-                    .warning,
-            )
 
-            repository.emitEvent(DeviceEvent(0, EventType.POKEMON_IN_RANGE, 1))
+            viewModel.setForeground(false)
             dispatcher.scheduler.runCurrent()
-            assertEquals(
-                EventType.BOX_FULL,
-                viewModel.uiState.value.profiles[0]
-                    .warning,
-            )
+            repository.setConnectionState(ConnectionState.Disconnected(0))
+            dispatcher.scheduler.advanceTimeBy(60_000)
+            dispatcher.scheduler.runCurrent()
 
-            repository.emitEvent(DeviceEvent(1, EventType.POKEMON_IN_RANGE, 0))
-            dispatcher.scheduler.runCurrent()
-            assertEquals(
-                NO_WARNING,
-                viewModel.uiState.value.profiles[0]
-                    .warning,
-            )
-            repository.setConnectionState(ConnectionState.Disconnected())
-            dispatcher.scheduler.runCurrent()
+            assertEquals(1, repository.disconnectCalls)
+            assertEquals(1, repository.connectedAddresses.size)
         }
 
     @Test
-    fun `state-changing events refresh the status and in-range events do not`() =
+    fun `leaving the screen during a firmware update keeps the link`() =
         runTest {
-            val repository = FakeBleControlRepository()
-            val viewModel = connectedWithProtocol(repository, EVENTS_MIN_PROTOCOL_VERSION)
-            val before = refreshes(repository)
-
-            repository.emitEvent(DeviceEvent(0, EventType.POKEMON_IN_RANGE, 0))
+            val repository = otaDevice(5)
+            repository.gates[Opcode.OTA_DATA] = CompletableDeferred()
+            val viewModel = DeviceViewModel(repository)
+            viewModel.refreshStatus()
+            dispatcher.scheduler.advanceUntilIdle()
+            repository.setConnectionState(ConnectionState.Ready)
+            viewModel.requestFirmwareUpdate(otaImageBytes(size = 1000))
+            viewModel.confirmPendingAction()
             dispatcher.scheduler.runCurrent()
-            assertEquals(before, refreshes(repository))
+            assertEquals(0, viewModel.uiState.value.otaProgress)
 
-            repository.emitEvent(DeviceEvent(1, EventType.CAUGHT, 0))
+            viewModel.setForeground(false)
             dispatcher.scheduler.runCurrent()
-            assertEquals(before + 1, refreshes(repository))
-            assertEquals(2, viewModel.uiState.value.activity.size)
 
-            repository.setConnectionState(ConnectionState.Disconnected())
-            dispatcher.scheduler.runCurrent()
+            assertEquals(0, repository.disconnectCalls)
+            repository.gates.getValue(Opcode.OTA_DATA).complete(Unit)
+            dispatcher.scheduler.advanceUntilIdle()
         }
 
     @Test
-    fun `a sequence gap refreshes even for an in-range event`() =
+    fun `leaving the screen while idle or scanning does not disconnect`() =
         runTest {
             val repository = FakeBleControlRepository()
-            connectedWithProtocol(repository, EVENTS_MIN_PROTOCOL_VERSION)
-            repository.emitEvent(DeviceEvent(0, EventType.POKEMON_IN_RANGE, 0))
+            val viewModel = DeviceViewModel(repository)
+            viewModel.setForeground(false)
+            repository.setConnectionState(ConnectionState.Scanning)
             dispatcher.scheduler.runCurrent()
-            val before = refreshes(repository)
-
-            repository.emitEvent(DeviceEvent(1, EventType.POKEMON_IN_RANGE, 0))
-            dispatcher.scheduler.runCurrent()
-            assertEquals(before, refreshes(repository))
-
-            repository.emitEvent(DeviceEvent(3, EventType.POKEMON_IN_RANGE, 0))
-            dispatcher.scheduler.runCurrent()
-            assertEquals(before + 1, refreshes(repository))
-
-            repository.setConnectionState(ConnectionState.Disconnected())
-            dispatcher.scheduler.runCurrent()
-        }
-
-    @Test
-    fun `event firmware polls every 30 seconds, older firmware every 5`() =
-        runTest {
-            val repository = FakeBleControlRepository()
-            connectedWithProtocol(repository, EVENTS_MIN_PROTOCOL_VERSION)
-            val before = refreshes(repository)
-            dispatcher.scheduler.advanceTimeBy(EVENT_POLL_INTERVAL_MS - 1000)
-            dispatcher.scheduler.runCurrent()
-            assertEquals(before, refreshes(repository))
-            dispatcher.scheduler.advanceTimeBy(1000 + 1)
-            dispatcher.scheduler.runCurrent()
-            assertEquals(before + 1, refreshes(repository))
-            repository.setConnectionState(ConnectionState.Disconnected())
+            viewModel.setForeground(true)
+            viewModel.setForeground(false)
             dispatcher.scheduler.runCurrent()
 
-            val older = FakeBleControlRepository()
-            connectedWithProtocol(older, EVENTS_MIN_PROTOCOL_VERSION - 1)
-            val olderBefore = refreshes(older)
-            dispatcher.scheduler.advanceTimeBy(STATUS_POLL_INTERVAL_MS + 1)
-            dispatcher.scheduler.runCurrent()
-            assertEquals(olderBefore + 1, refreshes(older))
-            older.setConnectionState(ConnectionState.Disconnected())
-            dispatcher.scheduler.runCurrent()
-        }
-
-    private fun batteryReply(
-        repository: FakeBleControlRepository,
-        vararg payload: Int,
-    ) = repository.stubResponse(
-        Opcode.GET_BATTERY,
-        Result.success(ResponseFrame(StatusCode.OK, Opcode.GET_BATTERY.toByte(), ByteArray(payload.size) { payload[it].toByte() })),
-    )
-
-    @Test
-    fun `an enabled battery monitor shows its percent on the status card`() =
-        runTest {
-            val repository = FakeBleControlRepository()
-            batteryReply(repository, 1, 80, 0xA0, 0x0F)
-            val viewModel = connectedWithProtocol(repository, BATTERY_MIN_PROTOCOL_VERSION)
-            assertEquals(80, viewModel.uiState.value.status.batteryPercent)
-            repository.setConnectionState(ConnectionState.Disconnected())
-            dispatcher.scheduler.runCurrent()
-        }
-
-    @Test
-    fun `a disabled battery monitor shows no battery row`() =
-        runTest {
-            val repository = FakeBleControlRepository()
-            batteryReply(repository, 0, 0, 0, 0)
-            val viewModel = connectedWithProtocol(repository, BATTERY_MIN_PROTOCOL_VERSION)
-            assertEquals(null, viewModel.uiState.value.status.batteryPercent)
-            repository.setConnectionState(ConnectionState.Disconnected())
-            dispatcher.scheduler.runCurrent()
-        }
-
-    @Test
-    fun `firmware older than protocol 12 is never asked for the battery`() =
-        runTest {
-            val repository = FakeBleControlRepository()
-            batteryReply(repository, 1, 80, 0, 0)
-            val viewModel = connectedWithProtocol(repository, BATTERY_MIN_PROTOCOL_VERSION - 1)
-            assertTrue(repository.sentCommands.none { it.first == Opcode.GET_BATTERY })
-            assertEquals(null, viewModel.uiState.value.status.batteryPercent)
-            repository.setConnectionState(ConnectionState.Disconnected())
-            dispatcher.scheduler.runCurrent()
+            assertEquals(0, repository.disconnectCalls)
         }
 }

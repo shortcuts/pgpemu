@@ -11,7 +11,6 @@ import com.pgpemu.companion.ble.DeviceEvent
 import com.pgpemu.companion.ble.DeviceInfo
 import com.pgpemu.companion.ble.EventType
 import com.pgpemu.companion.ble.KnownDevice
-import com.pgpemu.companion.ble.LastDeviceStore
 import com.pgpemu.companion.ble.LifetimeStats
 import com.pgpemu.companion.ble.Opcode
 import com.pgpemu.companion.ble.OtaException
@@ -283,7 +282,6 @@ class DeviceViewModel
     @Inject
     constructor(
         private val repository: BleControlRepository,
-        private val lastDevice: LastDeviceStore,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow(DeviceUiState())
         val uiState: StateFlow<DeviceUiState> = _uiState.asStateFlow()
@@ -294,7 +292,6 @@ class DeviceViewModel
         private var reconnectJob: Job? = null
         private var currentAddress: String? = null
         private var userDisconnected = false
-        private var resumed = false
         private var lastEventSeq: Int? = null
 
         // Default true: the ViewModel is created by a started screen, which then reports every change.
@@ -321,7 +318,6 @@ class DeviceViewModel
                     lastEventSeq = null // the device restarts the sequence for each link
                     if (newState is ConnectionState.Ready) {
                         reconnectJob?.cancel()
-                        currentAddress?.let { lastDevice.address = it }
                     } else if (previous is ConnectionState.Ready && newState is ConnectionState.Disconnected && !userDisconnected) {
                         reconnect()
                     }
@@ -376,6 +372,15 @@ class DeviceViewModel
         /** Called by the screen with its lifecycle: true at STARTED, false at STOPPED. */
         fun setForeground(visible: Boolean) {
             foreground.value = visible
+            val live =
+                _uiState.value.connectionState.let {
+                    it is ConnectionState.Connecting ||
+                        it is ConnectionState.Bonding ||
+                        it is ConnectionState.DiscoveringServices ||
+                        it is ConnectionState.Ready
+                }
+            // Pokémon GO calls removeBond() on connect, which kills the link the app shares.
+            if (!visible && live && _uiState.value.otaProgress == null) disconnect()
         }
 
         /** Keeps connection count / active profile state fresh while connected — other
@@ -413,14 +418,6 @@ class DeviceViewModel
                         if (repository.connectionState.value is ConnectionState.Ready) return@launch
                     }
                 }
-        }
-
-        /** Connects to the remembered device once per ViewModel, without a scan. */
-        fun resumeLastDevice() {
-            val address = lastDevice.address ?: return
-            if (resumed || _uiState.value.connectionState !is ConnectionState.Idle) return
-            resumed = true
-            connectTo(address)
         }
 
         fun startScan() {

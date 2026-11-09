@@ -1,9 +1,7 @@
 package com.pgpemu.companion.di
 
 import com.pgpemu.companion.ble.BleControlRepository
-import com.pgpemu.companion.ble.LastDeviceStore
 import com.pgpemu.companion.ble.NordicBleControlRepository
-import com.pgpemu.companion.ble.SharedPreferencesLastDeviceStore
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -16,8 +14,4 @@ abstract class BleModule {
     @Binds
     @Singleton
     abstract fun bindBleControlRepository(impl: NordicBleControlRepository): BleControlRepository
-
-    @Binds
-    @Singleton
-    abstract fun bindLastDeviceStore(impl: SharedPreferencesLastDeviceStore): LastDeviceStore
 }

@@ -20,7 +20,7 @@ The third Control Service characteristic (notify only, bonded link) and the 3-by
 _Avoid_: notification, log line
 
 **Companion App**:
-The standalone Android (Kotlin, Jetpack Compose) app that replaces the UART/USB-console as the only way to read or change device state. Scans for nearby devices and lists them; the user picks one to connect to. Connects to one device at a time. Remembers the last connected device and reconnects to it; no saved multi-device list.
+The standalone Android (Kotlin, Jetpack Compose) app that replaces the UART/USB-console as the only way to read or change device state. Scans for nearby devices and lists them; the user picks one to connect to. Connects to one device at a time. Disconnects when it leaves the foreground and never reconnects on its own after that; no saved device list.
 _Avoid_: config app, control app, mobile app
 
 **Game Monitor**:

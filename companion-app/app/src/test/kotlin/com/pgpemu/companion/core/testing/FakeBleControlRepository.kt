@@ -32,6 +32,8 @@ class FakeBleControlRepository : BleControlRepository {
         private set
     var stopScanCalls = 0
         private set
+    var disconnectCalls = 0
+        private set
     val connectedAddresses = mutableListOf<String>()
 
     private val responses = mutableMapOf<Int, Result<ResponseFrame>>()
@@ -70,7 +72,9 @@ class FakeBleControlRepository : BleControlRepository {
         connectedAddresses.add(address)
     }
 
-    override suspend fun disconnect() = Unit
+    override suspend fun disconnect() {
+        disconnectCalls++
+    }
 
     override suspend fun sendCommand(
         opcode: Int,
