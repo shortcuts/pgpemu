@@ -2,12 +2,22 @@
 
 ## Commands
 
+These targets need JDK 17. `mise install` provides it; see [CONTRIBUTING.md](../CONTRIBUTING.md#building-the-companion-app).
+
 | Command | Purpose |
 |---------|---------|
 | `make companion-test` | Run unit tests |
 | `make companion-coverage` | Kover HTML/XML reports in `companion-app/build/reports/kover/` |
 | `make companion-coverage-open` | Open the Kover HTML report |
 | `make companion-lint` | Android lint, including `HardcodedComposeString` |
+| `make companion-install-release` | Build the minified release APK and install it on the connected phone |
+
+## Installing the release build
+
+`make companion-install-release` builds `:app:assembleRelease` with R8 minification, signs it with `~/.android/debug.keystore` (alias `androiddebugkey`), and runs `adb install -r`. Use it to catch minification crashes before a release. The debug keystore is created by the first debug build.
+
+- The install replaces an app signed with the same key. A debug install is replaced without a prompt.
+- An app signed with a different key cannot be replaced. Run `adb uninstall com.pgpemu.companion` first, then rerun the target. The uninstall also deletes the app's saved data, such as the last connected device. Remove the phone's Bluetooth pairing in the phone's Bluetooth settings if needed.
 
 ## Unit tests
 

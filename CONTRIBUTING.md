@@ -11,6 +11,39 @@ make build
 
 Never flash or open a monitor in automated/agent sessions unless explicitly asked.
 
+## Building the companion app
+
+Prerequisites:
+
+* JDK 17. Run `mise install` in the repo root. Unless `JAVA_HOME` is set, the Makefile uses the JDK that mise installs.
+* Android SDK, API 28 or newer. Set its path in `companion-app/local.properties`:
+
+  ```properties
+  sdk.dir=/path/to/Android/sdk
+  ```
+
+* `adb` on your `PATH`.
+* USB debugging on the phone, and the phone connected over USB.
+
+Run these commands from the repo root:
+
+```bash
+make companion-run      # install, start and tail the app log in one go
+make companion-install  # build the debug app and install it on the phone
+make companion-start    # launch the app on the phone
+make companion-log      # tail the app log; starts the app when it is not running
+```
+
+`make install` also flashes the firmware. To install only the app, run `make companion-install`.
+
+With several phones attached, set `ANDROID_SERIAL` to the serial that `adb devices` lists for the phone:
+
+```bash
+ANDROID_SERIAL=R58M123ABC make companion-run
+```
+
+Without `ANDROID_SERIAL`, adb stops with `more than one device/emulator` when several phones are attached.
+
 ## Before Opening a PR
 
 1. Read [AGENTS.md](AGENTS.md): scope, architecture rules, doc maintenance policy.

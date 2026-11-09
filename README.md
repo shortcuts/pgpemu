@@ -238,12 +238,10 @@ removed.
 
 Download the signed APK (`pgpemu-companion-<tag>.apk`) from the latest
 [GitHub Release](https://github.com/shortcuts/pgpemu/releases/latest) and install it,
-or build and install from source:
+or build and install it from source, see [CONTRIBUTING.md](CONTRIBUTING.md#building-the-companion-app).
 
-1. Open `companion-app/` in Android Studio (or run Gradle directly:
-   `cd companion-app && ./gradlew installDebug`).
-2. Requires Android 9 (API 28) or newer.
-3. Install to a phone with Bluetooth Low Energy support.
+1. Requires Android 9 (API 28) or newer.
+2. Install to a phone with Bluetooth Low Energy support.
 
 #### Pair
 
