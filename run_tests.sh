@@ -74,9 +74,9 @@ for test_file in $TEST_FILES; do
 
 	print_header "Running: $test_name"
 
-	# Compile
+	# Compile (glibc hides strnlen under -std=c99; ESP-IDF builds with gnu17, where it is visible)
 	compile_status=0
-	compile_output=$(cd "$TEST_DIR" && gcc -o "$test_name" "$test_name.c" -std=c99 -Istubs 2>&1) || compile_status=$?
+	compile_output=$(cd "$TEST_DIR" && gcc -o "$test_name" "$test_name.c" -std=c99 -D_POSIX_C_SOURCE=200809L -Istubs 2>&1) || compile_status=$?
 
 	if [ $compile_status -ne 0 ]; then
 		print_error "Compilation failed for $test_name"

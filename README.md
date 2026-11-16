@@ -380,6 +380,8 @@ pgpemu/
 │   │   ├── Core Connection Management:
 │   │   │   ├── pgp_handshake_multi.c(.h)    # Multi-device connection tracker
 │   │   │   ├── pgp_gatts.c(.h)              # BLE GATT server
+│   │   │   ├── pgp_gatts_debug.c(.h)        # GATT handle → name for logs
+│   │   │   ├── pgp_control.c(.h)            # Control Service for the Companion App
 │   │   │   └── pgp_handshake.c(.h)          # Encryption/decryption
 │   │   │
 │   │   ├── Settings & Storage:
@@ -390,17 +392,20 @@ pgpemu/
 │   │   │   ├── crash_report.c(.h)           # Crash Report from the last panic's core dump
 │   │   │   ├── battery.c(.h)                # Optional ADC battery monitor
 │   │   │   ├── settings.c(.h)               # Settings logic
+│   │   │   ├── forget_pairings.c(.h)        # Forget Pairings flag and erase
 │   │   │   └── nvs_helper.c(.h)             # NVS utilities
 │   │   │
 │   │   ├── Features:
 │   │   │   ├── pgp_led_handler.c(.h)        # LED pattern → action
 │   │   │   ├── pgp_autobutton.c(.h)         # Button press simulation
 │   │   │   ├── pgp_ota.c(.h)                # OTA firmware update
-│   │   │   └── button_input.c(.h)           # GPIO handler
+│   │   │   ├── button_input.c(.h)           # BOOT button at run time
+│   │   │   └── setup_button.c(.h)           # BOOT button read once at boot
 │   │   │
 │   │   ├── Communication:
 │   │   │   ├── pgp_bluetooth.c(.h)          # BLE initialization
 │   │   │   ├── pgp_gap.c(.h)                # BLE device discovery
+│   │   │   ├── pgp_adv_state.c(.h)          # Advertising state machine
 │   │   │   └── pgp_cert.c(.h)               # Certificate handling
 │   │   │
 │   │   ├── System:
@@ -409,14 +414,7 @@ pgpemu/
 │   │   │   ├── buf_writer.c(.h)             # Bounded string builder for debug dumps
 │   │   │   └── log_tags.c(.h)               # Log definitions
 │   │   │
-│   │   └── pc/                              # PC Unit Tests (all tests pass)
-│   │       ├── test_regression.c            # 46 assertions - Critical bugs
-│   │       ├── test_edge_cases.c            # 76 assertions - Boundaries
-│   │       ├── test_error_handling.c        # Error recovery
-│   │       ├── test_settings.c              # Settings logic
-│   │       ├── test_handshake_multi.c       # Multi-device connections
-│   │       ├── test_config_storage.c        # NVS persistence
-│   │       ├── test_nvs_helper.c            # NVS utilities
+│   │   └── pc/                              # PC unit tests, one test_<module>.c per module
 │   │       └── run_tests.sh                 # Test runner script
 │   │
 │   ├── CMakeLists.txt                       # Build configuration

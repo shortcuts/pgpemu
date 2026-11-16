@@ -148,6 +148,7 @@ make wiki-serve   # http://localhost:8080
 |------|---------|
 | `docs/wiki/index.html` | Overview + what you need + quick start |
 | `docs/wiki/install.html` | Install and update the firmware with a browser flasher (manifest and binaries in `docs/wiki/firmware/`, generated at deploy by `pages.yml`, not committed) |
+| `docs/wiki/hardware.html` | Which board to buy, wiring, power, printable case |
 | `docs/wiki/connect.html` | Pairing the companion app and the device with Pokémon GO |
 | `docs/wiki/profiles.html` | Autospin / Autocatch per device profile |
 | `docs/wiki/settings.html` | Advertising, max connections, log level |
