@@ -34,6 +34,9 @@ jobs:
 
     - name: run pc unit tests
       run: |
+        # scripts/test_screenshot_wiki.py imports PIL; apt avoids pip's externally-managed-environment error
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends python3-pil
         chmod +x run_tests.sh
         make test
 
