@@ -3,11 +3,7 @@ secrets/secrets.yaml
 pgpemu-esp32/.cache
 pgpemu-esp32/main/pc
 !pgpemu-esp32/main/pc/*.c
-.sisyphus
 .claude/settings.local.json
-.scratch/**/.omc/
-.claude/.radin/
-.opencode*
 docs/wiki/firmware/
 __pycache__/
 .agents/
