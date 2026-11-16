@@ -3,17 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Settings — pgpemu</title>
+  <title>Settings | pgpemu</title>
   <meta name="description" content="Change how your PGPemu device advertises over Bluetooth, its status light, connection limit, log level, and Pokémon GO alerts.">
   <link rel="canonical" href="https://pgpemu.shrtcts.fr/settings.html">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="pgpemu">
-  <meta property="og:title" content="Settings — pgpemu">
+  <meta property="og:title" content="Settings | pgpemu">
   <meta property="og:description" content="Change how your PGPemu device advertises over Bluetooth, its status light, connection limit, log level, and Pokémon GO alerts.">
   <meta property="og:url" content="https://pgpemu.shrtcts.fr/settings.html">
   <meta property="og:image" content="https://pgpemu.shrtcts.fr/icon.png">
   <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="Settings — pgpemu">
+  <meta name="twitter:title" content="Settings | pgpemu">
   <meta name="twitter:description" content="Change how your PGPemu device advertises over Bluetooth, its status light, connection limit, log level, and Pokémon GO alerts.">
   <meta name="twitter:image" content="https://pgpemu.shrtcts.fr/icon.png">
   <link rel="icon" href="icon.png" type="image/png">
@@ -26,14 +26,13 @@
   <main>
     <h1 id="settings">Settings</h1>
     <p>
-      The Settings section controls how the device presents itself over Bluetooth: whether it's
-      discoverable, how many connections it accepts at once, and how much detail it logs.
+      The Settings section controls whether the device is discoverable, how many connections it accepts at once, and how much detail it logs.
     </p>
 
     <section class="has-shot">
       <h2 id="options">Options</h2>
       <aside class="shot"><img class="phone-shot" src="screenshots/app-settings.png" alt="Settings tab with the Advertising switch, Max connections and Game monitor" width="540" height="955" loading="lazy"></aside>
-    <p>Each option below changes one part of how the device presents itself.</p>
+    <p>Each entry below is one option.</p>
 
     <h3 id="options-advertising">Advertising</h3>
     <p>Turns Bluetooth advertising on or off. While on, the device is visible to Pokémon GO and the companion app when they scan. Turn it off once everything you need is already paired, so it stops showing up to new scans. Existing connections aren't affected by turning it off. The choice stays in place when a device connects or disconnects. Any phone in Bluetooth range can pair with the device and control it while Advertising is on. Keep it off when you are not pairing.</p>
@@ -42,20 +41,20 @@
     <p>Turns the device's light on or off. See <a href="#status-light">Status light</a>. <strong>Forget all pairings</strong> turns the light back on.</p>
 
     <h3 id="options-max-connections">Max connections</h3>
-    <p>The largest number of simultaneous Bluetooth connections the device accepts, from 1 to 4. Lower it to reserve the device for fewer accounts. Raise it back up to 4 to allow the full set. See <a href="connect.html#multiple-devices">Multiple connections</a>.</p>
+    <p>The largest number of simultaneous Bluetooth connections the device accepts, from 1 to 4. Lower it to reserve the device for fewer accounts. Raise it back up to 4 to allow the full set. See <a href="profiles.html#connection-slots">Multiple connections</a>.</p>
 
     <h3 id="options-log-level">Log level</h3>
-    <p>How much detail the device records internally: Info, Debug, or Verbose, from least to most detailed. Tap <strong>Cycle log level</strong> to step through the options. Verbose is the most useful setting when you're trying to reproduce a problem to report.</p>
+    <p>How much detail the device records internally: Info, Debug, or Verbose, from least to most detailed. Tap <strong>Cycle log level</strong> to step through the options. Use Verbose when you reproduce a problem to report.</p>
     <p><strong>Default:</strong> Debug</p>
 
     <h3 id="options-pairing-assistant">Pairing assistant</h3>
-    <p>Taps <strong>Pair</strong> on your phone's pairing prompt for you. See <a href="connect.html#skip-pairing-prompt">Skip the pairing prompt</a>.</p>
+    <p>Taps <strong>Pair</strong> on your phone's pairing prompt for you. See <a href="pairing-assistant.html">Skip the pairing prompt</a>.</p>
     <p>The <strong>Skip the pairing prompt</strong> switch shows whether the assistant is on in your phone's Accessibility settings. Turning it on or off opens those settings.</p>
     <p>The <strong>Pair silently with root</strong> switch is optional. It needs a rooted phone. The app asks for root access when you turn it on. With it on, the pairing prompt never shows. If it fails, the normal pairing prompt shows and the app tells you.</p>
     <p><strong>Default:</strong> Off</p>
 
     <h3 id="options-game-monitor">Game monitor</h3>
-    <p>Sends alerts on your phone when Pokémon GO reports a problem. See <a href="#game-monitor">Game monitor</a>.</p>
+    <p>Sends alerts on your phone when Pokémon GO reports a problem. See <a href="game-monitor.html">Game monitor</a>.</p>
     <p><strong>Default:</strong> Off</p>
     </section>
 
@@ -69,7 +68,7 @@
     <p><strong>Meaning:</strong> The device restarted after a crash. The <a href="diagnostics.html#crash-report">Crash report</a> in the app has the details.</p>
 
     <h3 id="status-light-fast-blinking">Fast blinking</h3>
-    <p><strong>Meaning:</strong> The device has no secrets. Import your secrets file with the app, see <a href="connect.html#setup-device">Set up a device with no secrets</a>.</p>
+    <p><strong>Meaning:</strong> The device has no secrets. Import your secrets file with the app, see <a href="setup-device.html">Set up a device with no secrets</a>.</p>
 
     <h3 id="status-light-1-to-4-blinks">1 to 4 blinks, then a pause</h3>
     <p><strong>Meaning:</strong> That many Pokémon GO phones are connected.</p>
@@ -101,32 +100,7 @@
       still set the next time the device powers on. If the device is not advertising after a
       restart, press its button to turn Advertising back on. A press under 3 seconds turns Advertising on or
       off. Holding the button for 3 to 9 seconds allows a
-      <a href="diagnostics.html#update-firmware">firmware update</a> instead.
-    </p>
-      <h2 id="game-monitor">Game monitor</h2>
-    <p>
-      The Game monitor watches the notification that Pokémon GO shows while it is connected to the device.
-      When that notification reports a problem, the app shows its own alert, so you do not have to open the game.
-    </p>
-    <ul>
-      <li>Pokémon GO lost the device.</li>
-      <li>The bag is full.</li>
-      <li>The Pokémon box is full.</li>
-      <li>You are out of Poké Balls.</li>
-      <li>A Pokéstop spin gave no items.</li>
-    </ul>
-    <p>
-      To turn it on, switch on <strong>Alert me about Pokémon GO</strong> in Settings, read the notice, and tap
-      <strong>Continue</strong>. Your phone then asks you to allow notifications and to give the app notification access.
-      Grant both. The monitor works on the phone alone and needs no Bluetooth connection to the device.
-    </p>
-    <p>
-      To turn it off, switch it off in Settings. You can also take away the app's access in your phone's notification access settings.
-      Tap <strong>Notification access settings</strong> to open them. In your phone's settings you can mute one kind of alert at a time.
-    </p>
-    <p>
-      The monitor depends on the texts Pokémon GO shows. After a game update, alerts may stop until the app is updated too.
-      If no alerts arrive, see <a href="troubleshooting.html#no-game-alerts">No game alerts arrive</a>.
+      <a href="update-firmware.html">firmware update</a> instead.
     </p>
 </main>
 

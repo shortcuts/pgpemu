@@ -3,17 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Device Profiles — pgpemu</title>
+  <title>Device profiles | pgpemu</title>
   <meta name="description" content="Set Autospin and Autocatch for each phone paired with your PGPemu device, and see how the device decides when to press.">
   <link rel="canonical" href="https://pgpemu.shrtcts.fr/profiles.html">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="pgpemu">
-  <meta property="og:title" content="Device Profiles — pgpemu">
+  <meta property="og:title" content="Device profiles | pgpemu">
   <meta property="og:description" content="Set Autospin and Autocatch for each phone paired with your PGPemu device, and see how the device decides when to press.">
   <meta property="og:url" content="https://pgpemu.shrtcts.fr/profiles.html">
   <meta property="og:image" content="https://pgpemu.shrtcts.fr/icon.png">
   <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="Device Profiles — pgpemu">
+  <meta name="twitter:title" content="Device profiles | pgpemu">
   <meta name="twitter:description" content="Set Autospin and Autocatch for each phone paired with your PGPemu device, and see how the device decides when to press.">
   <meta name="twitter:image" content="https://pgpemu.shrtcts.fr/icon.png">
   <link rel="icon" href="icon.png" type="image/png">
@@ -26,17 +26,27 @@
   <main>
     <h1 id="device-profiles">Device profiles</h1>
     <p>
-      The <strong>Device Profiles</strong> section shows one card per connected phone, numbered
-      1 to 4. A card shows the phone's name and the end of its address. A phone without a name shows as <strong>Profile</strong> and its number. Name a phone in <strong>Known devices</strong> to tell your accounts apart. Whichever Pokémon GO account is connected to a given slot is controlled by that
-      card's settings.
+      The <strong>Device profiles</strong> section shows one card per connected phone, numbered
+      1 to 4. A card shows the phone's name and the end of its address. A phone without a name shows as <strong>Profile</strong> and its number. Name a phone in <strong>Known devices</strong> to tell your accounts apart. The card's settings control the Pokémon GO account in that slot.
     </p>
     <div class="feature-section" id="profiles-card">
       <ul class="section-bullets">
         <li>Each card has a <strong>SPIN</strong> dot and a <strong>CATCH</strong> dot. Tap SPIN to turn it on or off for that slot. Tap CATCH to step through <strong>off</strong>, <strong>new</strong>, and <strong>all</strong>.</li>
-        <li>A lit, colored dot means the behavior is on. A dim dot means it's off.</li>
+        <li>A lit, colored dot means the behavior is on. A dim dot means it is off.</li>
         <li>Underneath, three lines show how many Pokémon you <strong>Caught</strong>, how many <strong>Fled</strong>, and how many Pokéstops you <strong>Spun</strong> since the device last restarted.</li>
       </ul>
     </div>
+
+    <h2 id="connection-slots">Connection slots</h2>
+    <p>
+      A PGPemu device holds up to 4 Bluetooth connections at once. Pokémon GO and the companion app share them. Each connection takes one slot, and the companion app takes one too. Each slot has its own device profile
+      (numbered 1 to 4) with independent Autospin and Autocatch settings. See
+      <a href="profiles.html">Device profiles</a>.
+    </p>
+    <p>
+      Use several slots when more than one Pokémon GO account shares the device. The device tracks and configures each account separately. To reserve the device for fewer accounts, lower the connection limit on the
+      <a href="settings.html">Settings</a> page.
+    </p>
 
     <h2 id="warnings">Warnings</h2>
     <p>
@@ -53,8 +63,7 @@
       newest first: a Pokémon caught or fled, items received, a full bag or box, no Poké Balls
       left, and Pokémon GO connecting or disconnecting. Each line shows the time and the
       profile number. The list keeps the last 50 events and starts empty each time you connect.
-      Tap <strong>Clear</strong> to empty it. The device and the app need matching versions;
-      with an older device the card does not appear.
+      Tap <strong>Clear</strong> to empty it. The device and the app need matching versions. With an older device the card does not appear.
     </p>
 
     <h2 id="known-phones">Known phones</h2>
@@ -67,7 +76,7 @@
       <li>Tap <strong>Rename</strong> to give a phone a name you recognize. The name can have up to 15 letters, digits or symbols.</li>
       <li>Tap <strong>Forget</strong> to remove a phone. The device erases its pairing and settings. The next time that phone connects, it pairs again from scratch. You cannot forget a phone while it is connected.</li>
       <li>Under each phone, <strong>All time</strong> counts what Pokémon GO did through the device: Pokémon caught and fled, Pokéstops spun, full bag, full box, and out of balls or out of range of a Pokéstop. The counts survive a restart of the device. While the phone is connected, <strong>This connection</strong> shows the counts since it connected. The numbers update when the app connects and after a reset, so reconnect the app to see newer counts.</li>
-      <li>Tap <strong>Reset stats</strong> to set the all-time counts of one phone back to zero. <strong>Forget all pairings</strong> in the Danger Zone and forgetting a phone erase its counts too.</li>
+      <li>Tap <strong>Reset stats</strong> to set the all-time counts of one phone back to zero. <strong>Forget all pairings</strong> in the Danger zone and forgetting a phone erase its counts too.</li>
       <li>The counts need the matching firmware version. If the device loses power, the last few events can be missing.</li>
       <li>The list holds 15 phones. When a 16th connects, the device drops the one used longest ago.</li>
       <li>A phone that paired before you updated shows up after its next connection.</li>
@@ -76,8 +85,7 @@
     <h2 id="autospin">Autospin</h2>
     <p>
       When Autospin is on, the device automatically presses its button whenever Pokémon GO
-      signals that you're near a Pokéstop or Gym you can spin. You don't have to touch your
-      phone — walk past a stop and it spins on its own.
+      signals that you're near a Pokéstop or Gym you can spin. You do not touch your phone. Walk past a stop and it spins.
     </p>
 
     <h2 id="autocatch">Autocatch</h2>
@@ -88,21 +96,19 @@
     </p>
     <p>Autocatch has three modes. The CATCH dot on the card shows which one is active.</p>
     <ul>
-      <li><strong>CATCH off</strong> — the device never presses for a wild Pokémon.</li>
-      <li><strong>CATCH new</strong> — the device presses only for a Pokémon you have not caught yet, which saves Poké Balls.</li>
-      <li><strong>CATCH all</strong> — the device presses for every wild Pokémon.</li>
+      <li><strong>CATCH off.</strong> The device never presses for a wild Pokémon.</li>
+      <li><strong>CATCH new.</strong> The device presses only for a Pokémon you have not caught yet. This saves Poké Balls.</li>
+      <li><strong>CATCH all.</strong> The device presses for every wild Pokémon.</li>
     </ul>
     <p>CATCH new needs a device updated to the matching firmware version. An older device only offers off and all.</p>
 
     <h2 id="how-it-decides">How it decides when to press</h2>
     <p>
-      Pokémon GO Plus accessories, including PGPemu, take their cue from a pattern of light the
-      game sends over the connection rather than anything shown on your screen. PGPemu
-      recognizes each of these patterns and reacts accordingly:
+      The game sends a light pattern over the Bluetooth connection. Pokémon GO Plus accessories, including PGPemu, read it instead of your screen. PGPemu recognizes these patterns:
     </p>
     <ul class="trouble">
-      <li>Pokémon caught — the button press succeeded.</li>
-      <li>Pokémon fled — the encounter ended without a catch.</li>
+      <li>Pokémon caught: the button press succeeded.</li>
+      <li>Pokémon fled: the encounter ended without a catch.</li>
       <li>Pokéstop or Gym spun.</li>
       <li>Item bag is full.</li>
       <li>Pokémon box is full.</li>
@@ -113,14 +119,12 @@
       Autospin and Autocatch turned on and does not pause or resume them. Clear space or restock in the game.
     </p>
     <p>
-      Button presses use small randomized delays rather than firing instantly, closer to how a
-      person reacts than a fixed, mechanical timing.
+      Button presses use small random delays, so the timing is not fixed.
     </p>
 
-    <h2 id="persisted">Settings stick around</h2>
+    <h2 id="persisted">Saved settings</h2>
     <p>
-      The device remembers Autospin and the Autocatch mode for each Pokémon GO account and keeps them
-      across reconnects and restarts.
+      The device saves Autospin and the Autocatch mode for each Pokémon GO account. They survive reconnects and restarts.
       An account the device has never seen before starts with Autospin on and Autocatch set to all.
     </p>
   </main>

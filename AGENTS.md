@@ -66,8 +66,10 @@ Work is NOT complete until affected docs are updated. These files must stay in s
 | File | Update when |
 |------|-------------|
 | `AGENTS.md` (this file) — Key Modules table | Adding, removing, or renaming a firmware module under `pgpemu-esp32/main/` |
+| `docs/development.md` | Changing the toolchain, `secrets.csv` format, battery options, or build and flash steps |
+| `docs/testing.md` | Changing how PC tests run or where fixtures live |
 | `docs/architecture.md` | Changing module layering, the connection/handshake flow, or the Control Service protocol |
-| `README.md` — Features / Project Structure | Adding or removing a user-visible feature or firmware module |
+| `README.md` — Features | Adding or removing a user-visible feature. Keep it short and link to the wiki. |
 | `docs/wiki/<page>.html` | Adding or changing any user-visible companion app or device behavior |
 | `docs/wiki/changelog.html` | Any release with user-visible changes |
 | `CONTEXT.md` | Introducing or renaming a domain term (Control Service, Device Profile, ...) |
@@ -76,7 +78,7 @@ Rules:
 
 * Doc changes go in the same commit as the code change, not a follow-up.
 * Deleted feature/module → remove it from every table above.
-* README.md and the wiki are user-facing. Developer detail (build steps, architecture, protocol) goes in `AGENTS.md`, `CONTRIBUTING.md`, or `docs/architecture.md`.
+* README.md and the wiki are user-facing. Developer detail goes in `AGENTS.md`, `CONTRIBUTING.md`, or `docs/` (`architecture.md`, `development.md`, `testing.md`). Never duplicate wiki content in `README.md`.
 
 ## Pre-Commit Validation
 
@@ -149,11 +151,18 @@ make wiki-serve   # http://localhost:8080
 | `docs/wiki/index.html` | Overview + what you need + quick start |
 | `docs/wiki/install.html` | Install and update the firmware with a browser flasher (manifest and binaries in `docs/wiki/firmware/`, generated at deploy by `pages.yml`, not committed) |
 | `docs/wiki/hardware.html` | Which board to buy, wiring, power, printable case |
+| `docs/wiki/tasks.html` | Guides hub. Links the goal-based how-to pages below |
 | `docs/wiki/connect.html` | Pairing the companion app and the device with Pokémon GO |
+| `docs/wiki/setup-device.html` | Load secrets into a device that has none |
+| `docs/wiki/several-accounts.html` | Share one device between accounts |
+| `docs/wiki/move-to-a-new-phone.html` | Move a device to a new phone |
+| `docs/wiki/update-firmware.html` | Update the firmware from the app |
+| `docs/wiki/pairing-assistant.html` | Skip the Bluetooth pairing prompt |
+| `docs/wiki/game-monitor.html` | Alerts when Pokémon GO reports a problem |
 | `docs/wiki/profiles.html` | Autospin / Autocatch per device profile |
-| `docs/wiki/settings.html` | Advertising, max connections, log level |
-| `docs/wiki/diagnostics.html` | Status, diagnostics dumps, danger zone |
-| `docs/wiki/faq.html` | Goal-based answers: several accounts, new phone, staying connected, light meaning, account risk, phone compatibility |
+| `docs/wiki/settings.html` | Advertising, max connections, log level, status light, theme, language |
+| `docs/wiki/diagnostics.html` | Status, crash report, diagnostics dumps, danger zone |
+| `docs/wiki/faq.html` | Staying connected, light meaning, account risk, phone compatibility |
 | `docs/wiki/troubleshooting.html` | Connection and usage problems |
 | `docs/wiki/changelog.html` | User-facing curated changelog |
 | `docs/wiki/privacy.html` | Privacy policy |

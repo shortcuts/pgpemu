@@ -3,17 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Changelog — pgpemu</title>
+  <title>Changelog | pgpemu</title>
   <meta name="description" content="What changed in each PGPemu release, for the companion app and the device firmware.">
   <link rel="canonical" href="https://pgpemu.shrtcts.fr/changelog.html">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="pgpemu">
-  <meta property="og:title" content="Changelog — pgpemu">
+  <meta property="og:title" content="Changelog | pgpemu">
   <meta property="og:description" content="What changed in each PGPemu release, for the companion app and the device firmware.">
   <meta property="og:url" content="https://pgpemu.shrtcts.fr/changelog.html">
   <meta property="og:image" content="https://pgpemu.shrtcts.fr/icon.png">
   <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="Changelog — pgpemu">
+  <meta name="twitter:title" content="Changelog | pgpemu">
   <meta name="twitter:description" content="What changed in each PGPemu release, for the companion app and the device firmware.">
   <meta name="twitter:image" content="https://pgpemu.shrtcts.fr/icon.png">
   <link rel="icon" href="icon.png" type="image/png">
@@ -29,13 +29,13 @@
 
     <h3 id="unreleased">Unreleased</h3>
     <ul>
-      <li>New: a <strong>Pairing assistant</strong> that taps <strong>Pair</strong> on your phone's pairing prompt for the device. Switch on <strong>Skip the pairing prompt</strong> and allow it in your phone's Accessibility settings. See <a href="connect.html#skip-pairing-prompt">Skip the pairing prompt</a>.</li>
+      <li>New: a <strong>Pairing assistant</strong> that taps <strong>Pair</strong> on your phone's pairing prompt for the device. Switch on <strong>Skip the pairing prompt</strong> and allow it in your phone's Accessibility settings. See <a href="pairing-assistant.html">Skip the pairing prompt</a>.</li>
       <li>New: on rooted phones, <strong>Pair silently with root</strong> confirms the pairing for you, so the pairing prompt never shows.</li>
       <li>Fixed: Pokémon GO could not connect to the device while the app was connected. The app now disconnects when you leave it.</li>
       <li>Changed: the app no longer connects to your last device when you open it. Scan and pick the device.</li>
       <li>New: a <strong>Battery</strong> row in Status shows the charge left, for devices built with a battery reader. Your phone also shows it in its Bluetooth settings. Thanks to Zeldo Kavira.</li>
-      <li>New: the <a href="install.html">Install &amp; Update Firmware</a> page installs or updates the firmware from your browser.</li>
-      <li>New: a <strong>Theme</strong> row in About switches the app between your phone's setting, light, and dark. Tap it to change; the app remembers your choice.</li>
+      <li>New: the <a href="install.html">Install and update firmware</a> page installs or updates the firmware from your browser.</li>
+      <li>New: a <strong>Theme</strong> row in About switches the app between your phone's setting, light, and dark. Tap it to change. The app remembers your choice.</li>
       <li>New: the app is available in French. On Android 13 or newer, <strong>About</strong> has a <strong>Language</strong> row to pick the app language.</li>
       <li>New: after an update, the app shows what is new once, with a link to this changelog.</li>
       <li>Improved: the app has larger text and larger buttons, shows a ripple when you tap a row, and works with a screen reader such as TalkBack. The profile counters now read Caught, Fled, and Spun.</li>
@@ -53,7 +53,7 @@
       <li>New: the app connects to your last device when it opens and reconnects after a dropped connection.</li>
       <li>New: the app tells you once a day when a newer release exists for the app or the device firmware.</li>
       <li>New: update the device firmware from the app over Bluetooth. Hold the board button for 3 seconds to allow it. The device goes back to the old firmware if the new one does not start. Holding the button for 3 to 9 seconds no longer turns Advertising on or off.</li>
-      <li>New: <strong>Forget all pairings</strong> in the Danger Zone clears every pairing and setting but keeps the device's identity. Holding the board button for 10 seconds does the same without the app. The app needs the matching firmware version.</li>
+      <li>New: <strong>Forget all pairings</strong> in the Danger zone clears every pairing and setting but keeps the device's identity. Holding the board button for 10 seconds does the same without the app. The app needs the matching firmware version.</li>
       <li>New: a device with no secrets now starts in setup mode, and the app can import your secrets file over Bluetooth. Before, it stayed silent until a USB reflash. The app needs the matching firmware version.</li>
       <li>Changes made from the app now apply the value you picked, so a repeated tap or a second phone cannot undo it. The app needs the matching firmware version.</li>
       <li>New: the app shows an About device card with the firmware version and health details, and asks you to update firmware that is too old.</li>
@@ -67,13 +67,13 @@
       <li>New: the app has its own launcher icon and is named <strong>PGPemu Companion</strong>. It opens in the light or dark look of your phone without a white flash first. Phones without Bluetooth Low Energy cannot install it.</li>
     </ul>
 
-    <h3 id="v101"><a href="https://github.com/shortcuts/pgpemu/releases/tag/v1.0.1" target="_blank" rel="noopener">1.0.1</a> — February 18, 2026</h3>
+    <h3 id="v101"><a href="https://github.com/shortcuts/pgpemu/releases/tag/v1.0.1" target="_blank" rel="noopener">1.0.1</a> (February 18, 2026)</h3>
     <ul>
       <li>Fixed a stall that could leave a connection queue stuck.</li>
       <li>Fixed a crash that could occur during device handshakes.</li>
     </ul>
 
-    <h3 id="v100"><a href="https://github.com/shortcuts/pgpemu/releases/tag/v1.0.0" target="_blank" rel="noopener">1.0.0</a> — February 1, 2026</h3>
+    <h3 id="v100"><a href="https://github.com/shortcuts/pgpemu/releases/tag/v1.0.0" target="_blank" rel="noopener">1.0.0</a> (February 1, 2026)</h3>
     <ul>
       <li>New: per-device settings, so each connected Pokémon GO account keeps its own Autospin and Autocatch state.</li>
       <li>New: caught, fled, and spin counters shown per device.</li>

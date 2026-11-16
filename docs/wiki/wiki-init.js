@@ -1,21 +1,30 @@
 (function () {
   var NAV_ITEMS = [
     { group: 'Start', items: [
-      { href: 'index.html', label: 'Getting Started' },
+      { href: 'index.html', label: 'Getting started' },
       { href: 'hardware.html', label: 'Hardware' },
-      { href: 'install.html', label: 'Install & Update Firmware' },
+      { href: 'install.html', label: 'Install and update firmware' },
     ] },
-    { group: 'Use', items: [
-      { href: 'connect.html', label: 'Connect & Pair' },
-      { href: 'profiles.html', label: 'Device Profiles' },
+    { group: 'Guides', items: [
+      { href: 'tasks.html', label: 'Common tasks' },
+      { href: 'connect.html', label: 'Connect and pair' },
+      { href: 'setup-device.html', label: 'Set up a device with no secrets' },
+      { href: 'several-accounts.html', label: 'Use one device for several accounts' },
+      { href: 'move-to-a-new-phone.html', label: 'Move a device to a new phone' },
+      { href: 'update-firmware.html', label: 'Update the firmware from the app' },
+    ] },
+    { group: 'Features', items: [
+      { href: 'profiles.html', label: 'Device profiles' },
+      { href: 'pairing-assistant.html', label: 'Pairing assistant' },
+      { href: 'game-monitor.html', label: 'Game monitor' },
+      { href: 'diagnostics.html', label: 'Diagnostics and danger zone' },
     ] },
     { group: 'Configure', items: [
       { href: 'settings.html', label: 'Settings' },
-      { href: 'diagnostics.html', label: 'Diagnostics & Danger Zone' },
     ] },
     { group: 'Help', items: [
-      { href: 'faq.html', label: 'Common Tasks & FAQ' },
       { href: 'troubleshooting.html', label: 'Troubleshooting' },
+      { href: 'faq.html', label: 'FAQ' },
     ] },
     { group: 'About', items: [
       { href: 'changelog.html', label: 'Changelog' },

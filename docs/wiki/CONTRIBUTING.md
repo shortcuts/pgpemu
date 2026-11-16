@@ -6,7 +6,7 @@ All wiki pages are read by **app and device users, not developers**. Write every
 
 **Rules that apply to every page:**
 
-- No code symbols, function names, opcode names, or file paths — ever. If you need to refer to something technical, describe what it does instead.
+- No code symbols, function names, opcode names, or file paths. If you need to refer to something technical, describe what it does instead.
   - Bad: The app sends `Opcode.TOGGLE_AUTOSPIN` to the device.
   - Good: The app tells the device to turn Autospin on or off.
   - Bad: `write_global_settings_to_nvs()` persists the settings.
@@ -15,7 +15,7 @@ All wiki pages are read by **app and device users, not developers**. Write every
   - Bad: The ViewModel issues a GATT write to the Control Service characteristic.
   - Good: The app sends the change to the device over Bluetooth.
 - No library or framework names in descriptions unless the library itself is the subject (e.g. the Acknowledgements page). Even then, describe what it does for the user, not how it works internally.
-- No firmware build steps, ESP-IDF commands, or contribution/development workflow. That belongs in the repository's `AGENTS.md` and `README.md`, not the wiki.
+- No firmware build steps, ESP-IDF commands, or contribution/development workflow. That belongs in the repository's `CONTRIBUTING.md`, `AGENTS.md`, and `docs/`, not the wiki. `README.md` stays minimal and links here.
 - `<code>` is allowed **only** for UI labels or literal values the user must type or read verbatim (e.g. the `RESET` confirmation word).
 - Active voice, present tense. One idea per sentence.
 - Audience test: could a non-technical friend understand every sentence? If not, rewrite.
@@ -37,7 +37,7 @@ Do not mix types on one page. If content fits two types, create two pages and li
 
 The wiki layout copies the locationjoystick wiki, so a layout change there is ported here. `/maintain-design` reads this line:
 
-Design upstream: ~/Documents/locationjoystick docs/wiki (style.css, wiki-init.js, CONTRIBUTING.md), synced at f8290963. Local: :root colors, nav items, pages.
+Design upstream: ~/Documents/locationjoystick docs/wiki (style.css, wiki-init.js, CONTRIBUTING.md), synced at f8290963. Local: :root colors, nav items, pages, install page, firmware flasher. Structure and writing rules: the `maintain-design` skill, `references/wiki-docs.md`.
 
 ### Landing hero
 
@@ -66,12 +66,13 @@ Never use a `<table>`. Tables squash or scroll sideways on phones. Give each ent
 
 ### Sidebar groups
 
-The sidebar has five groups in this fixed order:
+The sidebar has six groups in this fixed order, the same as the locationjoystick wiki:
 
-- **Start.** First-time setup. Pages: Getting Started, Hardware, Install & Update Firmware.
-- **Use.** Everyday tasks. Pages: Connect & Pair, Device Profiles.
-- **Configure.** Settings and diagnostics. Pages: Settings, Diagnostics & Danger Zone.
-- **Help.** Fixing problems. Pages: Common Tasks & FAQ, Troubleshooting.
+- **Start.** First-time setup. Pages: Getting started, Hardware, Install and update firmware.
+- **Guides.** Goal-based how-to pages. Pages: Common tasks (the hub), Connect and pair, and each task page the hub links.
+- **Features.** One page per feature you use every day. Pages: Device profiles, Pairing assistant, Game monitor, Diagnostics and danger zone.
+- **Configure.** Settings. Pages: Settings.
+- **Help.** Fixing problems. Pages: Troubleshooting, FAQ.
 - **About.** Project information. Pages: Changelog, Privacy, Acknowledgements.
 
 All nav items live in `docs/wiki/wiki-init.js`, in the `NAV_ITEMS` array. Each group has a `group` name and an `items` array. Read the live array in that file for the current labels. Groups are collapsible, and the group that holds the current page starts open. The right-rail outline and the "On this page" list come from the `h2` and `h3` ids of each page.
@@ -80,7 +81,7 @@ Shape of one group:
 
 ```js
 { group: 'Use', items: [
-  { href: 'connect.html', label: 'Connect & Pair' },
+  { href: 'connect.html', label: 'Connect and pair' },
 ] },
 ```
 
@@ -104,20 +105,20 @@ When a page moves or merges into another page:
 3. Give the stub a `<title>` that matches the new page, a `<meta http-equiv="refresh">` to the new page, a canonical link to the new page, and `<meta name="robots" content="noindex">`.
 4. Put one plain link in the body: "This page moved. See <a href="...">Page Name</a>."
 
-Example stub for a page merged into Install & Update Firmware:
+Example stub for a page merged into Install and update firmware:
 
 ```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Install &amp; Update Firmware — pgpemu</title>
+  <title>Install and update firmware | pgpemu</title>
   <meta http-equiv="refresh" content="0; url=install.html#update">
   <link rel="canonical" href="https://pgpemu.shrtcts.fr/install.html">
   <meta name="robots" content="noindex">
 </head>
 <body>
-<p>This page moved. See <a href="install.html#update">Install &amp; Update Firmware</a>.</p>
+<p>This page moved. See <a href="install.html#update">Install and update firmware</a>.</p>
 </body>
 </html>
 ```
@@ -129,24 +130,24 @@ Example stub for a page merged into Install & Update Firmware:
 Every real page, not a redirect stub, has these tags in its `<head>`, after the charset and viewport tags:
 
 ```html
-<title>Settings — pgpemu</title>
+<title>Settings | pgpemu</title>
 <meta name="description" content="Change how your PGPemu device advertises over Bluetooth, its status light, connection limit, log level, and Pokémon GO alerts.">
 <link rel="canonical" href="https://pgpemu.shrtcts.fr/settings.html">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="pgpemu">
-<meta property="og:title" content="Settings — pgpemu">
+<meta property="og:title" content="Settings | pgpemu">
 <meta property="og:description" content="Change how your PGPemu device advertises over Bluetooth, its status light, connection limit, log level, and Pokémon GO alerts.">
 <meta property="og:url" content="https://pgpemu.shrtcts.fr/settings.html">
 <meta property="og:image" content="https://pgpemu.shrtcts.fr/icon.png">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Settings — pgpemu">
+<meta name="twitter:title" content="Settings | pgpemu">
 <meta name="twitter:description" content="Change how your PGPemu device advertises over Bluetooth, its status light, connection limit, log level, and Pokémon GO alerts.">
 <meta name="twitter:image" content="https://pgpemu.shrtcts.fr/icon.png">
 ```
 
 Rules:
 
-- **Title:** `<Page name> — pgpemu`. Unique per page. Write `&amp;` for an ampersand.
+- **Title:** `<Page name> | pgpemu`. Unique per page. Write `&amp;` for an ampersand.
 - **Description:** one plain sentence under 160 characters. Unique per page.
 - **Canonical:** `https://pgpemu.shrtcts.fr/<page>.html`. The home page uses `https://pgpemu.shrtcts.fr/`. `og:url` repeats the canonical URL.
 - **Social tags:** repeat the title and description. The card type is `summary`, because `icon.png` is square.
@@ -166,7 +167,7 @@ Pages load nothing from outside the site except DocSearch. The Inter font loads 
 
 ### Source of truth
 
-`CHANGELOG.md` at the repo root is the exhaustive changelog generated by conventional commits tooling. `changelog.html` is a curated, user-facing distillation of it — not a mirror.
+`CHANGELOG.md` at the repo root is the exhaustive changelog generated by conventional commits tooling. `changelog.html` is a curated, user-facing distillation of it, not a mirror.
 
 ### When to update
 
@@ -178,7 +179,7 @@ Each version is an `<h3>` whose text is a link to the GitHub release, followed b
 
 ```html
 <h3 id="vXYZ"><a href="https://github.com/shortcuts/pgpemu/releases/tag/vX.Y.Z"
-       target="_blank" rel="noopener">X.Y.Z</a> — Month DD, YYYY</h3>
+       target="_blank" rel="noopener">X.Y.Z</a> (Month DD, YYYY)</h3>
 <ul>
   <li>…</li>
 </ul>
@@ -197,12 +198,12 @@ Each version is an `<h3>` whose text is a link to the GitHub release, followed b
 3. Fixes for problems users would notice (dropped connections, wrong status, settings not saving)
 
 **Skip entirely:**
-- Pure maintenance releases (version bump only, trigger-release commits, lint fixes) — merge them silently into the previous version's section, or omit the version heading if there is nothing user-visible.
+- Pure maintenance releases (version bump only, trigger-release commits, lint fixes). Merge them silently into the previous version's section, or omit the version heading if there is nothing user-visible.
 - Internal refactors, test changes, CI/build changes, code style fixes.
 - Firmware or app internals that don't change what the user sees or does.
 
 **Writing style:**
-- Audience is app and device users, not developers — no code terms, opcode names, or firmware internals.
+- Audience is app and device users, not developers. Use no code terms, opcode names, or firmware internals.
 - One sentence per bullet, active voice, present tense describing what the app or device now does.
 - Bad: "TOGGLE_AUTOSPIN now clamps the profile index before dispatch."
 - Good: "Fixed a crash when toggling Autospin on the last device profile."
@@ -211,7 +212,7 @@ Each version is an `<h3>` whose text is a link to the GitHub release, followed b
 
 ```html
 <h3 id="v110"><a href="https://github.com/shortcuts/pgpemu/releases/tag/v1.1.0"
-       target="_blank" rel="noopener">1.1.0</a> — January 1, 2027</h3>
+       target="_blank" rel="noopener">1.1.0</a> (January 1, 2027)</h3>
 <ul>
   <li>New: the companion app now shows battery level for connected devices.</li>
   <li>Autocatch now resumes automatically the moment your Pokémon box has room again.</li>

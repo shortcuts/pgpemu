@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Set up a device with no secrets | pgpemu</title>
+  <meta name="description" content="Load your secrets file into a new or reset PGPemu device with the companion app.">
+  <link rel="canonical" href="https://pgpemu.shrtcts.fr/setup-device.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="pgpemu">
+  <meta property="og:title" content="Set up a device with no secrets | pgpemu">
+  <meta property="og:description" content="Load your secrets file into a new or reset PGPemu device with the companion app.">
+  <meta property="og:url" content="https://pgpemu.shrtcts.fr/setup-device.html">
+  <meta property="og:image" content="https://pgpemu.shrtcts.fr/icon.png">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Set up a device with no secrets | pgpemu">
+  <meta name="twitter:description" content="Load your secrets file into a new or reset PGPemu device with the companion app.">
+  <meta name="twitter:image" content="https://pgpemu.shrtcts.fr/icon.png">
+  <link rel="icon" href="icon.png" type="image/png">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@docsearch/css@4">
+</head>
+<body>
+<div class="layout">
+
+  <main>
+    <h1 id="set-up-a-device-with-no-secrets">Set up a device with no secrets</h1>
+    <p>
+      A device that has no secrets, or one you reset, shows up in the scan as <strong>PGPemu Setup</strong>.
+      Pokémon GO does not see it. Connect to it in the app like any other device.
+      The app then shows <strong>Set up device</strong> instead of the dashboard.
+      A freshly installed device starts in this state. See <a href="install.html">Install and update firmware</a>.
+    </p>
+    <ol>
+      <li>Tap <strong>Import secrets.csv</strong> and pick your secrets file. If the file is not valid, the app says so and sends nothing.</li>
+      <li>The device saves the secrets and restarts by itself.</li>
+      <li>The device now has a new Bluetooth address. Scan again and connect to it, then pair it with Pokémon GO.</li>
+    </ol>
+    <p>
+      <strong>Warning:</strong> until you import the file, anyone in Bluetooth range can set up this device.
+      Do it in a place where nobody else is nearby.
+    </p>
+
+  </main>
+
+</div>
+<script src="wiki-init.js"></script>
+</body>
+</html>

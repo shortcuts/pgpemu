@@ -2,7 +2,7 @@
 
 ## Building
 
-See `README.md`, "Installation & Setup". CLI only (no VSCode extension):
+See [docs/development.md](docs/development.md) for the toolchain, secrets, and troubleshooting. CLI only (no VSCode extension):
 
 ```bash
 make install-deps && make setup-esp-idf   # once per machine
@@ -49,6 +49,21 @@ Without `ANDROID_SERIAL`, adb stops with `more than one device/emulator` when se
 1. Read [AGENTS.md](AGENTS.md): scope, architecture rules, doc maintenance policy.
 2. One feature/fix per PR, small atomic commits. Messages state what and why.
 3. Doc changes ship in the same commit as the code change.
+
+## Commit messages
+
+Use Conventional Commits: `<type>: <subject>`. The subject says what changed. The body says why. release-please builds the changelog from these.
+
+* Types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`.
+* Add a scope for companion app changes: `feat(companion): ...`.
+
+## Adding a feature
+
+1. Pick the layer. Read [docs/architecture.md](docs/architecture.md).
+2. Write the unit test first. See [docs/testing.md](docs/testing.md).
+3. Implement, then run the required checks below.
+4. Update the docs in the same commit. [AGENTS.md](AGENTS.md) lists which file each change touches.
+5. Test on hardware, or ask the maintainer to.
 
 ## Required Checks
 
@@ -100,6 +115,8 @@ Fix all errors. Never suppress without an inline comment explaining the false po
 |-------|------|
 | Agent rules and module table | [AGENTS.md](AGENTS.md) |
 | Architecture | [docs/architecture.md](docs/architecture.md) |
+| Firmware toolchain, secrets, battery | [docs/development.md](docs/development.md) |
+| Firmware testing | [docs/testing.md](docs/testing.md) |
 | Companion app code style | [docs/companion-code-style.md](docs/companion-code-style.md) |
 | Companion app testing | [docs/companion-testing.md](docs/companion-testing.md) |
 | Domain vocabulary | [CONTEXT.md](CONTEXT.md) |

@@ -3,17 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Connect &amp; Pair — pgpemu</title>
+  <title>Connect and pair | pgpemu</title>
   <meta name="description" content="Connect the companion app to your PGPemu device, then pair it with Pokémon GO. Covers setup without secrets and several phones.">
   <link rel="canonical" href="https://pgpemu.shrtcts.fr/connect.html">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="pgpemu">
-  <meta property="og:title" content="Connect &amp; Pair — pgpemu">
+  <meta property="og:title" content="Connect and pair | pgpemu">
   <meta property="og:description" content="Connect the companion app to your PGPemu device, then pair it with Pokémon GO. Covers setup without secrets and several phones.">
   <meta property="og:url" content="https://pgpemu.shrtcts.fr/connect.html">
   <meta property="og:image" content="https://pgpemu.shrtcts.fr/icon.png">
   <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="Connect &amp; Pair — pgpemu">
+  <meta name="twitter:title" content="Connect and pair | pgpemu">
   <meta name="twitter:description" content="Connect the companion app to your PGPemu device, then pair it with Pokémon GO. Covers setup without secrets and several phones.">
   <meta name="twitter:image" content="https://pgpemu.shrtcts.fr/icon.png">
   <link rel="icon" href="icon.png" type="image/png">
@@ -24,7 +24,8 @@
 <div class="layout">
 
   <main>
-    <h1 id="connect-and-pair">Connect &amp; Pair</h1>
+    <h1 id="connect-and-pair">Connect and pair</h1>
+    <p>Connect the companion app first, then pair the device with Pokémon GO. A device with no secrets needs <a href="setup-device.html">setup</a> first.</p>
 
     <section class="has-shot">
       <h2 id="connect-companion-app">Connect the companion app</h2>
@@ -33,54 +34,24 @@
       Power on the PGPemu device, open PGPemu Companion, and tap <strong>Scan for devices</strong>.
       Every nearby device appears in a list as it's found, with its Bluetooth address and signal
       strength. If you have more than one nearby, the strongest signal is usually the closest.
-      Tap yours in the list. The app connects and completes pairing on its own — there's no PIN or
-      passphrase to type.
+      Tap yours in the list. The app connects and completes pairing on its own. You type no PIN or
+      passphrase.
     </p>
     <ul class="section-bullets">
       <li>If the scan ends with nothing in the list, the app says <strong>No devices found</strong>. Check the device is powered on and nearby, then tap <strong>Scan again</strong>.</li>
       <li>The status pill in the top bar shows <strong>Scanning</strong> while it looks, then <strong>Connecting</strong>, then <strong>Bonding</strong> as pairing goes through.</li>
       <li>Once pairing finishes, the pill switches to <strong>Ready</strong> and the app shows four tabs at the bottom: Dashboard (status, device profiles, activity), Settings, Diagnostics (with the danger zone), and About.</li>
-      <li>The first time you connect, your phone may ask for Bluetooth permission. Allow it — without it, the app can't scan for the device.</li>
+      <li>The first time you connect, your phone may ask for Bluetooth permission. Allow it. Without it, the app cannot scan for the device.</li>
       <li>On Android 16 or newer, the phone also asks once to pair the device with the app. Allow it, so the app can repair a broken pairing by itself.</li>
-      <li>Later connections to a device you've already paired are quicker, since pairing only needs to happen once.</li>
+      <li>Later connections to a paired device are quicker, because pairing happens once.</li>
       <li>The app lets go of the device when you leave it, so Pokémon GO can connect. When you open the app again, tap <strong>Scan</strong> and pick the device. If the connection drops while the app is open, the app tries again for about two minutes. <strong>Disconnect</strong> stops this.</li>
     </ul>
-    <h3 id="skip-pairing-prompt">Skip the pairing prompt</h3>
-    <p>
-      The first time you connect, your phone asks you to pair with <strong>Pokemon GO Plus</strong>. The pairing assistant taps <strong>Pair</strong> for you.
-      Switch on <strong>Skip the pairing prompt</strong> below the <strong>Scan</strong> button, read the notice, and tap <strong>Continue</strong>.
-      Your phone then opens its Accessibility settings. Find <strong>PGP Companion pairing assistant</strong> and switch it on.
-      If your phone says the setting is restricted, open the app's info, tap the three dots, choose <strong>Allow restricted settings</strong>, and try again.
-      If it still does not work, see <a href="troubleshooting.html#pairing-prompt-still-shows">The pairing prompt still shows</a>.
-    </p>
-    <h3 id="rooted-phones">Rooted phones</h3>
-    <p>
-      If your phone is rooted, switch on <strong>Pair silently with root</strong> below the <strong>Scan</strong> button, or in the app's <strong>Settings</strong> tab. Allow root access when your phone asks.
-      After that, the pairing prompt never shows.
-    </p>
+    <p>To skip the pairing prompt, use the <a href="pairing-assistant.html">pairing assistant</a>.</p>
     </section>
-
-    <h2 id="setup-device">Set up a device with no secrets</h2>
-    <p>
-      A device that has no secrets, or one you reset, shows up in the scan as <strong>PGPemu Setup</strong>.
-      Pokémon GO does not see it. Connect to it in the app like any other device.
-      The app then shows <strong>Set up device</strong> instead of the dashboard.
-      A freshly installed device starts in this state: see <a href="install.html">Install &amp; Update Firmware</a>.
-    </p>
-    <ol>
-      <li>Tap <strong>Import secrets.csv</strong> and pick your secrets file. If the file is not valid, the app says so and sends nothing.</li>
-      <li>The device saves the secrets and restarts by itself.</li>
-      <li>The device now has a new Bluetooth address. Scan again and connect to it, then pair it with Pokémon GO.</li>
-    </ol>
-    <p>
-      <strong>Warning:</strong> until you import the file, anyone in Bluetooth range can set up this device.
-      Do it in a place where nobody else is nearby.
-    </p>
 
     <h2 id="pair-pokemon-go">Pair with Pokémon GO</h2>
     <p>
-      This is a separate step from connecting the companion app, done from inside Pokémon GO
-      itself, the same way you'd pair a real Poké Ball Plus or GO Plus.
+      This step is separate from connecting the companion app. You do it in Pokémon GO, as you would pair a real Poké Ball Plus or GO Plus.
     </p>
     <ol class="quickstart">
       <li>In Pokémon GO, open <strong>Settings</strong> and go to the Pokémon GO Plus / Poké Ball Plus pairing screen.</li>
@@ -88,29 +59,13 @@
       <li>Select it. Pairing completes automatically, with no passphrase required.</li>
     </ol>
     <p>
-      Once paired, Pokémon GO reconnects to it automatically whenever both are in range and
-      Bluetooth is on — the same as it would with genuine hardware.
-    </p>
-
-    <h2 id="multiple-devices">Multiple connections</h2>
-    <p>
-      A single PGPemu device can hold up to 4 simultaneous Bluetooth connections at once, shared
-      between Pokémon GO and the companion app. Each connection takes one slot, and the companion app takes a slot too. Each slot has its own device profile
-      (numbered 1 to 4) with independent Autospin and Autocatch settings — see
-      <a href="profiles.html">Device Profiles</a>.
-    </p>
-    <p>
-      This is useful if more than one Pokémon GO account uses the same device, since each
-      account's connection is tracked and configured separately. The
-      <a href="settings.html">Settings</a> page lets you lower the connection limit below 4 if
-      you'd rather keep it reserved for fewer accounts.
+      Once paired, Pokémon GO reconnects automatically when both are in range and Bluetooth is on.
     </p>
 
     <h2 id="disconnect">Disconnecting</h2>
     <p>
       Tap <strong>Disconnect</strong> at the bottom of the Dashboard tab to end its own
-      connection. This doesn't affect Pokémon GO's connection to the device — the two are
-      independent. To drop every connection at once, including Pokémon GO's, use
+      connection. This does not affect Pokémon GO's connection to the device. To drop every connection at once, including Pokémon GO's, use
       <strong>Disconnect all clients</strong> in <a href="diagnostics.html">Diagnostics</a>.
     </p>
   </main>

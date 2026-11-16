@@ -3,17 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Troubleshooting — pgpemu</title>
+  <title>Troubleshooting | pgpemu</title>
   <meta name="description" content="Fix common PGPemu problems: the app cannot find the device, connection errors, missing alerts, restarts, and dropped connections.">
   <link rel="canonical" href="https://pgpemu.shrtcts.fr/troubleshooting.html">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="pgpemu">
-  <meta property="og:title" content="Troubleshooting — pgpemu">
+  <meta property="og:title" content="Troubleshooting | pgpemu">
   <meta property="og:description" content="Fix common PGPemu problems: the app cannot find the device, connection errors, missing alerts, restarts, and dropped connections.">
   <meta property="og:url" content="https://pgpemu.shrtcts.fr/troubleshooting.html">
   <meta property="og:image" content="https://pgpemu.shrtcts.fr/icon.png">
   <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="Troubleshooting — pgpemu">
+  <meta name="twitter:title" content="Troubleshooting | pgpemu">
   <meta name="twitter:description" content="Fix common PGPemu problems: the app cannot find the device, connection errors, missing alerts, restarts, and dropped connections.">
   <meta name="twitter:image" content="https://pgpemu.shrtcts.fr/icon.png">
   <link rel="icon" href="icon.png" type="image/png">
@@ -30,29 +30,28 @@
     <h2 id="app-cant-find-device">Companion app can't find the device</h2>
     <ul class="trouble">
       <li>Make sure the device is powered on and its light is blinking. <a href="settings.html#status-light">What the light patterns mean</a>.</li>
-      <li>Turn Bluetooth on for your phone, and grant the app's Bluetooth permission if it was denied earlier — the app shows a message under the scan button when that's the problem, with a Turn on Bluetooth button or, after you chose "Don't ask again", an Open app settings button.</li>
-      <li>Tap <strong>Scan again</strong> — the list only fills while a scan is running.</li>
-      <li>Move closer. Bluetooth Low Energy range shrinks fast through walls and at distance.</li>
-      <li>Check <a href="settings.html">Advertising</a> is turned on. If it was switched off, the device won't show up in a scan at all.</li>
-      <li>If the device is already holding as many connections as its Max connections limit allows, it won't accept a new one. Disconnect something first, or raise the limit from another already-connected client.</li>
+      <li>Turn Bluetooth on for your phone, and grant the app's Bluetooth permission if you denied it earlier. When that is the problem, the app shows a message under the scan button, with a Turn on Bluetooth button or, after you chose "Don't ask again", an Open app settings button.</li>
+      <li>Tap <strong>Scan again</strong>. The list fills only while a scan runs.</li>
+      <li>Move closer. Bluetooth range shrinks through walls and at distance.</li>
+      <li>Check that <a href="settings.html">Advertising</a> is on. With Advertising off, the device does not show up in a scan.</li>
+      <li>If the device holds as many connections as its Max connections limit allows, it accepts no new one. Disconnect something first, or raise the limit from a connected client.</li>
     </ul>
 
     <h2 id="connect-fails-with-error">Connecting fails with an error message</h2>
     <p>
-      The companion app shows the underlying Bluetooth error text below the Connect button so it
-      can be reported if needed. A few you might see, and what they usually mean:
+      The companion app shows the Bluetooth error text below the Connect button. Include it in a bug report. These errors are common:
     </p>
         <h3 id="connect-fails-with-error-adapter-off">Bluetooth adapter is off / Bluetooth is disabled</h3>
     <p>Turn Bluetooth on for your phone and try again.</p>
 
     <h3 id="connect-fails-with-error-timed-out">connection timed out</h3>
-    <p>The device didn't respond in time. Move closer, make sure it's powered on, and retry.</p>
+    <p>The device did not respond in time. Move closer, check that it is powered on, and retry.</p>
 
     <h3 id="connect-fails-with-error-cancelled">connection cancelled</h3>
-    <p>The connection attempt was interrupted, often by tapping a device in the list twice. Just retry.</p>
+    <p>The connection attempt was interrupted, often by tapping a device in the list twice. Retry.</p>
 
     <h3 id="connect-fails-with-error-not-migrated">device not migrated</h3>
-    <p>The device connected, but doesn't support the companion app protocol. Its firmware needs to be updated to a version that includes it.</p>
+    <p>The device connected but does not support the companion app. Update its firmware.</p>
 
     <h3 id="connect-fails-with-error-bonding-failed">bonding failed</h3>
     <p>Pairing itself was rejected. Forget the device from your phone's Bluetooth settings and try connecting again from scratch.</p>
@@ -63,25 +62,25 @@
 
     <h2 id="not-appearing-in-pokemon-go">Device not appearing in Pokémon GO's pairing scan</h2>
     <ul class="trouble">
-      <li>Confirm <a href="settings.html">Advertising</a> is on — this is checked from the companion app or Status card.</li>
-      <li>Make sure the device isn't already at its Max connections limit.</li>
+      <li>Confirm that <a href="settings.html">Advertising</a> is on. The Settings tab and the Status card show it.</li>
+      <li>Check that the device is not at its Max connections limit.</li>
       <li>Turn Bluetooth off and back on for your phone, and restart the Pokémon GO app.</li>
-      <li>Some phones need Bluetooth scanning permission granted to Pokémon GO specifically — check its app permissions if the scan comes up empty.</li>
+      <li>Some phones need Bluetooth scanning permission for Pokémon GO. Check its app permissions if the scan is empty.</li>
     </ul>
 
     <h2 id="autospin-autocatch-not-triggering">Autospin or Autocatch isn't triggering</h2>
     <ul class="trouble">
-      <li>Open <a href="profiles.html">Device Profiles</a> and confirm the SPIN or CATCH dot is lit for the profile that matches your connected Pokémon GO account.</li>
+      <li>Open <a href="profiles.html">Device profiles</a> and confirm the SPIN or CATCH dot is lit for the profile that matches your connected Pokémon GO account.</li>
       <li>If your item bag is full, your Pokémon box is full, or you are out of Poké Balls, the device does not press the button for that action. Clear space or restock in the game. The device does not pause or resume on its own.</li>
       <li>Each account keeps its own setting. If you turned Autospin or Autocatch off for an account, it stays off when that account reconnects. Tap the dot to turn it back on. With <strong>CATCH new</strong>, the device presses only for Pokémon you have not caught yet, so it skips the others.</li>
-      <li>If more than one account uses the same device, double check you're toggling the profile for the right connection slot, not a different one.</li>
+      <li>If several accounts share the device, check that you toggle the profile of the right connection slot.</li>
     </ul>
 
     <h2 id="frequent-disconnects">Frequent disconnects or slow responses</h2>
     <ul class="trouble">
-      <li>Keep the device within a stable Bluetooth range — physical distance and obstructions are the most common cause.</li>
-      <li>A Log level of Verbose adds overhead. Switch it back to Debug or Info once you're done diagnosing an issue.</li>
-      <li>If several devices are connected at once, an already-busy connection slot can make everything feel slower. Check <a href="diagnostics.html">Client states</a> to see what's connected.</li>
+      <li>Keep the device within Bluetooth range. Distance and obstructions are the most common cause.</li>
+      <li>The Verbose log level slows the device. Switch back to Debug or Info when you finish diagnosing.</li>
+      <li>Many connected phones can slow the device. Check <a href="diagnostics.html">Client states</a> to see what is connected.</li>
     </ul>
 
     <h2 id="restarts-on-its-own">The device restarts on its own</h2>
@@ -111,7 +110,7 @@
     <ol>
       <li>The <strong>Skip the pairing prompt</strong> switch in the app is on. If it is off, turn it on and switch on <strong>PGP Companion pairing assistant</strong> in your phone's Accessibility settings.</li>
       <li>Your phone may block the setting. Open the app's info, tap the three dots, choose <strong>Allow restricted settings</strong>, then try again.</li>
-      <li>Some phone brands word the prompt differently. The assistant may not recognise it. Tap <strong>Pair</strong> yourself; pairing works the same.</li>
+      <li>Some phone brands word the prompt differently. The assistant may not recognize it. Tap <strong>Pair</strong> yourself. Pairing works the same.</li>
     </ol>
 
     <h2 id="no-game-alerts">No game alerts arrive</h2>
@@ -121,7 +120,7 @@
     <ol>
       <li>The <strong>Alert me about Pokémon GO</strong> switch in Settings is on.</li>
       <li>The app has notification access. Tap <strong>Notification access settings</strong> and switch the app on.</li>
-      <li>The app may show notifications. In your phone's app settings, allow notifications for PGPemu.</li>
+      <li>In your phone's app settings, allow notifications for PGPemu.</li>
       <li>Pokémon GO shows its own notification while it is connected to the device. Allow it in your phone's settings.</li>
     </ol>
     <p>
@@ -145,8 +144,8 @@
 
     <h2 id="starting-fresh">Starting over from scratch</h2>
     <p>
-      If a device is stuck in a bad state that the steps above don't fix, tap <strong>Forget all
-      pairings</strong> in the <a href="diagnostics.html#danger-zone">Danger Zone</a>. It erases every
+      If the steps above do not fix a stuck device, tap <strong>Forget all
+      pairings</strong> in the <a href="diagnostics.html#danger-zone">Danger zone</a>. It erases every
       pairing and setting but keeps the device's identity. No phone handy? Hold the board button for
       10 seconds while the device is on, and it does the same. Afterwards, remove the device from
       your phone's Bluetooth settings if it still shows up, then pair again.
@@ -154,7 +153,7 @@
     <p>
       As a last resort, <strong>Reset session secrets</strong> erases the device's identity too.
       The device stops working until you import your secrets file again from the app, as described in
-      <a href="connect.html#setup-device">Set up a device with no secrets</a>.
+      <a href="setup-device.html">Set up a device with no secrets</a>.
     </p>
 
     <h2 id="still-stuck">Still stuck?</h2>
