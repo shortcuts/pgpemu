@@ -118,6 +118,21 @@ jobs:
       working-directory: companion-app
       run: ./gradlew :app:lintRelease
 
+  # release-please creates the tag and release before the post-merge check runs, so a miss there ships an empty release.
+  release-pr-changelog:
+    if: ${{ startsWith(github.head_ref, 'release-please--') }}
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: verify user-facing changelog entry
+      run: |
+        TAG="v$(jq -r '."."' .release-please-manifest.json)"
+        if ! grep -qF "releases/tag/${TAG}\"" docs/wiki/changelog.html; then
+          echo "::error::docs/wiki/changelog.html has no entry for ${TAG}. Add one on main (see docs/wiki/CONTRIBUTING.md) before you merge this release PR."
+          exit 1
+        fi
+
   release:
     if: ${{ github.ref == 'refs/heads/main' }}
     needs:
